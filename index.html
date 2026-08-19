@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的影评记录</title>
+<style>
+/* ===== Reset & Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f0f13;
+  --surface: #1a1a23;
+  --surface2: #22222e;
+  --border: #2a2a38;
+  --text: #e4e4ec;
+  --text2: #9898a8;
+  --text3: #686878;
+  --accent: #6366f1;
+  --accent-light: #818cf8;
+  --star: #f59e0b;
+  --danger: #ef4444;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --radius: 12px;
+  --shadow: 0 2px 12px rgba(0,0,0,.3);
+  --transition: .2s ease;
+}
+
+html { font-size: 16px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ===== Layout ===== */
+.app-wrapper {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+/* ===== Header ===== */
+.app-header {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.app-header h1 {
+  font-size: 1.75rem; font-weight: 700;
+  background: linear-gradient(135deg, var(--accent-light), #a78bfa);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.header-actions { display: flex; gap: 8px; align-items: center; }
+
+/* ===== Storage Status Bar ===== */
+.storage-status {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: var(--radius);
+  font-size: .82rem; margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.storage-status.file {
+  background: rgba(16, 185, 129, .08); border: 1px solid rgba(16, 185, 129, .2);
+  color: var(--success);
+}
+.storage-status.local {
+  background: rgba(245, 158, 11, .08); border: 1px solid rgba(245, 158, 11, .2);
+  color: var(--warning);
+}
+.storage-status.loading {
+  background: var(--surface); border: 1px solid var(--border); color: var(--text3);
+}
+.storage-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.storage-status.file .storage-dot { background: var(--success); box-shadow: 0 0 6px var(--success); }
+.storage-status.local .storage-dot { background: var(--warning); box-shadow: 0 0 6px var(--warning); }
+.storage-status.loading .storage-dot { background: var(--text3); }
+.storage-status.error {
+  background: rgba(239, 68, 68, .08); border: 1px solid rgba(239, 68, 68, .25);
+  color: var(--danger);
+}
+.storage-status.error .storage-dot { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+.storage-status.hidden { display: none; }
+.storage-status-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.storage-status-actions { display: flex; gap: 8px; margin-left: auto; }
+.storage-status .btn-link {
+  background: none; border: none; color: inherit; cursor: pointer;
+  font-size: .82rem; text-decoration: underline; padding: 2px 4px;
+  opacity: .8; white-space: nowrap;
+}
+.storage-status .btn-link:hover { opacity: 1; }
+
+/* ===== Stats Bar ===== */
+.stats-bar {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px; margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  text-align: center;
+}
+.stat-value { font-size: 1.5rem; font-weight: 700; color: var(--accent-light); }
+.stat-label { font-size: .8rem; color: var(--text3); margin-top: 2px; }
+
+/* ===== Toolbar ===== */
+.toolbar {
+  display: flex; gap: 12px; flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.search-box {
+  flex: 1; min-width: 200px;
+  position: relative;
+}
+.search-box input {
+  width: 100%; padding: 10px 12px 10px 36px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text);
+  font-size: .9rem; outline: none; transition: var(--transition);
+}
+.search-box input:focus { border-color: var(--accent); }
+.search-box .search-icon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--text3); font-size: .9rem; pointer-events: none;
+}
+.filter-select {
+  padding: 10px 14px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text);
+  font-size: .9rem; outline: none; cursor: pointer;
+}
+.filter-select:focus { border-color: var(--accent); }
+
+/* ===== Buttons ===== */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 18px; border: none; border-radius: var(--radius);
+  font-size: .9rem; font-weight: 500; cursor: pointer;
+  transition: var(--transition); white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-light); }
+.btn:disabled { opacity: .5; cursor: not-allowed; pointer-events: none; }
+.btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--surface2); color: var(--text); }
+.btn-sm { padding: 6px 12px; font-size: .8rem; border-radius: 8px; }
+.btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+.btn-danger:hover { background: var(--danger); color: #fff; }
+
+/* ===== Movie Grid ===== */
+.movie-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.movie-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition: var(--transition);
+  display: flex; flex-direction: column; gap: 10px;
+  position: relative;
+  cursor: pointer;
+}
+.movie-card:hover { border-color: var(--accent); box-shadow: var(--shadow); }
+.movie-card:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 3px; }
+
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.card-title { font-size: 1.1rem; font-weight: 600; color: var(--text); word-break: break-word; }
+.card-rating { display: flex; gap: 2px; font-size: 1rem; }
+.star-filled { color: var(--star); }
+.star-empty { color: var(--text3); }
+
+.card-meta { display: flex; flex-wrap: wrap; gap: 8px; font-size: .78rem; color: var(--text3); }
+.card-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag {
+  padding: 3px 10px; border-radius: 20px; font-size: .75rem;
+  background: var(--surface2); color: var(--text2);
+  border: 1px solid var(--border);
+}
+
+.card-comment {
+  font-size: .85rem; color: var(--text2);
+  line-height: 1.6; display: -webkit-box;
+  -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+}
+.card-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); }
+.card-actions .btn { cursor: pointer; }
+
+/* ===== Modal ===== */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 20px;
+  opacity: 0; visibility: hidden; transition: .25s ease;
+}
+.modal-overlay.active { opacity: 1; visibility: visible; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px; width: 100%; max-width: 520px;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5);
+}
+.modal h2 { font-size: 1.3rem; margin-bottom: 20px; }
+
+.form-group { margin-bottom: 16px; }
+.form-label {
+  display: block; font-size: .85rem; font-weight: 500;
+  color: var(--text2); margin-bottom: 6px;
+}
+.form-input, .form-textarea, .form-select {
+  width: 100%; padding: 10px 14px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); font-size: .9rem;
+  outline: none; font-family: inherit; transition: var(--transition);
+}
+.form-input:focus, .form-textarea:focus, .form-select:focus { border-color: var(--accent); }
+.form-textarea { resize: vertical; min-height: 80px; }
+
+.star-selector { display: flex; gap: 6px; font-size: 1.6rem; cursor: pointer; }
+.star-selector .star { transition: .15s ease; }
+.star-selector .star:hover { transform: scale(1.2); }
+
+.form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+/* ===== Review Image Picker ===== */
+.image-picker {
+  padding: 12px; border: 1px dashed var(--border); border-radius: 10px;
+  background: rgba(255,255,255,.015);
+}
+.image-picker-empty { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.image-picker-empty p { color: var(--text3); font-size: .82rem; }
+.image-picker-preview { display: none; gap: 12px; align-items: center; }
+.image-picker.has-image .image-picker-empty { display: none; }
+.image-picker.has-image .image-picker-preview { display: flex; }
+.image-preview-frame {
+  width: 128px; height: 84px; flex-shrink: 0; border-radius: 8px;
+  background: #09090c; border: 1px solid var(--border); overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.image-preview-frame img { width: 100%; height: 100%; object-fit: contain; }
+.image-preview-info { min-width: 0; flex: 1; }
+.image-preview-name { color: var(--text); font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.image-preview-size { color: var(--text3); font-size: .75rem; margin-top: 2px; }
+.image-preview-progress { color: var(--accent-light); font-size: .75rem; margin-top: 4px; }
+.image-picker-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+
+/* ===== Review Detail ===== */
+.detail-overlay { z-index: 1100; }
+.detail-modal { max-width: 780px; padding: 0; overflow: hidden; }
+.detail-scroll { max-height: 90vh; overflow-y: auto; }
+.detail-image-section {
+  min-height: 180px; max-height: 440px; background: #08080b;
+  display: none; align-items: center; justify-content: center; position: relative;
+  border-bottom: 1px solid var(--border);
+}
+.detail-image-section.visible { display: flex; }
+.detail-image-section img {
+  display: none; width: 100%; max-height: 440px; object-fit: contain; cursor: zoom-in;
+}
+.detail-image-section.loaded img { display: block; }
+.image-load-state { color: var(--text3); text-align: center; padding: 28px; font-size: .85rem; }
+.image-load-state strong { display: block; color: var(--accent-light); font-size: 1.1rem; margin-bottom: 4px; }
+.detail-image-section.loaded .image-load-state { display: none; }
+.detail-content { padding: 28px; }
+.detail-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.detail-title { font-size: 1.55rem; line-height: 1.35; word-break: break-word; }
+.detail-rating { flex-shrink: 0; font-size: 1.15rem; }
+.detail-meta { display: flex; gap: 12px; flex-wrap: wrap; color: var(--text3); font-size: .85rem; margin-top: 10px; }
+.detail-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+.detail-comment {
+  margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border);
+  color: var(--text2); line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.detail-comment.empty { color: var(--text3); font-style: italic; }
+.detail-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 26px; }
+
+/* ===== Fullscreen Image Lightbox ===== */
+.lightbox-overlay {
+  position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center;
+  padding: 24px; background: rgba(0,0,0,.94); opacity: 0; visibility: hidden; transition: .2s ease;
+}
+.lightbox-overlay.active { opacity: 1; visibility: visible; }
+.lightbox-overlay img { max-width: 96vw; max-height: 92vh; object-fit: contain; cursor: zoom-out; }
+.lightbox-close {
+  position: absolute; top: 18px; right: 22px; width: 42px; height: 42px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.25); background: rgba(0,0,0,.5); color: #fff;
+  font-size: 1.4rem; cursor: pointer;
+}
+
+/* ===== Setup Overlay (Storage Setup) ===== */
+.setup-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.75); backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 3000; padding: 20px;
+}
+.setup-overlay.hidden { display: none; }
+.setup-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 32px;
+  width: 100%; max-width: 400px; text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5);
+}
+.setup-card h2 { font-size: 1.3rem; margin-bottom: 8px; }
+.setup-card .setup-desc { color: var(--text3); font-size: .85rem; margin-bottom: 24px; line-height: 1.5; }
+.setup-card .btn { width: 100%; justify-content: center; margin-bottom: 10px; }
+.setup-card .btn:last-child { margin-bottom: 0; }
+.setup-card .setup-divider {
+  display: flex; align-items: center; gap: 12px;
+  margin: 16px 0; color: var(--text3); font-size: .8rem;
+}
+.setup-card .setup-divider::before,
+.setup-card .setup-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.setup-error { color: var(--danger); font-size: .82rem; line-height: 1.5; margin-top: 12px; }
+
+/* ===== Empty State ===== */
+.empty-state {
+  text-align: center; padding: 60px 20px;
+  color: var(--text3);
+}
+.empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; opacity: .4; }
+.empty-state p { font-size: .95rem; }
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+  padding: 12px 24px; border-radius: 8px;
+  font-size: .9rem; font-weight: 500;
+  z-index: 4000; opacity: 0; visibility: hidden;
+  transition: .3s ease;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; visibility: visible; }
+.toast-success { background: var(--success); color: #fff; }
+.toast-error { background: var(--danger); color: #fff; }
+
+/* ===== Responsive ===== */
+@media (max-width: 600px) {
+  .app-header { flex-direction: column; align-items: flex-start; }
+  .movie-grid { grid-template-columns: 1fr; }
+  .toolbar { flex-direction: column; }
+  .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  .modal { padding: 20px; }
+  .detail-modal { padding: 0; }
+  .detail-content { padding: 20px; }
+  .detail-heading { flex-direction: column; gap: 8px; }
+  .image-picker-preview { align-items: flex-start; }
+  .storage-status { flex-direction: column; align-items: flex-start; }
+  .storage-status-actions { margin-left: 0; }
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="app-wrapper">
+  <!-- Header -->
+  <header class="app-header">
+    <h1>🎬 我的影评记录</h1>
+    <div class="header-actions">
+      <button class="btn btn-ghost btn-sm" onclick="handleExport()" title="导出包含剧照的完整 ZIP 备份">📤 导出</button>
+      <button class="btn btn-ghost btn-sm" onclick="handleImport()" title="从 ZIP 完整备份或旧版 JSON 恢复">📥 导入</button>
+      <button class="btn btn-primary" onclick="openModal()">+ 写影评</button>
+    </div>
+  </header>
+
+  <!-- Storage Status Bar -->
+  <div class="storage-status loading" id="storageStatus">
+    <span class="storage-dot"></span>
+    <span class="storage-status-text">正在初始化存储...</span>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar" id="statsBar"></div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="搜索电影名称、导演、评论..." oninput="render()">
+    </div>
+    <select class="filter-select" id="filterRating" onchange="render()">
+      <option value="all">全部评分</option>
+      <option value="5">⭐⭐⭐⭐⭐ (5星)</option>
+      <option value="4">⭐⭐⭐⭐ (4星)</option>
+      <option value="3">⭐⭐⭐ (3星)</option>
+      <option value="2">⭐⭐ (2星)</option>
+      <option value="1">⭐ (1星)</option>
+    </select>
+    <select class="filter-select" id="filterTag" onchange="render()">
+      <option value="all">全部分类</option>
+    </select>
+    <select class="filter-select" id="sortBy" onchange="render()">
+      <option value="date-desc">最新观看</option>
+      <option value="date-asc">最早观看</option>
+      <option value="rating-desc">评分最高</option>
+      <option value="rating-asc">评分最低</option>
+      <option value="title">按名称排序</option>
+    </select>
+  </div>
+
+  <!-- Movie Grid -->
+  <div class="movie-grid" id="movieGrid"></div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">写新影评</h2>
+    <form id="movieForm" onsubmit="handleSubmit(event)">
+      <input type="hidden" id="editId">
+      <div class="form-group">
+        <label class="form-label">电影名称 *</label>
+        <input type="text" class="form-input" id="movieTitle" placeholder="输入电影名称" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">导演</label>
+        <input type="text" class="form-input" id="movieDirector" placeholder="输入导演姓名（可选）">
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="form-group">
+          <label class="form-label">观影日期 *</label>
+          <input type="date" class="form-input" id="movieDate" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">评分</label>
+          <div class="star-selector" id="starSelector"></div>
+          <input type="hidden" id="movieRating" value="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">分类标签</label>
+        <input type="text" class="form-input" id="movieTags"
+               placeholder="用逗号分隔，如：科幻, 悬疑, 诺兰">
+      </div>
+      <div class="form-group">
+        <label class="form-label">主剧照 <span style="color:var(--text3);font-weight:400;">（可选，最大 50 MB）</span></label>
+        <div class="image-picker" id="imagePicker">
+          <div class="image-picker-empty">
+            <p>支持 JPG、PNG、WebP，保留原始画质与元数据</p>
+            <button type="button" class="btn btn-ghost btn-sm" id="selectImageButton" onclick="selectReviewImage()">🖼️ 选择剧照</button>
+          </div>
+          <div class="image-picker-preview">
+            <div class="image-preview-frame">
+              <img id="formImagePreview" alt="剧照预览">
+            </div>
+            <div class="image-preview-info">
+              <div class="image-preview-name" id="formImageName"></div>
+              <div class="image-preview-size" id="formImageSize"></div>
+              <div class="image-preview-progress" id="formImageProgress"></div>
+              <div class="image-picker-actions">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="selectReviewImage()">更换</button>
+                <button type="button" class="btn btn-danger btn-sm" onclick="removeReviewImage()">移除</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">我的评论</label>
+        <textarea class="form-textarea" id="movieComment"
+                  placeholder="写下你的观影感受、评价和分析..." rows="4"></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">取消</button>
+        <button type="submit" class="btn btn-primary">保存影评</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Read-only review detail -->
+<div class="modal-overlay detail-overlay" id="detailOverlay">
+  <div class="modal detail-modal" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+    <div class="detail-scroll">
+      <div class="detail-image-section" id="detailImageSection">
+        <div class="image-load-state" id="detailImageState"></div>
+        <img id="detailImage" alt="影评剧照" onclick="openLightbox()">
+      </div>
+      <div class="detail-content">
+        <div class="detail-heading">
+          <h2 class="detail-title" id="detailTitle"></h2>
+          <div class="detail-rating" id="detailRating"></div>
+        </div>
+        <div class="detail-meta" id="detailMeta"></div>
+        <div class="detail-tags" id="detailTags"></div>
+        <div class="detail-comment" id="detailComment"></div>
+        <div class="detail-actions">
+          <button type="button" class="btn btn-ghost" onclick="editFromDetail()">✏️ 编辑影评</button>
+          <button type="button" class="btn btn-danger" onclick="deleteFromDetail()">🗑️ 删除影评</button>
+          <button type="button" class="btn btn-primary" onclick="closeDetail()">关闭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Fullscreen still image -->
+<div class="lightbox-overlay" id="lightboxOverlay" role="dialog" aria-modal="true" aria-label="全屏查看剧照">
+  <button class="lightbox-close" type="button" onclick="closeLightbox()" aria-label="关闭全屏剧照">×</button>
+  <img id="lightboxImage" alt="全屏剧照" onclick="closeLightbox()">
+</div>
+
+<!-- First-run storage setup -->
+<div class="setup-overlay" id="setupOverlay">
+  <div class="setup-card">
+    <div style="font-size:3rem;margin-bottom:10px;">🎬</div>
+    <h2>选择影评数据保存目录</h2>
+    <p class="setup-desc">影评会保存为普通 JSON 文件，方便备份和迁移。软件本身不上传任何数据。</p>
+    <button class="btn btn-primary" id="chooseDirectoryButton" onclick="chooseDataDirectory()" disabled>📁 正在初始化...</button>
+    <button class="btn btn-ghost" onclick="exitApp()">退出</button>
+    <p class="setup-error" id="setupError"></p>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========================================================================
+   STORAGE LAYER — pywebview desktop bridge, no HTTP server or browser cache
+   ======================================================================== */
+
+let reviews = [];
+let desktopState = null;
+let appInitialized = false;
+let bridgeReady = false;
+let formImage = null;
+let formImageUrl = '';
+let formImageLoadToken = 0;
+let imageSelectionBusy = false;
+let detailReviewId = null;
+let detailImageUrl = '';
+let detailImageLoadToken = 0;
+
+function desktopMethod(name) {
+  const api = window.pywebview && window.pywebview.api;
+  if (!api || typeof api[name] !== 'function') {
+    throw new Error('桌面接口正在初始化，请稍候重试');
+  }
+  return api[name].bind(api);
+}
+
+function setBridgeReady(ready) {
+  bridgeReady = ready;
+  const button = document.getElementById('chooseDirectoryButton');
+  button.disabled = !ready;
+  button.textContent = ready ? '📁 选择目录' : '📁 正在初始化...';
+}
+
+function base64ToBytes(value) {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+async function loadImageObjectUrl(image, onProgress, isCurrent) {
+  const info = await desktopMethod('get_review_image_info')(image.path);
+  if (!info.ok) throw new Error(info.error || '剧照文件缺失');
+  const parts = [];
+  let offset = 0;
+  while (offset < info.size) {
+    if (!isCurrent()) return '';
+    const chunk = await desktopMethod('get_review_image_chunk')(image.path, offset, info.chunkSize);
+    if (!chunk.ok) throw new Error(chunk.error || '剧照读取失败');
+    if (chunk.nextOffset <= offset && !chunk.done) throw new Error('剧照分块读取没有继续前进');
+    parts.push(base64ToBytes(chunk.data));
+    offset = chunk.nextOffset;
+    onProgress(Math.min(100, Math.round((offset / info.size) * 100)));
+  }
+  if (!isCurrent()) return '';
+  return URL.createObjectURL(new Blob(parts, { type: info.mime }));
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function applyDesktopState(state) {
+  desktopState = state;
+  const setup = document.getElementById('setupOverlay');
+  const setupError = document.getElementById('setupError');
+  if (state && state.ok) {
+    setup.classList.add('hidden');
+    setupError.textContent = '';
+  } else {
+    setup.classList.remove('hidden');
+    setupError.textContent = state && state.error ? state.error : '';
+  }
+  updateStorageUI();
+}
+
+async function persistReviews(data) {
+  const result = await desktopMethod('save_reviews')(data);
+  applyDesktopState(result);
+  if (!result.ok) throw new Error(result.error || '保存失败');
+  reviews = result.reviews;
+  return reviews;
+}
+
+async function chooseDataDirectory() {
+  const button = document.getElementById('chooseDirectoryButton');
+  if (!bridgeReady) return;
+  button.disabled = true;
+  try {
+    const result = await desktopMethod('choose_data_directory')();
+    applyDesktopState(result);
+    if (result.ok) {
+      reviews = result.reviews;
+      renderAll();
+      showToast(result.message || '数据目录已设置');
+    }
+  } catch (error) {
+    document.getElementById('setupError').textContent = error.message || String(error);
+  } finally {
+    button.disabled = !bridgeReady;
+  }
+}
+
+async function openDataDirectory() {
+  const result = await desktopMethod('open_data_directory')();
+  if (!result.ok) showToast(result.error || '无法打开目录', 'error');
+}
+
+function exitApp() {
+  desktopMethod('exit_app')();
+}
+
+function updateStorageUI() {
+  const el = document.getElementById('storageStatus');
+  if (desktopState && desktopState.ok) {
+    const safePath = escapeHtml(desktopState.dataFile);
+    el.className = 'storage-status file';
+    el.innerHTML = `
+      <span class="storage-dot"></span>
+      <span class="storage-status-text" title="${safePath}">📁 ${safePath}</span>
+      <span class="storage-status-actions">
+        <button class="btn-link" onclick="openDataDirectory()">打开目录</button>
+        <button class="btn-link" onclick="chooseDataDirectory()">更换目录</button>
+      </span>`;
+  } else if (desktopState && desktopState.error) {
+    el.className = 'storage-status error';
+    el.innerHTML = `<span class="storage-dot"></span>
+      <span class="storage-status-text">${escapeHtml(desktopState.error)}</span>`;
+  } else {
+    el.className = 'storage-status loading';
+    el.innerHTML = `<span class="storage-dot"></span>
+      <span class="storage-status-text">等待选择数据目录...</span>`;
+  }
+}
+
+async function initApp() {
+  if (appInitialized) return;
+  appInitialized = true;
+  setBridgeReady(true);
+  try {
+    const state = await desktopMethod('get_state')();
+    applyDesktopState(state);
+    reviews = state.ok ? state.reviews : [];
+    renderAll();
+  } catch (error) {
+    appInitialized = false;
+    setBridgeReady(false);
+    applyDesktopState({ ok: false, needsSetup: true, error: `初始化失败：${error.message || error}` });
+    setTimeout(detectDesktopBridge, 300);
+  }
+}
+
+function detectDesktopBridge() {
+  const api = window.pywebview && window.pywebview.api;
+  if (api && typeof api.get_state === 'function' && typeof api.choose_data_directory === 'function') {
+    initApp();
+    return;
+  }
+  setTimeout(detectDesktopBridge, 100);
+}
+
+// ========================================================================
+// UI LOGIC
+// ========================================================================
+
+/* ===== Stats ===== */
+function updateStats() {
+  const total = reviews.length;
+  const avgRating = total > 0
+    ? (reviews.reduce((s, r) => s + r.rating, 0) / total).toFixed(1)
+    : '0.0';
+  const thisMonth = new Date().getMonth();
+  const thisYear = new Date().getFullYear();
+  const monthCount = reviews.filter(r => {
+    const d = new Date(r.date);
+    return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+  }).length;
+  const tagSet = new Set();
+  reviews.forEach(r => (r.tags || []).forEach(t => tagSet.add(t)));
+
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-card"><div class="stat-value">${total}</div><div class="stat-label">观影总数</div></div>
+    <div class="stat-card"><div class="stat-value">⭐ ${avgRating}</div><div class="stat-label">平均评分</div></div>
+    <div class="stat-card"><div class="stat-value">${monthCount}</div><div class="stat-label">本月观影</div></div>
+    <div class="stat-card"><div class="stat-value">${tagSet.size}</div><div class="stat-label">涉及分类</div></div>
+  `;
+}
+
+/* ===== Tag Filter ===== */
+function updateTagFilter() {
+  const tagSet = new Set();
+  reviews.forEach(r => (r.tags || []).forEach(t => tagSet.add(t)));
+  const sel = document.getElementById('filterTag');
+  const currentVal = sel.value;
+  sel.replaceChildren(new Option('全部分类', 'all'));
+  [...tagSet].sort().forEach(tag => {
+    sel.add(new Option(tag, tag));
+  });
+  sel.value = [...sel.options].some(option => option.value === currentVal) ? currentVal : 'all';
+}
+
+/* ===== Star Selector ===== */
+function initStarSelector(initialRating = 0) {
+  const container = document.getElementById('starSelector');
+  container.innerHTML = '';
+  document.getElementById('movieRating').value = initialRating;
+  for (let i = 1; i <= 5; i++) {
+    const star = document.createElement('span');
+    star.className = 'star';
+    star.textContent = i <= initialRating ? '⭐' : '☆';
+    star.style.opacity = i <= initialRating ? '1' : '0.3';
+    star.onclick = () => setStarRating(i);
+    star.onmouseenter = () => hoverStars(i);
+    container.appendChild(star);
+  }
+  container.onmouseleave = () => {
+    const cur = parseInt(document.getElementById('movieRating').value) || 0;
+    hoverStars(cur);
+  };
+}
+
+function setStarRating(val) {
+  document.getElementById('movieRating').value = val;
+  hoverStars(val);
+}
+
+function hoverStars(count) {
+  const stars = document.querySelectorAll('#starSelector .star');
+  stars.forEach((s, i) => {
+    s.textContent = i < count ? '⭐' : '☆';
+    s.style.opacity = i < count ? '1' : '0.3';
+  });
+}
+
+/* ===== Review Image Form ===== */
+function clearFormImageUrl() {
+  formImageLoadToken++;
+  if (formImageUrl) URL.revokeObjectURL(formImageUrl);
+  formImageUrl = '';
+  const preview = document.getElementById('formImagePreview');
+  preview.removeAttribute('src');
+}
+
+async function setFormImage(image) {
+  clearFormImageUrl();
+  formImage = image ? { ...image } : null;
+  const picker = document.getElementById('imagePicker');
+  const progress = document.getElementById('formImageProgress');
+  if (!formImage) {
+    picker.classList.remove('has-image');
+    document.getElementById('formImageName').textContent = '';
+    document.getElementById('formImageSize').textContent = '';
+    progress.textContent = '';
+    return;
+  }
+
+  picker.classList.add('has-image');
+  document.getElementById('formImageName').textContent = formImage.name;
+  document.getElementById('formImageSize').textContent = `${formatFileSize(formImage.size)} · ${formImage.mime}`;
+  progress.textContent = '正在加载预览...';
+  const token = ++formImageLoadToken;
+  try {
+    const url = await loadImageObjectUrl(
+      formImage,
+      percent => { if (token === formImageLoadToken) progress.textContent = `正在加载预览 ${percent}%`; },
+      () => token === formImageLoadToken
+    );
+    if (!url || token !== formImageLoadToken) {
+      if (url) URL.revokeObjectURL(url);
+      return;
+    }
+    formImageUrl = url;
+    document.getElementById('formImagePreview').src = url;
+    progress.textContent = '';
+  } catch (error) {
+    if (token === formImageLoadToken) progress.textContent = error.message || '剧照预览失败';
+  }
+}
+
+async function selectReviewImage() {
+  if (imageSelectionBusy) return;
+  imageSelectionBusy = true;
+  document.querySelectorAll('#imagePicker button').forEach(button => { button.disabled = true; });
+  try {
+    const result = await desktopMethod('select_review_image')();
+    if (result.ok) await setFormImage(result.image);
+    else if (!result.cancelled) showToast(result.error || '剧照选择失败', 'error');
+  } catch (error) {
+    showToast(error.message || '剧照选择失败', 'error');
+  } finally {
+    imageSelectionBusy = false;
+    document.querySelectorAll('#imagePicker button').forEach(button => { button.disabled = false; });
+  }
+}
+
+function removeReviewImage() {
+  setFormImage(null);
+}
+
+/* ===== Modal ===== */
+function openModal(editId = null) {
+  const overlay = document.getElementById('modalOverlay');
+  const form = document.getElementById('movieForm');
+  form.reset();
+  document.getElementById('editId').value = '';
+
+  if (editId !== null) {
+    const review = reviews.find(r => r.id === editId);
+    if (!review) return;
+    document.getElementById('modalTitle').textContent = '编辑影评';
+    document.getElementById('editId').value = review.id;
+    document.getElementById('movieTitle').value = review.title;
+    document.getElementById('movieDirector').value = review.director || '';
+    document.getElementById('movieDate').value = review.date;
+    document.getElementById('movieTags').value = (review.tags || []).join(', ');
+    document.getElementById('movieComment').value = review.comment || '';
+    initStarSelector(review.rating);
+    setFormImage(review.image || null);
+  } else {
+    document.getElementById('modalTitle').textContent = '写新影评';
+    document.getElementById('movieDate').value = new Date().toISOString().split('T')[0];
+    initStarSelector(0);
+    setFormImage(null);
+  }
+  overlay.classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+  clearFormImageUrl();
+  formImage = null;
+}
+
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+/* ===== Form Submit (async for file save) ===== */
+async function handleSubmit(e) {
+  e.preventDefault();
+  const id = document.getElementById('editId').value;
+  const title = document.getElementById('movieTitle').value.trim();
+  const director = document.getElementById('movieDirector').value.trim();
+  const date = document.getElementById('movieDate').value;
+  const rating = parseInt(document.getElementById('movieRating').value) || 0;
+  const tagsRaw = document.getElementById('movieTags').value;
+  const comment = document.getElementById('movieComment').value.trim();
+  const tags = tagsRaw ? tagsRaw.split(/[,，]/).map(t => t.trim()).filter(Boolean) : [];
+
+  if (!title) { showToast('请输入电影名称', 'error'); return; }
+  if (!date) { showToast('请选择观影日期', 'error'); return; }
+
+  let nextReviews;
+  if (id) {
+    const idx = reviews.findIndex(r => r.id === id);
+    if (idx > -1) {
+      nextReviews = [...reviews];
+      const updated = { ...reviews[idx], title, director, date, rating, tags, comment, updatedAt: Date.now() };
+      if (formImage) updated.image = { ...formImage };
+      else delete updated.image;
+      nextReviews[idx] = updated;
+    }
+  } else {
+    const created = {
+      id: generateId(), title, director, date, rating, tags, comment,
+      createdAt: Date.now(), updatedAt: Date.now()
+    };
+    if (formImage) created.image = { ...formImage };
+    nextReviews = [...reviews, created];
+  }
+
+  if (!nextReviews) return;
+  try {
+    await persistReviews(nextReviews);
+    closeModal();
+    renderAll();
+    showToast(id ? '影评已更新' : '影评已保存');
+  } catch (error) {
+    showToast(error.message || '保存失败', 'error');
+  }
+}
+
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+/* ===== Delete (async for file save) ===== */
+async function deleteReview(id) {
+  if (!confirm('确定要删除这条影评吗？删除前会自动保留备份，剧照文件会保留以便恢复。')) return false;
+  try {
+    await persistReviews(reviews.filter(r => r.id !== id));
+    renderAll();
+    showToast('影评已删除');
+    return true;
+  } catch (error) {
+    showToast(error.message || '删除失败', 'error');
+    return false;
+  }
+}
+
+/* ===== Review Detail & Lightbox ===== */
+function releaseDetailImage() {
+  detailImageLoadToken++;
+  closeLightbox();
+  if (detailImageUrl) URL.revokeObjectURL(detailImageUrl);
+  detailImageUrl = '';
+  const image = document.getElementById('detailImage');
+  image.removeAttribute('src');
+  document.getElementById('detailImageSection').classList.remove('loaded');
+}
+
+async function loadDetailImage(image) {
+  releaseDetailImage();
+  const section = document.getElementById('detailImageSection');
+  const state = document.getElementById('detailImageState');
+  section.classList.add('visible');
+  state.innerHTML = '<strong>0%</strong>正在加载剧照...';
+  const token = ++detailImageLoadToken;
+  try {
+    const url = await loadImageObjectUrl(
+      image,
+      percent => {
+        if (token === detailImageLoadToken) state.innerHTML = `<strong>${percent}%</strong>正在加载剧照...`;
+      },
+      () => token === detailImageLoadToken && document.getElementById('detailOverlay').classList.contains('active')
+    );
+    if (!url || token !== detailImageLoadToken) {
+      if (url) URL.revokeObjectURL(url);
+      return;
+    }
+    detailImageUrl = url;
+    document.getElementById('detailImage').src = url;
+    section.classList.add('loaded');
+  } catch (error) {
+    if (token === detailImageLoadToken) state.innerHTML = `<strong>⚠</strong>${escapeHtml(error.message || '剧照文件缺失')}`;
+  }
+}
+
+function openDetail(id) {
+  const review = reviews.find(item => item.id === id);
+  if (!review) return;
+  detailReviewId = review.id;
+  document.getElementById('detailTitle').textContent = review.title;
+  document.getElementById('detailRating').innerHTML = renderStars(review.rating);
+
+  const meta = document.getElementById('detailMeta');
+  meta.replaceChildren();
+  if (review.director) {
+    const director = document.createElement('span');
+    director.textContent = `🎬 ${review.director}`;
+    meta.appendChild(director);
+  }
+  const watched = document.createElement('span');
+  watched.textContent = `📅 ${formatDate(review.date)}`;
+  meta.appendChild(watched);
+
+  const tags = document.getElementById('detailTags');
+  tags.replaceChildren();
+  (review.tags || []).forEach(value => {
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.textContent = value;
+    tags.appendChild(tag);
+  });
+
+  const comment = document.getElementById('detailComment');
+  comment.textContent = review.comment || '还没有写评论。';
+  comment.classList.toggle('empty', !review.comment);
+
+  const section = document.getElementById('detailImageSection');
+  section.className = 'detail-image-section';
+  document.getElementById('detailImageState').textContent = '';
+  releaseDetailImage();
+  document.getElementById('detailOverlay').classList.add('active');
+  if (review.image) loadDetailImage(review.image);
+}
+
+function closeDetail() {
+  document.getElementById('detailOverlay').classList.remove('active');
+  releaseDetailImage();
+  detailReviewId = null;
+}
+
+function editFromDetail() {
+  const id = detailReviewId;
+  if (!id) return;
+  closeDetail();
+  openModal(id);
+}
+
+async function deleteFromDetail() {
+  const id = detailReviewId;
+  if (!id) return;
+  if (await deleteReview(id)) closeDetail();
+}
+
+function openLightbox() {
+  if (!detailImageUrl) return;
+  document.getElementById('lightboxImage').src = detailImageUrl;
+  document.getElementById('lightboxOverlay').classList.add('active');
+}
+
+function closeLightbox() {
+  document.getElementById('lightboxOverlay').classList.remove('active');
+  document.getElementById('lightboxImage').removeAttribute('src');
+}
+
+/* ===== Export / Import ===== */
+async function handleExport() {
+  try {
+    const result = await desktopMethod('export_backup')(reviews);
+    if (result.ok) showToast('完整备份已导出');
+    else if (!result.cancelled) showToast(result.error || '导出失败', 'error');
+  } catch (error) {
+    showToast(error.message || '导出失败', 'error');
+  }
+}
+
+async function handleImport() {
+  try {
+    const selected = await desktopMethod('select_import_file')();
+    if (!selected.ok) {
+      if (!selected.cancelled) showToast(selected.error || '导入失败', 'error');
+      return;
+    }
+    const formatName = selected.format === 'zip' ? '完整 ZIP 备份' : 'JSON 数据';
+    if (!confirm(`即将从${formatName}导入 ${selected.reviews.length} 条影评，当前数据会先自动备份，然后被替换。是否继续？`)) return;
+    const result = await desktopMethod('apply_import')(selected.importToken);
+    applyDesktopState(result);
+    if (!result.ok) throw new Error(result.error || '导入失败');
+    reviews = result.reviews;
+    renderAll();
+    showToast(`成功导入 ${reviews.length} 条影评`);
+  } catch (error) {
+    showToast(error.message || '导入失败', 'error');
+  }
+}
+
+/* ===== Render ===== */
+function render() {
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+  const filterRating = document.getElementById('filterRating').value;
+  const filterTag = document.getElementById('filterTag').value;
+  const sortBy = document.getElementById('sortBy').value;
+
+  let filtered = [...reviews];
+
+  if (searchTerm) {
+    filtered = filtered.filter(r =>
+      r.title.toLowerCase().includes(searchTerm) ||
+      (r.director || '').toLowerCase().includes(searchTerm) ||
+      (r.comment || '').toLowerCase().includes(searchTerm) ||
+      (r.tags || []).some(t => t.toLowerCase().includes(searchTerm))
+    );
+  }
+
+  if (filterRating !== 'all') {
+    filtered = filtered.filter(r => r.rating === parseInt(filterRating));
+  }
+
+  if (filterTag !== 'all') {
+    filtered = filtered.filter(r => (r.tags || []).includes(filterTag));
+  }
+
+  switch (sortBy) {
+    case 'date-asc': filtered.sort((a, b) => new Date(a.date) - new Date(b.date)); break;
+    case 'date-desc': filtered.sort((a, b) => new Date(b.date) - new Date(a.date)); break;
+    case 'rating-desc': filtered.sort((a, b) => b.rating - a.rating); break;
+    case 'rating-asc': filtered.sort((a, b) => a.rating - b.rating); break;
+    case 'title': filtered.sort((a, b) => a.title.localeCompare(b.title, 'zh-CN')); break;
+  }
+
+  renderGrid(filtered);
+}
+
+function renderGrid(items) {
+  const grid = document.getElementById('movieGrid');
+  if (items.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column: 1 / -1;">
+        <div class="empty-icon">🎞️</div>
+        <p>还没有影评记录</p>
+        <p style="font-size:.8rem;margin-top:4px;">点击「写影评」开始记录你的观影体验吧</p>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = items.map(r => `
+    <div class="movie-card" role="button" tabindex="0" data-review-id="${escapeHtml(r.id)}" aria-label="查看《${escapeHtml(r.title)}》影评详情">
+      <div class="card-header">
+        <div class="card-title">${escapeHtml(r.title)}</div>
+        <div class="card-rating">${renderStars(r.rating)}</div>
+      </div>
+      <div class="card-meta">
+        ${r.director ? `<span>🎬 ${escapeHtml(r.director)}</span>` : ''}
+        <span>📅 ${formatDate(r.date)}</span>
+      </div>
+      ${r.tags && r.tags.length ? `
+        <div class="card-tags">${r.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
+      ` : ''}
+      ${r.comment ? `
+        <div class="card-comment">
+          ${escapeHtml(r.comment)}
+        </div>
+      ` : ''}
+      <div class="card-actions">
+        <button class="btn btn-ghost btn-sm" data-action="edit" data-id="${escapeHtml(r.id)}">✏️ 编辑</button>
+        <button class="btn btn-danger btn-sm" data-action="delete" data-id="${escapeHtml(r.id)}">🗑️ 删除</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderStars(rating) {
+  let html = '';
+  for (let i = 1; i <= 5; i++) {
+    html += `<span class="${i <= rating ? 'star-filled' : 'star-empty'}">${i <= rating ? '★' : '☆'}</span>`;
+  }
+  return html;
+}
+
+function renderAll() {
+  updateStats();
+  updateTagFilter();
+  render();
+}
+
+/* ===== Toast ===== */
+let toastTimer;
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast toast-${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.className = `toast toast-${type}`; }, 2000);
+}
+
+/* ===== Helpers ===== */
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  return `${parts[0]}年${parseInt(parts[1])}月${parseInt(parts[2])}日`;
+}
+
+/* ===== Event delegation & Init ===== */
+document.getElementById('movieGrid').addEventListener('click', event => {
+  const target = event.target.closest('[data-action]');
+  if (target) {
+    event.stopPropagation();
+    const action = target.dataset.action;
+    const id = target.dataset.id;
+    if (action === 'edit') openModal(id);
+    if (action === 'delete') deleteReview(id);
+    return;
+  }
+  const card = event.target.closest('.movie-card');
+  if (card) openDetail(card.dataset.reviewId);
+});
+
+document.getElementById('movieGrid').addEventListener('keydown', event => {
+  if (event.target.closest('[data-action]')) return;
+  const card = event.target.closest('.movie-card');
+  if (card && (event.key === 'Enter' || event.key === ' ')) {
+    event.preventDefault();
+    openDetail(card.dataset.reviewId);
+  }
+});
+
+document.getElementById('detailOverlay').addEventListener('click', event => {
+  if (event.target === event.currentTarget) closeDetail();
+});
+
+document.getElementById('lightboxOverlay').addEventListener('click', event => {
+  if (event.target === event.currentTarget) closeLightbox();
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  if (document.getElementById('lightboxOverlay').classList.contains('active')) closeLightbox();
+  else if (document.getElementById('modalOverlay').classList.contains('active')) closeModal();
+  else if (document.getElementById('detailOverlay').classList.contains('active')) closeDetail();
+});
+
+window.addEventListener('pywebviewready', initApp);
+detectDesktopBridge();
+</script>
+
+</body>
+</html>

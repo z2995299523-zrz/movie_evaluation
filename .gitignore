@@ -1,0 +1,27 @@
+# Personal data and local backups
+movie-reviews*.json
+movie-reviews-backup-*.zip
+backups/
+media/
+
+# Local tools and editor state
+.codebuddy/
+.agents/
+.codex/
+.venv/
+.runtime-test/
+.vercel/
+node_modules/
+
+# Python/build output
+__pycache__/
+*.py[cod]
+build/
+dist/
+*.log
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
