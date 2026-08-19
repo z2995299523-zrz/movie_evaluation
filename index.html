@@ -242,13 +242,32 @@ body {
 /* ===== Review Image Picker ===== */
 .image-picker {
   padding: 12px; border: 1px dashed var(--border); border-radius: 10px;
-  background: rgba(255,255,255,.015);
+  background: rgba(255,255,255,.015); position: relative; min-height: 110px;
+  display: flex; align-items: center; transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
 }
-.image-picker-empty { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.image-picker.is-drag-over {
+  border-color: var(--accent); background: rgba(139,92,246,.12);
+  box-shadow: inset 0 0 0 1px rgba(139,92,246,.35);
+}
+.image-picker.is-processing { border-color: var(--accent); background: rgba(139,92,246,.08); }
+.image-picker-empty { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; }
 .image-picker-empty p { color: var(--text3); font-size: .82rem; }
-.image-picker-preview { display: none; gap: 12px; align-items: center; }
+.image-picker-empty-copy { display: flex; flex-direction: column; gap: 3px; }
+.image-picker-empty-copy strong { color: var(--text2); font-size: .84rem; font-weight: 600; }
+.image-picker-preview { display: none; width: 100%; gap: 12px; align-items: center; }
 .image-picker.has-image .image-picker-empty { display: none; }
 .image-picker.has-image .image-picker-preview { display: flex; }
+.image-drop-feedback {
+  display: none; position: absolute; inset: 0; z-index: 2; border-radius: 9px;
+  align-items: center; justify-content: center; gap: 8px;
+  color: var(--accent-light); font-size: .9rem; font-weight: 700; pointer-events: none;
+}
+.image-picker.is-drag-over .image-drop-feedback,
+.image-picker.is-processing .image-drop-feedback { display: flex; }
+.image-picker.is-drag-over > .image-picker-empty,
+.image-picker.is-drag-over > .image-picker-preview,
+.image-picker.is-processing > .image-picker-empty,
+.image-picker.is-processing > .image-picker-preview { opacity: .18; }
 .image-preview-frame {
   width: 128px; height: 84px; flex-shrink: 0; border-radius: 8px;
   background: #09090c; border: 1px solid var(--border); overflow: hidden;
@@ -456,10 +475,16 @@ body {
       </div>
       <div class="form-group">
         <label class="form-label">主剧照 <span style="color:var(--text3);font-weight:400;">（可选，最大 50 MB）</span></label>
-        <div class="image-picker" id="imagePicker">
+        <div class="image-picker" id="imagePicker" role="group" aria-label="主剧照上传区域">
+          <div class="image-drop-feedback" id="imageDropFeedback" aria-live="polite">
+            <span id="imageDropIcon">↓</span><span id="imageDropText">释放以上传剧照</span>
+          </div>
           <div class="image-picker-empty">
-            <p>支持 JPG、PNG、WebP，保留原始画质与元数据</p>
-            <button type="button" class="btn btn-ghost btn-sm" id="selectImageButton" onclick="selectReviewImage()">🖼️ 选择剧照</button>
+            <div class="image-picker-empty-copy">
+              <strong>点击选择，或将一张 JPG、PNG、WebP 拖到这里</strong>
+              <p>保留原始画质与元数据</p>
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm" id="selectImageButton" data-image-action onclick="selectReviewImage()">🖼️ 选择剧照</button>
           </div>
           <div class="image-picker-preview">
             <div class="image-preview-frame">
@@ -470,8 +495,8 @@ body {
               <div class="image-preview-size" id="formImageSize"></div>
               <div class="image-preview-progress" id="formImageProgress"></div>
               <div class="image-picker-actions">
-                <button type="button" class="btn btn-ghost btn-sm" onclick="selectReviewImage()">更换</button>
-                <button type="button" class="btn btn-danger btn-sm" onclick="removeReviewImage()">移除</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-image-action onclick="selectReviewImage()">更换</button>
+                <button type="button" class="btn btn-danger btn-sm" data-image-action onclick="removeReviewImage()">移除</button>
               </div>
             </div>
           </div>
@@ -484,7 +509,7 @@ body {
       </div>
       <div class="form-actions">
         <button type="button" class="btn btn-ghost" onclick="closeModal()">取消</button>
-        <button type="submit" class="btn btn-primary">保存影评</button>
+        <button type="submit" class="btn btn-primary" id="saveReviewButton">保存影评</button>
       </div>
     </form>
   </div>
@@ -550,6 +575,9 @@ let formImage = null;
 let formImageUrl = '';
 let formImageLoadToken = 0;
 let imageSelectionBusy = false;
+let imageImportBusy = false;
+let imageDragDepth = 0;
+let activeNativeImageDropId = null;
 let detailReviewId = null;
 let detailImageUrl = '';
 let detailImageLoadToken = 0;
@@ -773,6 +801,79 @@ function hoverStars(count) {
 }
 
 /* ===== Review Image Form ===== */
+function setImagePickerBusy(busy, message = '正在读取剧照…') {
+  imageImportBusy = busy;
+  const picker = document.getElementById('imagePicker');
+  picker.classList.toggle('is-processing', busy);
+  picker.classList.remove('is-drag-over');
+  document.getElementById('imageDropIcon').textContent = busy ? '⏳' : '↓';
+  document.getElementById('imageDropText').textContent = busy ? message : '释放以上传剧照';
+  document.querySelectorAll('[data-image-action]').forEach(button => { button.disabled = busy; });
+  document.getElementById('saveReviewButton').disabled = busy;
+}
+
+function resetImageDropState() {
+  imageDragDepth = 0;
+  document.getElementById('imagePicker').classList.remove('is-drag-over');
+}
+
+function initImageDropZone() {
+  const picker = document.getElementById('imagePicker');
+  picker.addEventListener('dragenter', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    imageDragDepth++;
+    if (!imageImportBusy) picker.classList.add('is-drag-over');
+  });
+  picker.addEventListener('dragover', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+    if (!imageImportBusy) picker.classList.add('is-drag-over');
+  });
+  picker.addEventListener('dragleave', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    imageDragDepth = Math.max(0, imageDragDepth - 1);
+    if (imageDragDepth === 0) picker.classList.remove('is-drag-over');
+  });
+  picker.addEventListener('drop', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    resetImageDropState();
+    // Invalidate an older native result before pywebview assigns this drop an id.
+    activeNativeImageDropId = null;
+    setImagePickerBusy(true);
+  });
+
+  // A file dropped outside the picker must never navigate the WebView away.
+  document.addEventListener('dragover', event => event.preventDefault());
+  document.addEventListener('drop', event => event.preventDefault());
+}
+
+function beginNativeImageDrop(requestId) {
+  if (!document.getElementById('modalOverlay').classList.contains('active')) return;
+  activeNativeImageDropId = requestId;
+  setImagePickerBusy(true);
+}
+
+async function handleNativeImageDropResult(requestId, result) {
+  if (requestId !== activeNativeImageDropId ||
+      !document.getElementById('modalOverlay').classList.contains('active')) return;
+  try {
+    if (result && result.ok) await setFormImage(result.image);
+    else showToast(result && result.error ? result.error : '剧照拖入失败', 'error');
+  } finally {
+    if (requestId === activeNativeImageDropId) {
+      activeNativeImageDropId = null;
+      setImagePickerBusy(false);
+    }
+  }
+}
+
+window.beginNativeImageDrop = beginNativeImageDrop;
+window.handleNativeImageDropResult = handleNativeImageDropResult;
+
 function clearFormImageUrl() {
   formImageLoadToken++;
   if (formImageUrl) URL.revokeObjectURL(formImageUrl);
@@ -818,9 +919,9 @@ async function setFormImage(image) {
 }
 
 async function selectReviewImage() {
-  if (imageSelectionBusy) return;
+  if (imageSelectionBusy || imageImportBusy) return;
   imageSelectionBusy = true;
-  document.querySelectorAll('#imagePicker button').forEach(button => { button.disabled = true; });
+  setImagePickerBusy(true);
   try {
     const result = await desktopMethod('select_review_image')();
     if (result.ok) await setFormImage(result.image);
@@ -829,7 +930,7 @@ async function selectReviewImage() {
     showToast(error.message || '剧照选择失败', 'error');
   } finally {
     imageSelectionBusy = false;
-    document.querySelectorAll('#imagePicker button').forEach(button => { button.disabled = false; });
+    setImagePickerBusy(false);
   }
 }
 
@@ -842,6 +943,9 @@ function openModal(editId = null) {
   const overlay = document.getElementById('modalOverlay');
   const form = document.getElementById('movieForm');
   form.reset();
+  activeNativeImageDropId = null;
+  resetImageDropState();
+  setImagePickerBusy(false);
   document.getElementById('editId').value = '';
 
   if (editId !== null) {
@@ -867,6 +971,9 @@ function openModal(editId = null) {
 
 function closeModal() {
   document.getElementById('modalOverlay').classList.remove('active');
+  activeNativeImageDropId = null;
+  resetImageDropState();
+  setImagePickerBusy(false);
   clearFormImageUrl();
   formImage = null;
 }
@@ -878,6 +985,10 @@ document.getElementById('modalOverlay').addEventListener('click', (e) => {
 /* ===== Form Submit (async for file save) ===== */
 async function handleSubmit(e) {
   e.preventDefault();
+  if (imageImportBusy) {
+    showToast('请等待剧照读取完成', 'error');
+    return;
+  }
   const id = document.getElementById('editId').value;
   const title = document.getElementById('movieTitle').value.trim();
   const director = document.getElementById('movieDirector').value.trim();
@@ -1228,6 +1339,7 @@ document.addEventListener('keydown', event => {
 });
 
 window.addEventListener('pywebviewready', initApp);
+initImageDropZone();
 detectDesktopBridge();
 </script>
 

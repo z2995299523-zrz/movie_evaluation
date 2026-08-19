@@ -4,6 +4,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 from app import (
@@ -14,8 +15,10 @@ from app import (
     MAX_IMAGE_BYTES,
     ReviewStore,
     SettingsStore,
+    _dropped_image_path,
     _json_bytes,
     expose_desktop_api,
+    main,
     normalize_reviews,
 )
 
@@ -176,6 +179,60 @@ class ReviewStoreTests(unittest.TestCase):
                 with self.assertRaisesRegex(DataValidationError, "50 MB"):
                     store.import_image(over)
 
+    def test_dropped_image_import_uses_native_path_and_precise_errors(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data = root / "data"
+            data.mkdir()
+            store = ReviewStore(data)
+            source = self.write_png(root / "dragged.png")
+            event = {"dataTransfer": {"files": [{"name": source.name, "pywebviewFullPath": str(source.resolve())}]}}
+
+            dropped_path = _dropped_image_path(event)
+            first = store.import_dropped_image(dropped_path)
+            second = store.import_dropped_image(dropped_path)
+            self.assertEqual(first, second)
+            self.assertEqual(len(list(store.media_directory.iterdir())), 1)
+
+            with self.assertRaisesRegex(DataValidationError, "只能上传一张"):
+                _dropped_image_path({"dataTransfer": {"files": [{}, {}]}})
+            with self.assertRaisesRegex(DataValidationError, "暂不支持"):
+                _dropped_image_path({"dataTransfer": {"files": [{"name": "virtual.png"}]}})
+            with self.assertRaisesRegex(DataValidationError, "不支持文件夹"):
+                store.import_dropped_image(root)
+
+            text_file = root / "notes.txt"
+            text_file.write_text("not an image", encoding="utf-8")
+            with self.assertRaisesRegex(DataValidationError, "仅支持 JPG"):
+                store.import_dropped_image(text_file)
+
+            empty = root / "empty.png"
+            empty.touch()
+            with self.assertRaisesRegex(DataValidationError, "剧照文件为空"):
+                store.import_dropped_image(empty)
+
+            disguised = self.write_png(root / "disguised.jpg")
+            with self.assertRaisesRegex(DataValidationError, "扩展名与实际文件内容不一致"):
+                store.import_dropped_image(disguised)
+
+            with self.assertRaisesRegex(DataValidationError, "无法读取拖入"):
+                store.import_dropped_image(root / "moved.png")
+
+    def test_dropped_image_size_limit_accepts_exact_boundary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data = root / "data"
+            data.mkdir()
+            store = ReviewStore(data)
+            exact = root / "exact.png"
+            exact.write_bytes(b"\x89PNG\r\n\x1a\n" + b"0" * 8)
+            over = root / "over.png"
+            over.write_bytes(exact.read_bytes() + b"1")
+            with mock.patch("app.MAX_IMAGE_BYTES", 16):
+                self.assertEqual(store.import_dropped_image(exact)["size"], 16)
+                with self.assertRaisesRegex(DataValidationError, "不能超过 50 MB"):
+                    store.import_dropped_image(over)
+
     def test_image_reference_cannot_escape_media_directory(self):
         with tempfile.TemporaryDirectory() as directory:
             store = ReviewStore(Path(directory))
@@ -317,6 +374,24 @@ class DesktopApiTests(unittest.TestCase):
                 ],
             )
 
+    def test_main_passes_drop_binding_arguments_as_one_iterable(self):
+        class FakeWindow:
+            def expose(self, *_functions):
+                pass
+
+        fake_window = FakeWindow()
+        start = mock.Mock()
+        fake_webview = SimpleNamespace(create_window=mock.Mock(return_value=fake_window), start=start)
+        with mock.patch.dict("sys.modules", {"webview": fake_webview}):
+            main()
+
+        callback, callback_args = start.call_args.args
+        self.assertEqual(callback.__name__, "bind_review_image_drop")
+        self.assertIsInstance(callback_args, tuple)
+        self.assertEqual(len(callback_args), 2)
+        self.assertIs(callback_args[0], fake_window)
+        self.assertEqual(start.call_args.kwargs["gui"], "edgechromium")
+
     def test_choose_data_directory_prepares_and_remembers_selected_folder(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -391,6 +466,32 @@ class DesktopApiTests(unittest.TestCase):
             self.assertEqual(applied["reviews"][0]["title"], "待导入")
             self.assertTrue((target_data / "movie-reviews.json").exists())
             self.assertTrue((target_data / image["path"]).exists())
+
+
+class FrontendImageDropTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.html = (Path(__file__).parents[1] / "index.html").read_text(encoding="utf-8")
+
+    def test_drop_zone_keeps_click_fallback_and_accessible_status(self):
+        self.assertIn('aria-label="主剧照上传区域"', self.html)
+        self.assertIn("点击选择，或将一张 JPG、PNG、WebP 拖到这里", self.html)
+        self.assertIn('id="selectImageButton"', self.html)
+        self.assertIn('aria-live="polite"', self.html)
+
+    def test_drag_events_prevent_navigation_and_manage_visual_state(self):
+        for event_name in ("dragenter", "dragover", "dragleave", "drop"):
+            self.assertIn(f"picker.addEventListener('{event_name}'", self.html)
+        self.assertIn("event.preventDefault()", self.html)
+        self.assertIn("is-drag-over", self.html)
+        self.assertIn("释放以上传剧照", self.html)
+        self.assertIn("正在读取剧照…", self.html)
+
+    def test_native_result_is_token_guarded_and_submit_is_blocked_while_busy(self):
+        self.assertIn("requestId !== activeNativeImageDropId", self.html)
+        self.assertIn("if (imageImportBusy)", self.html)
+        self.assertIn("saveReviewButton", self.html)
+        self.assertIn("window.handleNativeImageDropResult", self.html)
 
 
 if __name__ == "__main__":

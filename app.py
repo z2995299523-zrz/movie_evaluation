@@ -71,6 +71,16 @@ def _detect_image_type(header: bytes) -> tuple[str, str] | None:
     return None
 
 
+def _stream_sha256(stream: Any) -> str:
+    """Hash an open binary stream on every supported Python 3.10+ version."""
+    digest = hashlib.sha256()
+    while True:
+        chunk = stream.read(1024 * 1024)
+        if not chunk:
+            return digest.hexdigest()
+        digest.update(chunk)
+
+
 def _normalize_image(value: Any, index: int) -> dict[str, Any] | None:
     if value is None:
         return None
@@ -200,6 +210,27 @@ def _validate_zip_entry_name(name: str) -> None:
         raise DataValidationError("备份包包含路径穿越或绝对路径")
 
 
+def _dropped_image_path(event: Any) -> Path:
+    """Return the single native file path carried by a pywebview drop event."""
+    unsupported = "暂不支持从此程序拖入图片，请先保存到本地再选择"
+    if not isinstance(event, dict):
+        raise DataValidationError(unsupported)
+    transfer = event.get("dataTransfer")
+    files = transfer.get("files") if isinstance(transfer, dict) else None
+    if not isinstance(files, list) or not files:
+        raise DataValidationError(unsupported)
+    if len(files) != 1:
+        raise DataValidationError("每条影评只能上传一张主剧照")
+    file_info = files[0]
+    path_value = file_info.get("pywebviewFullPath") if isinstance(file_info, dict) else None
+    if not isinstance(path_value, str) or not path_value.strip():
+        raise DataValidationError(unsupported)
+    source = Path(path_value)
+    if not source.is_absolute():
+        raise DataValidationError(unsupported)
+    return source
+
+
 class SettingsStore:
     def __init__(self, path: Path | None = None) -> None:
         if path is None:
@@ -245,8 +276,10 @@ class ReviewStore:
             size = source.stat().st_size
         except OSError as exc:
             raise DataValidationError(f"无法读取剧照文件：{exc}") from exc
-        if not 0 < size <= MAX_IMAGE_BYTES:
-            raise DataValidationError("剧照必须大于 0 字节且不能超过 50 MB")
+        if size == 0:
+            raise DataValidationError("剧照文件为空")
+        if size > MAX_IMAGE_BYTES:
+            raise DataValidationError("剧照不能超过 50 MB")
 
         try:
             with source.open("rb") as stream:
@@ -261,6 +294,21 @@ class ReviewStore:
                 return self.import_image_stream(stream, size, original_name or source.name)
         except OSError as exc:
             raise DataValidationError(f"无法读取剧照文件：{exc}") from exc
+
+    def import_dropped_image(self, source: Path) -> dict[str, Any]:
+        """Import a real local path obtained from pywebview's native drop event."""
+        try:
+            if source.is_dir():
+                raise DataValidationError("请拖入一张图片文件，不支持文件夹")
+            if source.suffix.lower() not in {".jpg", ".jpeg", ".png", ".webp"}:
+                raise DataValidationError("仅支持 JPG、PNG 和 WebP 剧照")
+            return self.import_image(source)
+        except DataValidationError as exc:
+            if str(exc).startswith("无法读取剧照文件"):
+                raise DataValidationError("无法读取拖入的剧照文件") from exc
+            raise
+        except OSError as exc:
+            raise DataValidationError("无法读取拖入的剧照文件") from exc
 
     def import_image_stream(self, stream: Any, expected_size: int, original_name: str) -> dict[str, Any]:
         if not 0 < expected_size <= MAX_IMAGE_BYTES:
@@ -303,7 +351,7 @@ class ReviewStore:
             destination = self.resolve_image_path(reference)
             if destination.exists():
                 with destination.open("rb") as existing_stream:
-                    existing_digest = hashlib.file_digest(existing_stream, "sha256").hexdigest()
+                    existing_digest = _stream_sha256(existing_stream)
                 if destination.stat().st_size != total or existing_digest != digest.hexdigest():
                     raise DataValidationError("媒体目录中存在哈希相同但大小异常的文件")
                 temp_path.unlink(missing_ok=True)
@@ -324,7 +372,7 @@ class ReviewStore:
                 header = stream.read(16)
                 detected = _detect_image_type(header)
                 stream.seek(0)
-                digest = hashlib.file_digest(stream, "sha256").hexdigest()
+                digest = _stream_sha256(stream)
         except OSError as exc:
             raise DataValidationError(f"剧照文件缺失或无法读取：{normalized['name']}") from exc
         if stat_size != normalized["size"] or stat_size > MAX_IMAGE_BYTES:
@@ -630,6 +678,9 @@ class DesktopApi:
         self._store: ReviewStore | None = None
         self._window: Any = None
         self._pending_imports: dict[str, dict[str, Any]] = {}
+        self._image_drop_lock = threading.Lock()
+        self._image_drop_generation = 0
+        self._image_drop_binding: Any = None
         configured = self._settings.load_data_directory()
         if configured is not None:
             self._store = ReviewStore(configured)
@@ -717,6 +768,15 @@ class DesktopApi:
             return {"ok": True, "cancelled": False, "image": image, "error": ""}
         except (OSError, DataValidationError) as exc:
             return {"ok": False, "cancelled": False, "error": f"剧照导入失败：{exc}"}
+
+    def _begin_image_drop(self) -> int:
+        with self._image_drop_lock:
+            self._image_drop_generation += 1
+            return self._image_drop_generation
+
+    def _is_current_image_drop(self, request_id: int) -> bool:
+        with self._image_drop_lock:
+            return request_id == self._image_drop_generation
 
     def get_review_image_info(self, reference: str) -> dict[str, Any]:
         if self._store is None:
@@ -853,6 +913,56 @@ def expose_desktop_api(window: Any, api: DesktopApi) -> None:
     )
 
 
+def bind_review_image_drop(window: Any, api: DesktopApi) -> None:
+    """Bind the native drop payload without exposing arbitrary path reads to JS."""
+    from webview.dom import DOMEventHandler
+
+    picker = window.dom.get_element("#imagePicker")
+    if picker is None:
+        return
+
+    def send(script: str) -> None:
+        try:
+            window.evaluate_js(script)
+        except Exception:
+            # The window may have closed while a background image copy finishes.
+            pass
+
+    def finish(request_id: int, result: dict[str, Any]) -> None:
+        if not api._is_current_image_drop(request_id):
+            return
+        payload = json.dumps(result, ensure_ascii=False)
+        send(f"window.handleNativeImageDropResult({request_id}, {payload})")
+
+    def on_drop(event: Any) -> None:
+        request_id = api._begin_image_drop()
+        send(f"window.beginNativeImageDrop({request_id})")
+        try:
+            source = _dropped_image_path(event)
+        except DataValidationError as exc:
+            finish(request_id, {"ok": False, "error": str(exc)})
+            return
+
+        def import_in_background() -> None:
+            if api._store is None:
+                finish(request_id, {"ok": False, "error": "尚未选择数据目录"})
+                return
+            try:
+                image = api._store.import_dropped_image(source)
+                finish(request_id, {"ok": True, "image": image, "error": ""})
+            except DataValidationError as exc:
+                finish(request_id, {"ok": False, "error": str(exc)})
+            except OSError:
+                finish(request_id, {"ok": False, "error": "无法读取拖入的剧照文件"})
+
+        threading.Thread(target=import_in_background, name="review-image-drop", daemon=True).start()
+
+    handler = DOMEventHandler(on_drop, True, True)
+    picker.events.drop += handler
+    # Retain the DOM wrapper and handler for the lifetime of the API object.
+    api._image_drop_binding = (picker, handler)
+
+
 def main() -> None:
     import webview
 
@@ -871,7 +981,7 @@ def main() -> None:
     # Explicit exposure prevents pywebview from recursively scanning internal
     # settings, storage and native window objects.
     expose_desktop_api(window, api)
-    webview.start(gui="edgechromium", debug=False, private_mode=True)
+    webview.start(bind_review_image_drop, (window, api), gui="edgechromium", debug=False, private_mode=True)
 
 
 if __name__ == "__main__":
