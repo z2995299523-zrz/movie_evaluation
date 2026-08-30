@@ -9,19 +9,22 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #0f0f13;
-  --surface: #1a1a23;
-  --surface2: #22222e;
-  --border: #2a2a38;
-  --text: #e4e4ec;
-  --text2: #9898a8;
-  --text3: #686878;
-  --accent: #6366f1;
-  --accent-light: #818cf8;
-  --star: #f59e0b;
-  --danger: #ef4444;
-  --success: #10b981;
-  --warning: #f59e0b;
+  --bg: #0d0b0c;
+  --surface: #171315;
+  --surface2: #211a1d;
+  --border: #35292d;
+  --text: #f3ede5;
+  --text2: #b1a5a6;
+  --text3: #786d70;
+  --accent: #a44752;
+  --accent-light: #c15b66;
+  --gold: #d6b06a;
+  --graph-movie: #6fa7a1;
+  --graph-selected: #f0c674;
+  --star: #d6b06a;
+  --danger: #c96161;
+  --success: #769985;
+  --warning: #c99558;
   --radius: 12px;
   --shadow: 0 2px 12px rgba(0,0,0,.3);
   --transition: .2s ease;
@@ -38,7 +41,7 @@ body {
 
 /* ===== Layout ===== */
 .app-wrapper {
-  max-width: 960px;
+  max-width: 1120px;
   margin: 0 auto;
   padding: 24px 20px 60px;
 }
@@ -53,10 +56,12 @@ body {
 }
 .app-header h1 {
   font-size: 1.75rem; font-weight: 700;
-  background: linear-gradient(135deg, var(--accent-light), #a78bfa);
+  background: linear-gradient(135deg, var(--accent-light), var(--gold));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+.brand-block { display: flex; flex-direction: column; gap: 2px; }
+.brand-kicker { color: var(--text3); font-size: .73rem; letter-spacing: .13em; text-transform: uppercase; }
 .header-actions { display: flex; gap: 8px; align-items: center; }
 
 /* ===== Storage Status Bar ===== */
@@ -104,14 +109,63 @@ body {
   gap: 12px; margin-bottom: 24px;
 }
 .stat-card {
-  background: var(--surface);
+  background: linear-gradient(145deg, rgba(33,26,29,.97), rgba(20,16,18,.97));
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px 16px;
   text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
 }
 .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--accent-light); }
 .stat-label { font-size: .8rem; color: var(--text3); margin-top: 2px; }
+.memory-spotlight { display: none; margin: -4px 0 22px; padding: 16px; border: 1px solid rgba(214,176,106,.25); border-radius: 14px; background: linear-gradient(135deg,rgba(164,71,82,.11),rgba(214,176,106,.045)); }
+.memory-spotlight.visible { display: block; animation: memoryReveal .45s ease both; }
+@keyframes memoryReveal { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.memory-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.memory-heading h2 { font-size: 1rem; color: var(--gold); }
+.memory-heading span { color: var(--text3); font-size: .72rem; }
+.memory-list { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 9px; margin-top: 11px; }
+.memory-card { padding: 11px; border: 1px solid var(--border); border-radius: 10px; background: rgba(23,19,21,.82); }
+.memory-card-kicker { color: var(--accent-light); font-size: .68rem; }
+.memory-card-title { margin-top: 2px; color: var(--text); font-size: .9rem; font-weight: 700; }
+.memory-card-meta { color: var(--text3); font-size: .7rem; margin-top: 3px; }
+.memory-card-note { color: var(--text2); font-size: .76rem; line-height: 1.5; margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.memory-card-actions { display: flex; gap: 6px; margin-top: 9px; }
+.taste-overlay { position: fixed; inset: 0; z-index: 2450; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(13,11,12,.88); opacity: 0; visibility: hidden; transition: .24s ease; }
+.taste-overlay.active { opacity: 1; visibility: visible; }
+.taste-panel { width: min(1080px,96vw); max-height: 92vh; overflow-y: auto; padding: 24px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: 0 24px 80px rgba(0,0,0,.55); }
+.taste-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.taste-header h2 { color: var(--gold); font-size: 1.45rem; }
+.taste-header p { color: var(--text3); font-size: .78rem; margin-top: 3px; }
+.taste-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 10px; margin-top: 18px; }
+.taste-metric { padding: 13px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface2); }
+.taste-metric strong { display: block; color: var(--gold); font-size: 1.25rem; }
+.taste-metric span { color: var(--text3); font-size: .72rem; }
+.taste-section { margin-top: 20px; padding-top: 17px; border-top: 1px solid var(--border); }
+.taste-section h3 { font-size: .95rem; color: var(--text); }
+.taste-section-note { color: var(--text3); font-size: .7rem; margin-top: 3px; }
+.taste-bars { display: grid; gap: 8px; margin-top: 10px; }
+.taste-bar-row { display: grid; grid-template-columns: minmax(75px,130px) 1fr auto; gap: 8px; align-items: center; font-size: .73rem; }
+.taste-bar-label { color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.taste-bar-track { height: 8px; border-radius: 8px; background: rgba(255,255,255,.05); overflow: hidden; }
+.taste-bar-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg,var(--accent),var(--gold)); }
+.taste-bar-value { color: var(--text3); white-space: nowrap; }
+.taste-representatives { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.taste-representatives button { padding: 7px 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface2); color: var(--text2); cursor: pointer; }
+.taste-empty { padding: 50px 20px; color: var(--text3); text-align: center; }
+.tool-overlay { position: fixed; inset: 0; z-index: 2460; display: flex; align-items: center; justify-content: center; padding: 22px; background: rgba(13,11,12,.9); opacity: 0; visibility: hidden; transition: .22s ease; }
+.tool-overlay.active { opacity: 1; visibility: visible; }
+.tool-panel { width: min(980px,96vw); max-height: 92vh; overflow-y: auto; padding: 22px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); }
+.tool-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.tool-header h2 { color: var(--gold); font-size: 1.25rem; }
+.tool-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.report-grid,.health-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 9px; margin-top: 15px; }
+.report-card,.health-card { padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); }
+.report-card strong,.health-card strong { display: block; color: var(--gold); font-size: 1.15rem; }
+.report-card span,.health-card span { color: var(--text3); font-size: .7rem; }
+.health-list { display: grid; gap: 7px; margin-top: 14px; }
+.health-item { display: flex; justify-content: space-between; gap: 10px; padding: 9px; border: 1px solid var(--border); border-radius: 8px; color: var(--text2); font-size: .75rem; }
+.merge-box { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
 
 /* ===== Toolbar ===== */
 .toolbar {
@@ -160,22 +214,75 @@ body {
 /* ===== Movie Grid ===== */
 .movie-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
 }
 
 .movie-card {
-  background: var(--surface);
+  background: linear-gradient(155deg, #211a1d, #151113 68%);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  transition: var(--transition);
+  border-radius: 16px;
+  padding: 0;
+  overflow: hidden;
+  transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease;
   display: flex; flex-direction: column; gap: 10px;
   position: relative;
   cursor: pointer;
+  min-height: 270px;
 }
-.movie-card:hover { border-color: var(--accent); box-shadow: var(--shadow); }
+.movie-card:hover { transform: translateY(-4px); border-color: rgba(193,91,102,.72); box-shadow: 0 18px 36px rgba(0,0,0,.34); }
 .movie-card:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 3px; }
+
+.card-visual {
+  position: relative; min-height: 172px; overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(164,71,82,.42), transparent 34%),
+    radial-gradient(circle at 85% 72%, rgba(214,176,106,.22), transparent 36%),
+    linear-gradient(135deg, #2b2024, #151113 62%);
+}
+.movie-card.has-image .card-visual { min-height: 208px; background: #0a0a0d; }
+.card-image {
+  width: 100%; height: 100%; position: absolute; inset: 0; object-fit: cover;
+  opacity: 0; transform: scale(1.025); transition: opacity .35s ease, transform .6s ease;
+}
+.movie-card:hover .card-image { transform: scale(1.07); }
+.card-visual.image-ready .card-image { opacity: .9; }
+.card-image-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(8,8,12,.08) 10%, rgba(8,8,12,.08) 34%, rgba(8,8,12,.88) 100%);
+}
+.card-visual-copy { position: absolute; inset: auto 16px 14px; z-index: 1; }
+.card-visual-title {
+  font-size: 1.26rem; font-weight: 750; color: #fff; line-height: 1.3;
+  text-shadow: 0 2px 14px rgba(0,0,0,.75); word-break: break-word;
+}
+.card-visual-meta { margin-top: 4px; color: rgba(255,255,255,.68); font-size: .78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-rating-chip {
+  position: absolute; top: 13px; right: 13px; z-index: 2;
+  display: inline-flex; align-items: center; gap: 3px; padding: 5px 9px;
+  background: rgba(13,11,12,.7); backdrop-filter: blur(10px); color: var(--gold);
+  border: 1px solid rgba(255,255,255,.16); border-radius: 99px; font-size: .78rem; font-weight: 700;
+}
+.card-rating-chip .star-empty { color: rgba(255,255,255,.35); }
+.card-image-loading {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,.72); font-size: .78rem; letter-spacing: .04em;
+  background: linear-gradient(110deg, rgba(255,255,255,.02) 18%, rgba(255,255,255,.08) 38%, rgba(255,255,255,.02) 58%);
+  background-size: 200% 100%; animation: imageShimmer 1.8s linear infinite;
+}
+.card-visual.image-ready .card-image-loading { opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+.card-visual.image-unavailable .card-image-loading { animation: none; background: rgba(239,68,68,.08); color: #fca5a5; }
+@keyframes imageShimmer { to { background-position: -200% 0; } }
+
+.card-fallback-mark {
+  position: absolute; top: 16px; left: 16px; color: rgba(255,255,255,.22); font-size: 2.45rem; line-height: 1;
+}
+.movie-card.no-image .card-visual-copy { bottom: 18px; }
+.movie-card.no-image .card-visual-title { font-size: 1.32rem; }
+
+.card-body { display: flex; flex-direction: column; gap: 10px; padding: 4px 16px 16px; flex: 1; }
+.card-body .card-meta { color: var(--text3); }
+.card-body .card-rating { display: none; }
 
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
 .card-title { font-size: 1.1rem; font-weight: 600; color: var(--text); word-break: break-word; }
@@ -193,11 +300,12 @@ body {
 
 .card-comment {
   font-size: .85rem; color: var(--text2);
-  line-height: 1.6; display: -webkit-box;
-  -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+  line-height: 1.65; display: -webkit-box;
+  -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
-.card-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); }
+.card-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); }
 .card-actions .btn { cursor: pointer; }
+.watch-count { color: var(--accent-light); font-size: .78rem; font-weight: 600; white-space: nowrap; }
 
 /* ===== Modal ===== */
 .modal-overlay {
@@ -238,6 +346,33 @@ body {
 .star-selector .star:hover { transform: scale(1.2); }
 
 .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+.edit-watch-history {
+  display: none; margin: 2px 0 18px; padding: 14px;
+  border: 1px solid var(--border); border-radius: 10px; background: rgba(164,71,82,.055);
+}
+.edit-watch-history.visible { display: block; }
+.edit-watch-history-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.edit-watch-history-heading h3 { font-size: .92rem; color: var(--text); }
+.edit-watch-history-note { color: var(--text3); font-size: .76rem; line-height: 1.5; margin-top: 10px; }
+.category-picker { border: 1px solid var(--border); border-radius: 9px; padding: 9px; background: var(--surface2); }
+.category-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.category-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 16px; background: rgba(164,71,82,.18); color: #e7a7ad; font-size: .76rem; }
+.category-chip button { border: 0; background: transparent; color: inherit; cursor: pointer; padding: 0 2px; }
+.category-primary { font-size: .62rem; color: var(--gold); }
+.category-add-row { display: flex; gap: 7px; }
+.category-help { color: var(--text3); font-size: .72rem; margin-top: 6px; line-height: 1.45; }
+.personal-fields { margin-bottom: 16px; padding: 11px; border: 1px solid var(--border); border-radius: 10px; background: rgba(214,176,106,.025); }
+.personal-fields summary { color: var(--gold); cursor: pointer; font-size: .84rem; }
+.personal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 11px; }
+.personal-grid .form-group { margin: 0; }
+.personal-wide { grid-column: 1 / -1; }
+.personal-detail { display: none; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border); }
+.personal-detail.visible { display: block; }
+.personal-detail h3 { color: var(--gold); font-size: .95rem; }
+.personal-detail-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 8px; margin-top: 9px; }
+.personal-detail-item { padding: 9px; border-radius: 8px; background: var(--surface2); }
+.personal-detail-item strong { display: block; color: var(--text3); font-size: .65rem; }
+.personal-detail-item span { color: var(--text2); font-size: .76rem; white-space: pre-wrap; }
 
 /* ===== Review Image Picker ===== */
 .image-picker {
@@ -246,10 +381,10 @@ body {
   display: flex; align-items: center; transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
 }
 .image-picker.is-drag-over {
-  border-color: var(--accent); background: rgba(139,92,246,.12);
-  box-shadow: inset 0 0 0 1px rgba(139,92,246,.35);
+  border-color: var(--accent); background: rgba(164,71,82,.12);
+  box-shadow: inset 0 0 0 1px rgba(164,71,82,.34);
 }
-.image-picker.is-processing { border-color: var(--accent); background: rgba(139,92,246,.08); }
+.image-picker.is-processing { border-color: var(--accent); background: rgba(164,71,82,.08); }
 .image-picker-empty { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; }
 .image-picker-empty p { color: var(--text3); font-size: .82rem; }
 .image-picker-empty-copy { display: flex; flex-direction: column; gap: 3px; }
@@ -283,6 +418,13 @@ body {
 /* ===== Review Detail ===== */
 .detail-overlay { z-index: 1100; }
 .detail-modal { max-width: 780px; padding: 0; overflow: hidden; }
+.detail-nav { position: absolute; top: 50%; z-index: 4; width: 112px; min-height: 64px; padding: 9px; border: 1px solid rgba(214,176,106,.34); border-radius: 12px; background: rgba(23,19,21,.9); color: var(--text2); cursor: pointer; transform: translateY(-50%); backdrop-filter: blur(12px); }
+.detail-nav:hover:not(:disabled) { border-color: var(--gold); color: var(--text); }
+.detail-nav:disabled { opacity: .24; cursor: default; }
+.detail-nav-prev { left: 18px; }
+.detail-nav-next { right: 18px; }
+.detail-nav strong { display: block; color: var(--gold); font-size: .75rem; }
+.detail-nav span { display: block; margin-top: 3px; font-size: .68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .detail-scroll { max-height: 90vh; overflow-y: auto; }
 .detail-image-section {
   min-height: 180px; max-height: 440px; background: #08080b;
@@ -308,6 +450,23 @@ body {
   color: var(--text2); line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere;
 }
 .detail-comment.empty { color: var(--text3); font-style: italic; }
+.rewatch-history { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border); }
+.rewatch-history-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rewatch-history-heading h3 { font-size: 1rem; color: var(--text); }
+.rewatch-count { color: var(--accent-light); font-size: .84rem; font-weight: 650; white-space: nowrap; }
+.rewatch-list { display: grid; gap: 10px; margin-top: 12px; }
+.rewatch-entry { padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); }
+.rewatch-entry-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--text3); font-size: .8rem; }
+.rewatch-entry-number { color: var(--accent-light); font-weight: 650; }
+.rewatch-entry-feeling { margin-top: 7px; color: var(--text2); font-size: .88rem; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+.rewatch-entry-feeling.empty { color: var(--text3); font-style: italic; }
+.rewatch-entry-actions { display: flex; gap: 6px; margin-left: auto; }
+.rewatch-entry-actions .btn { padding: 5px 9px; font-size: .75rem; }
+.rating-evolution { display: none; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border); }
+.rating-evolution.visible { display: block; }
+.rating-evolution h3 { font-size: 1rem; color: var(--text); }
+.rating-evolution-summary { margin-top: 4px; color: var(--text3); font-size: .78rem; }
+.rating-evolution-chart { display: block; width: 100%; height: 190px; margin-top: 12px; border: 1px solid var(--border); border-radius: 10px; background: rgba(214,176,106,.035); }
 .detail-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 26px; }
 
 /* ===== Fullscreen Image Lightbox ===== */
@@ -321,6 +480,123 @@ body {
   position: absolute; top: 18px; right: 22px; width: 42px; height: 42px; border-radius: 50%;
   border: 1px solid rgba(255,255,255,.25); background: rgba(0,0,0,.5); color: #fff;
   font-size: 1.4rem; cursor: pointer;
+}
+
+/* ===== Rating-driven curation wall ===== */
+body.gallery-open { overflow: hidden; }
+.gallery-overlay {
+  position: fixed; inset: 0; z-index: 2500; display: flex; flex-direction: column;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(164,71,82,.18), transparent 30%),
+    radial-gradient(circle at 88% 76%, rgba(214,176,106,.11), transparent 34%),
+    #0d0b0c;
+  opacity: 0; visibility: hidden; transition: opacity .28s ease, visibility .28s ease;
+}
+.gallery-overlay.active { opacity: 1; visibility: visible; }
+.gallery-header {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;
+  padding: 24px 32px 18px; border-bottom: 1px solid rgba(255,255,255,.08);
+  background: rgba(13,11,12,.78); backdrop-filter: blur(18px); z-index: 3;
+}
+.gallery-kicker { color: var(--accent-light); font-size: .7rem; letter-spacing: .16em; font-weight: 700; }
+.gallery-header h2 { margin-top: 2px; font-size: 1.55rem; }
+.gallery-summary { color: var(--text3); font-size: .82rem; margin-top: 3px; }
+.gallery-header-actions { display: flex; align-items: center; gap: 14px; padding-right: 52px; min-height: 42px; }
+.gallery-count { color: var(--text2); font-size: .82rem; white-space: nowrap; }
+.gallery-view-toggle { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--border); border-radius: 9px; }
+.gallery-view-toggle button { border: 0; border-radius: 6px; padding: 6px 9px; background: transparent; color: var(--text3); cursor: pointer; }
+.gallery-view-toggle button.active { background: var(--accent); color: white; }
+.relation-dimension-select { min-width: 116px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--text); font-size: .76rem; }
+.gallery-header .lightbox-close { top: 24px; right: 30px; }
+.gallery-stage { flex: 1; overflow-y: auto; overflow-x: clip; padding: 18px 24px 48px; }
+.gallery-wall {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 10px; width: 100%; max-width: 1880px; margin: 0 auto;
+}
+.gallery-card {
+  position: relative; aspect-ratio: 2 / 3; min-width: 0; overflow: hidden;
+  border: 1px solid rgba(255,255,255,.1); border-radius: 10px;
+  background:
+    radial-gradient(circle at 14% 16%, rgba(164,71,82,.36), transparent 36%),
+    linear-gradient(145deg, #2b2024, #151113 70%);
+  cursor: pointer; isolation: isolate; content-visibility: auto; contain: layout paint style;
+  contain-intrinsic-size: 132px 198px;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.gallery-card.rating-5 { border-color: rgba(214,176,106,.58); }
+.gallery-card.rating-4 { border-color: rgba(193,91,102,.42); }
+.gallery-card.rating-3 { border-color: rgba(111,167,161,.34); }
+.gallery-card.rating-2 { border-color: rgba(148,163,184,.24); }
+.gallery-card.rating-low { border-color: rgba(148,163,184,.16); }
+.gallery-card:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
+.gallery-card-image { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(1.015); transition: opacity .24s ease, transform .35s ease; }
+.gallery-card.image-ready .gallery-card-image { opacity: .92; }
+.gallery-card:hover .gallery-card-image, .gallery-card.is-focused .gallery-card-image { transform: scale(1.045); }
+.gallery-card-shade { position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(5,5,8,.06), rgba(5,5,8,.12) 40%, rgba(5,5,8,.92) 100%); }
+.gallery-card-no-image-mark { position: absolute; top: 10px; left: 11px; color: rgba(255,255,255,.18); font-size: 1.55rem; }
+.gallery-card-loading { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.62); font-size: .65rem; background: rgba(8,8,12,.32); }
+.gallery-card.image-ready .gallery-card-loading { opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+.gallery-card.image-unavailable .gallery-card-loading { background: rgba(127,29,29,.28); color: #fecaca; }
+.gallery-card-rating { position: absolute; top: 7px; right: 7px; padding: 3px 5px; border-radius: 99px; background: rgba(13,11,12,.68); border: 1px solid rgba(255,255,255,.13); backdrop-filter: blur(8px); color: var(--gold); font-size: .57rem; letter-spacing: -1px; z-index: 3; }
+.gallery-card-content { position: absolute; left: 9px; right: 9px; bottom: 8px; z-index: 3; }
+.gallery-card-title { color: #fff; font-size: .82rem; line-height: 1.25; font-weight: 720; text-shadow: 0 2px 12px rgba(0,0,0,.82); word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gallery-card-meta { color: rgba(255,255,255,.7); font-size: .62rem; margin-top: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.gallery-wall.has-focus .gallery-card.is-focused, .gallery-card:hover { z-index: 2; transform: translateY(-2px) scale(1.035); border-color: rgba(214,176,106,.8); box-shadow: 0 10px 26px rgba(0,0,0,.5); }
+.gallery-empty { grid-column: 1 / -1; min-height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--text3); gap: 10px; }
+.gallery-empty strong { color: var(--text); font-size: 1.1rem; }
+.gallery-empty-actions { display: flex; gap: 10px; margin-top: 8px; }
+.gallery-wall.relation-mode { display: block; max-width: 1700px; }
+.relation-cluster { position: relative; min-height: 210px; margin: 0 0 22px; padding: 16px 16px 16px 190px; border: 1px solid rgba(255,255,255,.08); border-radius: 16px; background: rgba(255,255,255,.025); opacity: 0; transform: translateY(32px); transition: opacity .55s ease, transform .55s ease; content-visibility: auto; contain-intrinsic-size: 100% 250px; }
+.relation-cluster.is-visible { opacity: 1; transform: none; }
+.relation-mode.has-related .relation-cluster:not(.is-related) { opacity: .22; }
+.relation-cluster.is-related { border-color: rgba(214,176,106,.55); box-shadow: 0 0 26px rgba(164,71,82,.12); }
+.relation-cluster::before { content: ''; position: absolute; left: 150px; top: 50%; width: 42px; height: 1px; background: linear-gradient(90deg,var(--gold),rgba(214,176,106,.18)); transform: scaleX(0); transform-origin: left; transition: transform .7s .18s ease; }
+.relation-cluster.is-visible::before { transform: scaleX(1); }
+.relation-hub { position: absolute; left: 18px; top: 50%; width: 132px; transform: translateY(-50%); padding: 14px 10px; border: 1px solid rgba(214,176,106,.4); border-radius: 14px; background: radial-gradient(circle at 30% 20%,rgba(164,71,82,.34),rgba(23,19,21,.96)); text-align: center; box-shadow: 0 0 28px rgba(164,71,82,.14); }
+.relation-hub strong { display: block; color: white; font-size: 1rem; }
+.relation-hub span { display: block; margin-top: 5px; color: var(--text3); font-size: .68rem; line-height: 1.45; }
+.relation-movies { display: grid; grid-template-columns: repeat(auto-fill,minmax(92px,1fr)); gap: 8px; }
+.relation-movie { position: relative; aspect-ratio: 2/3; overflow: hidden; border: 1px solid rgba(255,255,255,.1); border-radius: 9px; background: #211a1d; cursor: pointer; opacity: 0; transform: translateX(-18px) scale(.96); transition: opacity .4s ease, transform .4s ease, border-color .2s ease; }
+.relation-cluster.is-visible .relation-movie { opacity: 1; transform: none; transition-delay: var(--node-delay); }
+.relation-movie:hover { border-color: var(--accent-light); transform: translateY(-2px) !important; }
+.relation-movie .gallery-card-content { left: 7px; right: 7px; bottom: 6px; }
+.relation-movie .gallery-card-title { font-size: .7rem; }
+.relation-movie .gallery-card-meta { font-size: .54rem; }
+.gallery-wall.knowledge-graph-mode { display: block; max-width: none; height: 100%; min-height: 560px; }
+.knowledge-graph-shell { position: relative; width: 100%; height: 100%; min-height: 560px; overflow: hidden; border: 1px solid rgba(255,255,255,.08); border-radius: 14px; background: radial-gradient(circle at 42% 48%,rgba(164,71,82,.12),transparent 46%),#0d0b0c; }
+.knowledge-graph-canvas { display: block; width: 100%; height: 100%; min-height: 560px; cursor: grab; touch-action: none; }
+.knowledge-graph-canvas.dragging { cursor: grabbing; }
+.knowledge-graph-help { position: absolute; left: 14px; top: 12px; z-index: 2; padding: 7px 10px; border-radius: 8px; background: rgba(13,11,12,.8); color: var(--text3); font-size: .68rem; pointer-events: none; }
+.knowledge-graph-panel { position: absolute; top: 12px; right: 12px; bottom: 12px; z-index: 3; width: 270px; padding: 14px; overflow-y: auto; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; background: rgba(23,19,21,.94); backdrop-filter: blur(14px); }
+.knowledge-graph-panel h3 { color: white; font-size: 1rem; line-height: 1.35; }
+.knowledge-graph-panel p { color: var(--text3); font-size: .72rem; line-height: 1.55; margin-top: 6px; }
+.knowledge-graph-panel h4 { margin-top: 14px; color: var(--text2); font-size: .76rem; }
+.knowledge-graph-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.knowledge-graph-pill { padding: 4px 7px; border-radius: 12px; background: rgba(164,71,82,.18); color: #e7a7ad; font-size: .68rem; }
+.knowledge-graph-related { display: grid; gap: 5px; margin-top: 7px; }
+.knowledge-graph-related button { width: 100%; padding: 6px 7px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface2); color: var(--text2); text-align: left; cursor: pointer; font-size: .7rem; }
+.knowledge-graph-placeholder { color: var(--text3); font-size: .74rem; line-height: 1.65; }
+@media (max-width: 820px) { .knowledge-graph-panel { width: 220px; } }
+@media (max-width: 600px) { .knowledge-graph-panel { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 36%; } }
+
+@media (max-width: 820px) {
+  .gallery-header { padding: 18px 20px 14px; }
+  .gallery-stage { padding: 14px 14px 38px; }
+  .gallery-wall { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
+  .gallery-header .lightbox-close { top: 18px; right: 16px; }
+  .gallery-header-actions { padding-right: 44px; gap: 8px; }
+  .relation-cluster { padding: 86px 10px 10px; }
+  .relation-hub { left: 10px; top: 10px; width: auto; right: 10px; transform: none; }
+  .relation-cluster::before { display: none; }
+}
+@media (max-width: 540px) {
+  .gallery-wall { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+  .gallery-card-title { font-size: .74rem; }
+  .gallery-card-meta { font-size: .56rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gallery-overlay, .gallery-card, .gallery-card-image { transition: none !important; }
+  .gallery-wall.has-focus .gallery-card.is-focused, .gallery-card:hover { transform: none; }
 }
 
 /* ===== Setup Overlay (Storage Setup) ===== */
@@ -372,14 +648,23 @@ body {
 
 /* ===== Responsive ===== */
 @media (max-width: 600px) {
+  .app-wrapper { padding: 18px 14px 48px; }
   .app-header { flex-direction: column; align-items: flex-start; }
+  .header-actions { width: 100%; }
+  .header-actions .btn-primary { margin-left: auto; }
   .movie-grid { grid-template-columns: 1fr; }
+  .movie-card.has-image .card-visual { min-height: 226px; }
   .toolbar { flex-direction: column; }
   .stats-bar { grid-template-columns: repeat(2, 1fr); }
   .modal { padding: 20px; }
   .detail-modal { padding: 0; }
   .detail-content { padding: 20px; }
   .detail-heading { flex-direction: column; gap: 8px; }
+  .detail-actions { justify-content: flex-start; flex-wrap: wrap; }
+  .detail-overlay { align-items: flex-start; padding-bottom: 82px; overflow-y: auto; }
+  .detail-nav { position: fixed; top: auto; bottom: 12px; width: calc(50% - 18px); min-height: 54px; transform: none; }
+  .detail-nav-prev { left: 12px; }
+  .detail-nav-next { right: 12px; }
   .image-picker-preview { align-items: flex-start; }
   .storage-status { flex-direction: column; align-items: flex-start; }
   .storage-status-actions { margin-left: 0; }
@@ -396,8 +681,15 @@ body {
 <div class="app-wrapper">
   <!-- Header -->
   <header class="app-header">
-    <h1>🎬 我的影评记录</h1>
+    <div class="brand-block">
+      <span class="brand-kicker">Personal cinema archive</span>
+      <h1>🎬 我的影评记录</h1>
+    </div>
     <div class="header-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openTasteProfile()" title="查看本地计算的个人电影品味画像">◎ 品味画像</button>
+      <button class="btn btn-ghost btn-sm" onclick="openAnnualReport()">▦ 年度报告</button>
+      <button class="btn btn-ghost btn-sm" onclick="openArchiveHealth()">✓ 档案健康</button>
+      <button class="btn btn-ghost btn-sm" id="galleryButton" onclick="openGallery()" title="按当前筛选策展展示全部影评">✦ 策展墙</button>
       <button class="btn btn-ghost btn-sm" onclick="handleExport()" title="导出包含剧照的完整 ZIP 备份">📤 导出</button>
       <button class="btn btn-ghost btn-sm" onclick="handleImport()" title="从 ZIP 完整备份或旧版 JSON 恢复">📥 导入</button>
       <button class="btn btn-primary" onclick="openModal()">+ 写影评</button>
@@ -412,6 +704,11 @@ body {
 
   <!-- Stats -->
   <div class="stats-bar" id="statsBar"></div>
+
+  <section class="memory-spotlight" id="memorySpotlight" aria-labelledby="memoryTitle">
+    <div class="memory-heading"><h2 id="memoryTitle">🎞 银幕记忆 · 历史上的今天</h2><span id="memoryDate"></span></div>
+    <div class="memory-list" id="memoryList"></div>
+  </section>
 
   <!-- Toolbar -->
   <div class="toolbar">
@@ -468,10 +765,30 @@ body {
           <input type="hidden" id="movieRating" value="0">
         </div>
       </div>
+      <section class="edit-watch-history" id="editWatchHistorySection" aria-labelledby="editWatchHistoryTitle">
+        <div class="edit-watch-history-heading">
+          <h3 id="editWatchHistoryTitle">历次观影记录</h3>
+          <span class="rewatch-count" id="editWatchCount"></span>
+        </div>
+        <div class="rewatch-list" id="editWatchHistory"></div>
+        <p class="edit-watch-history-note">这里同时展示所有观影记录；如需调整或删除某次重看，请在影评详情中操作。</p>
+      </section>
       <div class="form-group">
-        <label class="form-label">分类标签</label>
+        <label class="form-label">电影分类</label>
+        <div class="category-picker">
+          <div class="category-chips" id="categoryChips"></div>
+          <div class="category-add-row">
+            <input type="text" class="form-input" id="categoryInput" list="categoryOptions" placeholder="搜索或输入自定义分类">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="addCategoryFromInput()">添加</button>
+          </div>
+          <p class="category-help">最多 8 个；第一个是关系图主分类。可使用推荐选项，也可输入自己的分类。</p>
+        </div>
+        <datalist id="categoryOptions"></datalist>
+      </div>
+      <div class="form-group">
+        <label class="form-label">补充标签</label>
         <input type="text" class="form-input" id="movieTags"
-               placeholder="用逗号分隔，如：科幻, 悬疑, 诺兰">
+               placeholder="主题、导演、系列等，用逗号分隔，如：时间, 诺兰">
       </div>
       <div class="form-group">
         <label class="form-label">主剧照 <span style="color:var(--text3);font-weight:400;">（可选，最大 50 MB）</span></label>
@@ -515,8 +832,50 @@ body {
   </div>
 </div>
 
+<!-- Repeat viewing note -->
+<div class="modal-overlay" id="rewatchOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rewatchModalTitle">
+    <h2 id="rewatchModalTitle">记录重看</h2>
+    <p id="rewatchMovieTitle" style="color:var(--text3);font-size:.88rem;margin:-10px 0 20px;"></p>
+    <form id="rewatchForm" onsubmit="handleRewatchSubmit(event)">
+      <div class="form-group">
+        <label class="form-label">重看时间 *</label>
+        <input type="datetime-local" class="form-input" id="rewatchWatchedAt" required>
+      </div>
+      <details class="personal-fields">
+        <summary>电影与我的关系（可选）</summary>
+        <div class="personal-grid">
+          <div class="form-group"><label class="form-label">在哪里看</label><input class="form-input" id="contextLocation"></div>
+          <div class="form-group"><label class="form-label">和谁一起看</label><input class="form-input" id="contextCompanions"></div>
+          <div class="form-group"><label class="form-label">当时心情</label><input class="form-input" id="contextMood"></div>
+          <div class="form-group"><label class="form-label">人生阶段</label><input class="form-input" id="contextLifeStage"></div>
+          <div class="form-group personal-wide"><label class="form-label">对我的影响</label><textarea class="form-textarea" id="contextImpact"></textarea></div>
+          <div class="form-group personal-wide"><label class="form-label">最难忘的场景</label><textarea class="form-textarea" id="contextFavoriteScene"></textarea></div>
+          <div class="form-group personal-wide"><label class="form-label">最喜欢的台词</label><textarea class="form-textarea" id="contextFavoriteQuote"></textarea></div>
+          <div class="form-group"><label class="form-label">推荐给谁</label><input class="form-input" id="contextRecommendTo"></div>
+          <div class="form-group"><label class="form-label">还愿意再看吗</label><select class="form-select" id="contextWatchAgain"><option value="">未设置</option><option value="yes">愿意</option><option value="no">暂时不想</option></select></div>
+        </div>
+      </details>
+      <div class="form-group">
+        <label class="form-label">本次评分</label>
+        <div class="star-selector" id="rewatchStarSelector"></div>
+        <input type="hidden" id="rewatchRating" value="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">这次重看的感受</label>
+        <textarea class="form-textarea" id="rewatchFeeling" placeholder="这次重看有什么新的感受？（可选）" rows="5"></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeRewatchModal()">取消</button>
+        <button type="submit" class="btn btn-primary" id="saveRewatchButton">保存重看记录</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Read-only review detail -->
 <div class="modal-overlay detail-overlay" id="detailOverlay">
+  <button type="button" class="detail-nav detail-nav-prev" id="detailPrevious" onclick="navigateDetail(-1)" aria-label="上一个影评"><strong>← 上一个</strong><span id="detailPreviousTitle"></span></button>
   <div class="modal detail-modal" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
     <div class="detail-scroll">
       <div class="detail-image-section" id="detailImageSection">
@@ -531,7 +890,21 @@ body {
         <div class="detail-meta" id="detailMeta"></div>
         <div class="detail-tags" id="detailTags"></div>
         <div class="detail-comment" id="detailComment"></div>
+        <section class="personal-detail" id="personalDetail"><h3>电影与我的关系</h3><div class="personal-detail-grid" id="personalDetailGrid"></div></section>
+        <section class="rewatch-history" aria-labelledby="rewatchHistoryTitle">
+          <div class="rewatch-history-heading">
+            <h3 id="rewatchHistoryTitle">历次观看记录</h3>
+            <span class="rewatch-count" id="detailWatchCount"></span>
+          </div>
+          <div class="rewatch-list" id="rewatchHistory"></div>
+        </section>
+        <section class="rating-evolution" id="ratingEvolution" aria-labelledby="ratingEvolutionTitle">
+          <h3 id="ratingEvolutionTitle">观感变化</h3>
+          <p class="rating-evolution-summary" id="ratingEvolutionSummary"></p>
+          <svg class="rating-evolution-chart" id="ratingEvolutionChart" viewBox="0 0 640 190" role="img" aria-label="历次观看评分变化曲线"></svg>
+        </section>
         <div class="detail-actions">
+          <button type="button" class="btn btn-ghost" onclick="openRewatchModal()">＋ 记录重看</button>
           <button type="button" class="btn btn-ghost" onclick="editFromDetail()">✏️ 编辑影评</button>
           <button type="button" class="btn btn-danger" onclick="deleteFromDetail()">🗑️ 删除影评</button>
           <button type="button" class="btn btn-primary" onclick="closeDetail()">关闭</button>
@@ -539,6 +912,7 @@ body {
       </div>
     </div>
   </div>
+  <button type="button" class="detail-nav detail-nav-next" id="detailNext" onclick="navigateDetail(1)" aria-label="下一个影评"><strong>下一个 →</strong><span id="detailNextTitle"></span></button>
 </div>
 
 <!-- Fullscreen still image -->
@@ -546,6 +920,50 @@ body {
   <button class="lightbox-close" type="button" onclick="closeLightbox()" aria-label="关闭全屏剧照">×</button>
   <img id="lightboxImage" alt="全屏剧照" onclick="closeLightbox()">
 </div>
+
+<!-- Rating-driven review curation wall -->
+<section class="gallery-overlay" id="galleryOverlay" role="dialog" aria-modal="true" aria-labelledby="galleryTitle">
+  <header class="gallery-header">
+    <div>
+      <p class="gallery-kicker">CURATED REVIEW WALL</p>
+      <h2 id="galleryTitle">影评策展墙</h2>
+      <p class="gallery-summary" id="gallerySummary"></p>
+    </div>
+    <div class="gallery-header-actions">
+      <div class="gallery-view-toggle" aria-label="策展墙视图">
+        <button type="button" id="relationViewButton" class="active" onclick="setGalleryMode('relation')">关系图</button>
+        <button type="button" id="wallViewButton" onclick="setGalleryMode('wall')">海报墙</button>
+      </div>
+      <select class="relation-dimension-select" id="relationDimension" onchange="setRelationDimension(this.value)" aria-label="关系维度">
+        <option value="category">电影风格</option>
+        <option value="director">导演</option>
+        <option value="year">观影年份</option>
+        <option value="rating">评分</option>
+        <option value="rewatch">重看状态</option>
+        <option value="tag">补充标签</option>
+        <option value="cast" disabled>主演（需要演员数据）</option>
+      </select>
+      <button class="btn btn-ghost btn-sm" type="button" onclick="exportKnowledgeGraph()">导出 PNG</button>
+      <span class="gallery-count" id="galleryCount"></span>
+      <button class="lightbox-close" type="button" onclick="closeGallery()" aria-label="关闭策展墙">×</button>
+    </div>
+  </header>
+  <div class="gallery-stage" id="galleryStage" tabindex="-1">
+    <div class="gallery-wall" id="galleryWall"></div>
+  </div>
+</section>
+
+<section class="tool-overlay" id="annualOverlay" role="dialog" aria-modal="true" aria-labelledby="annualTitle"><div class="tool-panel"><header class="tool-header"><div><h2 id="annualTitle">年度观影报告</h2><p class="taste-section-note">本地汇总初看、重看、评分、分类和导演</p></div><button class="btn btn-ghost btn-sm" onclick="closeAnnualReport()">关闭</button></header><div class="tool-controls"><select class="filter-select" id="annualYear" onchange="renderAnnualReport()"></select><button class="btn btn-primary btn-sm" onclick="exportAnnualReport()">导出 HTML</button></div><div id="annualContent"></div></div></section>
+
+<section class="tool-overlay" id="healthOverlay" role="dialog" aria-modal="true" aria-labelledby="healthTitle"><div class="tool-panel"><header class="tool-header"><div><h2 id="healthTitle">档案健康度</h2><p class="taste-section-note">只给出证据和修复入口，不自动修改数据</p></div><button class="btn btn-ghost btn-sm" onclick="closeArchiveHealth()">关闭</button></header><div id="healthContent"></div><div class="merge-box"><h3>分类合并与别名治理</h3><p class="taste-section-note">把来源分类统一替换为目标分类；确认后批量保存，修改前自动备份。</p><div class="tool-controls"><select class="filter-select" id="mergeSource"></select><input class="form-input" style="max-width:240px" id="mergeTarget" list="categoryOptions" placeholder="目标标准分类"><button class="btn btn-primary btn-sm" onclick="mergeCategory()">预览并合并</button></div><p class="taste-section-note" id="mergeImpact"></p></div></div></section>
+
+<!-- Personal taste profile -->
+<section class="taste-overlay" id="tasteOverlay" role="dialog" aria-modal="true" aria-labelledby="tasteTitle">
+  <div class="taste-panel">
+    <header class="taste-header"><div><h2 id="tasteTitle">个人电影品味画像</h2><p>完全根据本地影评、分类、导演、评分和重看记录计算</p></div><button class="btn btn-ghost btn-sm" type="button" onclick="closeTasteProfile()">关闭</button></header>
+    <div id="tasteContent"></div>
+  </div>
+</section>
 
 <!-- First-run storage setup -->
 <div class="setup-overlay" id="setupOverlay">
@@ -579,8 +997,53 @@ let imageImportBusy = false;
 let imageDragDepth = 0;
 let activeNativeImageDropId = null;
 let detailReviewId = null;
+let rewatchReviewId = null;
+let rewatchEditIndex = null;
+let rewatchMutationBusy = false;
+let selectedCategories = [];
 let detailImageUrl = '';
 let detailImageLoadToken = 0;
+const cardImageCache = new Map();
+const MAX_CARD_IMAGE_CACHE = 24;
+const cardImageQueued = new Set();
+const cardImageNodes = new Map();
+const galleryImageNodes = new Map();
+let cardImagesByPath = new Map();
+let cardImageQueue = [];
+let cardImageInFlight = 0;
+let cardImageObserver = null;
+let galleryImageObserver = null;
+let galleryLastTrigger = null;
+let galleryMode = 'relation';
+let relationDimension = 'category';
+let relationObserver = null;
+let knowledgeGraphState = null;
+let knowledgeGraphFrame = null;
+const RECOMMENDED_CATEGORIES = ['剧情','喜剧','动作','爱情','科幻','动画','悬疑','惊悚','恐怖','犯罪','冒险','奇幻','战争','历史','传记','音乐','歌舞','家庭','纪录片','短片','西部','灾难','武侠','古装','运动','儿童'];
+
+function renderCategoryPicker() {
+  const chips = document.getElementById('categoryChips');
+  chips.replaceChildren();
+  selectedCategories.forEach((value, index) => {
+    const chip = document.createElement('span'); chip.className = 'category-chip';
+    const label = document.createElement('button'); label.type = 'button'; label.textContent = value;
+    label.title = index ? '设为主分类' : '当前主分类';
+    label.onclick = () => { if (index) { selectedCategories.splice(index,1); selectedCategories.unshift(value); renderCategoryPicker(); } };
+    chip.append(label);
+    if (!index) { const primary=document.createElement('span'); primary.className='category-primary'; primary.textContent='主'; chip.append(primary); }
+    const remove=document.createElement('button'); remove.type='button'; remove.textContent='×'; remove.title='移除分类';
+    remove.onclick=()=>{ selectedCategories.splice(index,1); renderCategoryPicker(); };
+    chip.append(remove); chips.append(chip);
+  });
+}
+
+function addCategoryFromInput() {
+  const input=document.getElementById('categoryInput'); const value=input.value.trim();
+  if (!value) return;
+  if (selectedCategories.includes(value)) { input.value=''; return; }
+  if (selectedCategories.length >= 8) { showToast('电影分类最多选择 8 个','error'); return; }
+  selectedCategories.push(value); input.value=''; renderCategoryPicker();
+}
 
 function desktopMethod(name) {
   const api = window.pywebview && window.pywebview.api;
@@ -626,6 +1089,200 @@ function formatFileSize(bytes) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function syncCardImageCache() {
+  cardImagesByPath = new Map();
+  reviews.forEach(review => {
+    if (review.image && review.image.path) cardImagesByPath.set(review.image.path, review.image);
+  });
+  for (const [path, url] of cardImageCache) {
+    if (!cardImagesByPath.has(path)) {
+      resetCachedImageNodes(path);
+      URL.revokeObjectURL(url);
+      cardImageCache.delete(path);
+    }
+  }
+}
+
+function resetCachedImageNodes(path) {
+  const nodes = cardImageNodes.get(path);
+  if (nodes) {
+    nodes.forEach(node => {
+      if (!node.isConnected || node.dataset.cardImagePath !== path) return;
+      node.removeAttribute('src');
+      const visual = node.closest('.card-visual');
+      if (!visual) return;
+      visual.classList.remove('image-ready');
+      const loading = visual.querySelector('.card-image-loading');
+      if (loading) loading.textContent = '正在加载剧照';
+    });
+  }
+  const galleryNodes = galleryImageNodes.get(path);
+  if (galleryNodes) {
+    galleryNodes.forEach(node => {
+      if (!node.isConnected || node.dataset.galleryImagePath !== path) return;
+      node.removeAttribute('src');
+      const card = node.closest('.gallery-card');
+      if (!card) return;
+      card.classList.remove('image-ready');
+      const loading = card.querySelector('.gallery-card-loading');
+      if (loading) loading.textContent = '正在加载剧照';
+    });
+  }
+}
+
+function touchCachedImage(path) {
+  const url = cardImageCache.get(path);
+  if (!url) return '';
+  cardImageCache.delete(path);
+  cardImageCache.set(path, url);
+  return url;
+}
+
+function rememberCardImage(path, url) {
+  const previous = cardImageCache.get(path);
+  if (previous && previous !== url) URL.revokeObjectURL(previous);
+  cardImageCache.delete(path);
+  cardImageCache.set(path, url);
+  while (cardImageCache.size > MAX_CARD_IMAGE_CACHE) {
+    const oldest = cardImageCache.entries().next().value;
+    if (!oldest) break;
+    const [oldestPath, oldestUrl] = oldest;
+    cardImageCache.delete(oldestPath);
+    resetCachedImageNodes(oldestPath);
+    URL.revokeObjectURL(oldestUrl);
+  }
+}
+
+function applyCardImage(path, url) {
+  const nodes = cardImageNodes.get(path);
+  if (nodes) {
+    nodes.forEach(node => {
+      if (!node.isConnected || node.dataset.cardImagePath !== path) return;
+      node.src = url;
+      const visual = node.closest('.card-visual');
+      if (visual) visual.classList.add('image-ready');
+    });
+  }
+  const galleryNodes = galleryImageNodes.get(path);
+  if (galleryNodes) {
+    galleryNodes.forEach(node => {
+      if (!node.isConnected || node.dataset.galleryImagePath !== path) return;
+      node.src = url;
+      const card = node.closest('.gallery-card');
+      if (card) card.classList.add('image-ready');
+    });
+  }
+}
+
+function markCardImageUnavailable(path) {
+  const nodes = cardImageNodes.get(path);
+  if (nodes) {
+    nodes.forEach(node => {
+      const visual = node.closest('.card-visual');
+      if (!visual) return;
+      visual.classList.add('image-unavailable');
+      const loading = visual.querySelector('.card-image-loading');
+      if (loading) loading.textContent = '剧照暂不可用';
+    });
+  }
+  const galleryNodes = galleryImageNodes.get(path);
+  if (galleryNodes) {
+    galleryNodes.forEach(node => {
+      const card = node.closest('.gallery-card');
+      if (!card) return;
+      card.classList.add('image-unavailable');
+      const loading = card.querySelector('.gallery-card-loading');
+      if (loading) loading.textContent = '剧照不可用';
+    });
+  }
+}
+
+function requestCardImage(path) {
+  if (cardImageCache.has(path)) {
+    applyCardImage(path, touchCachedImage(path));
+    return;
+  }
+  if (!cardImagesByPath.has(path) || cardImageQueued.has(path)) return;
+  cardImageQueued.add(path);
+  cardImageQueue.push(path);
+  drainCardImageQueue();
+}
+
+function drainCardImageQueue() {
+  while (cardImageInFlight < 2 && cardImageQueue.length) {
+    const path = cardImageQueue.shift();
+    cardImageQueued.delete(path);
+    const image = cardImagesByPath.get(path);
+    if (!image || cardImageCache.has(path)) continue;
+    cardImageInFlight++;
+    loadImageObjectUrl(image, () => {}, () => cardImagesByPath.has(path))
+      .then(url => {
+        if (!url) return;
+        if (!cardImagesByPath.has(path)) {
+          URL.revokeObjectURL(url);
+          return;
+        }
+        rememberCardImage(path, url);
+        applyCardImage(path, url);
+      })
+      .catch(() => markCardImageUnavailable(path))
+      .finally(() => {
+        cardImageInFlight--;
+        drainCardImageQueue();
+      });
+  }
+}
+
+function hydrateCardImages() {
+  if (cardImageObserver) cardImageObserver.disconnect();
+  cardImageNodes.clear();
+  document.querySelectorAll('[data-card-image-path]').forEach(node => {
+    const path = node.dataset.cardImagePath;
+    if (!cardImageNodes.has(path)) cardImageNodes.set(path, new Set());
+    cardImageNodes.get(path).add(node);
+    if (cardImageCache.has(path)) applyCardImage(path, cardImageCache.get(path));
+  });
+
+  const schedule = node => requestCardImage(node.dataset.cardImagePath);
+  if ('IntersectionObserver' in window) {
+    cardImageObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        cardImageObserver.unobserve(entry.target);
+        schedule(entry.target);
+      });
+    }, { rootMargin: '280px 0px' });
+    document.querySelectorAll('[data-card-image-path]').forEach(node => cardImageObserver.observe(node));
+  } else {
+    document.querySelectorAll('[data-card-image-path]').forEach(schedule);
+  }
+}
+
+function hydrateGalleryImages() {
+  if (galleryImageObserver) galleryImageObserver.disconnect();
+  galleryImageNodes.clear();
+  const stage = document.getElementById('galleryStage');
+  document.querySelectorAll('[data-gallery-image-path]').forEach(node => {
+    const path = node.dataset.galleryImagePath;
+    if (!galleryImageNodes.has(path)) galleryImageNodes.set(path, new Set());
+    galleryImageNodes.get(path).add(node);
+    if (cardImageCache.has(path)) applyCardImage(path, cardImageCache.get(path));
+  });
+
+  const schedule = node => requestCardImage(node.dataset.galleryImagePath);
+  if ('IntersectionObserver' in window) {
+    galleryImageObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        schedule(entry.target);
+      });
+    }, { root: stage, rootMargin: '220px 0px' });
+    document.querySelectorAll('[data-gallery-image-path]').forEach(node => galleryImageObserver.observe(node));
+  } else {
+    document.querySelectorAll('[data-gallery-image-path]').forEach(schedule);
+  }
 }
 
 function applyDesktopState(state) {
@@ -732,22 +1389,126 @@ function detectDesktopBridge() {
 // ========================================================================
 
 /* ===== Stats ===== */
+function getRewatches(review) {
+  return Array.isArray(review && review.rewatches) ? review.rewatches : [];
+}
+
+function getWatchCount(review) {
+  return 1 + getRewatches(review).length;
+}
+
+function getWatchMoments(review) {
+  return [review.date, ...getRewatches(review).map(item => item.watchedAt)].filter(Boolean);
+}
+
+function getLatestWatchMoment(review) {
+  return Math.max(...getWatchMoments(review).map(value => new Date(value).getTime()));
+}
+
+function getEarliestWatchMoment(review) {
+  return Math.min(...getWatchMoments(review).map(value => new Date(value).getTime()));
+}
+
+function localDateTimeValue(value = new Date()) {
+  const pad = part => String(part).padStart(2, '0');
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}`;
+}
+
+function getViewingEvents(review) {
+  return [{watchedAt:review.date,rating:review.rating,feeling:review.comment||'',kind:'初次观看'},...getRewatches(review).map(entry=>({watchedAt:entry.watchedAt,rating:entry.rating,feeling:entry.feeling||'',kind:'重看'}))];
+}
+
+function getTodayMemoryData(now = new Date()) {
+  const year=now.getFullYear(),month=now.getMonth()+1,day=now.getDate(),memories=[];
+  reviews.forEach(review=>getViewingEvents(review).forEach(event=>{const datePart=event.watchedAt.split('T')[0],parts=datePart.split('-').map(Number),yearsAgo=year-parts[0];if(yearsAgo>0&&parts[1]===month&&parts[2]===day) memories.push({review,event,yearsAgo});}));
+  memories.sort((a,b)=>b.yearsAgo-a.yearsAgo||b.event.watchedAt.localeCompare(a.event.watchedAt));
+  const memoryIds=new Set(memories.map(item=>item.review.id)),dayMs=86400000;
+  const suggestions=reviews.map(review=>{const events=getViewingEvents(review),latest=events.reduce((best,event)=>event.watchedAt>best.watchedAt?event:best,events[0]),parts=latest.watchedAt.split('T')[0].split('-').map(Number),lastTime=new Date(parts[0],parts[1]-1,parts[2]).getTime(),daysAgo=Math.floor((now.getTime()-lastTime)/dayMs),rating=Number.isInteger(latest.rating)?latest.rating:review.rating;return{review,latest,daysAgo,rating};}).filter(item=>!memoryIds.has(item.review.id)&&item.rating>=4&&item.daysAgo>=365).sort((a,b)=>b.rating-a.rating||b.daysAgo-a.daysAgo).slice(0,3);
+  return {memories:memories.slice(0,6),suggestions};
+}
+
+function renderMemorySpotlight() {
+  const section=document.getElementById('memorySpotlight'),list=document.getElementById('memoryList'),now=new Date(),data=getTodayMemoryData(now);
+  list.replaceChildren();document.getElementById('memoryDate').textContent=`${now.getMonth()+1}月${now.getDate()}日`;
+  const appendCard=(review,kicker,meta,note)=>{const card=document.createElement('article');card.className='memory-card';const k=document.createElement('div');k.className='memory-card-kicker';k.textContent=kicker;const title=document.createElement('div');title.className='memory-card-title';title.textContent=review.title;const m=document.createElement('div');m.className='memory-card-meta';m.textContent=meta;card.append(k,title,m);if(note){const n=document.createElement('div');n.className='memory-card-note';n.textContent=note;card.append(n);}const actions=document.createElement('div');actions.className='memory-card-actions';const detail=document.createElement('button');detail.type='button';detail.className='btn btn-ghost btn-sm';detail.textContent='查看详情';detail.onclick=()=>openDetail(review.id);const rewatch=document.createElement('button');rewatch.type='button';rewatch.className='btn btn-primary btn-sm';rewatch.textContent='记录重看';rewatch.onclick=()=>openRewatchModal(review.id);actions.append(detail,rewatch);card.append(actions);list.append(card);};
+  data.memories.forEach(item=>appendCard(item.review,`${item.yearsAgo} 年前的今天 · ${item.event.kind}`,`${formatDate(item.event.watchedAt.split('T')[0])}${item.event.rating?` · ${item.event.rating} 星`:''}`,item.event.feeling));
+  if(!data.memories.length) data.suggestions.forEach(item=>appendCard(item.review,'今日重看建议',`已 ${item.daysAgo} 天未观看 · ${item.rating} 星`,item.latest.feeling||item.review.comment));
+  section.classList.toggle('visible',list.children.length>0);
+}
+
+function getProfileCategories(review) {
+  return review.categories&&review.categories.length ? review.categories : (review.tags||[]);
+}
+
+function getLatestReviewRating(review) {
+  const rated=getViewingEvents(review).filter(event=>Number.isInteger(event.rating)&&event.rating>0).sort((a,b)=>a.watchedAt.localeCompare(b.watchedAt));
+  return rated.length ? rated[rated.length-1].rating : 0;
+}
+
+function buildTasteProfile() {
+  const categoryMap=new Map(),directorMap=new Map(),yearMap=new Map();let legacyCategoryCount=0;
+  reviews.forEach(review=>{
+    const rating=getLatestReviewRating(review),rewatches=getRewatches(review).length,categories=getProfileCategories(review);
+    if(!(review.categories&&review.categories.length)&&review.tags&&review.tags.length) legacyCategoryCount++;
+    categories.forEach(category=>{const stat=categoryMap.get(category)||{count:0,ratingSum:0,rated:0,rewatches:0};stat.count++;stat.rewatches+=rewatches;if(rating){stat.ratingSum+=rating;stat.rated++;}categoryMap.set(category,stat);});
+    if(review.director){const stat=directorMap.get(review.director)||{count:0,ratingSum:0,rated:0,rewatches:0};stat.count++;stat.rewatches+=rewatches;if(rating){stat.ratingSum+=rating;stat.rated++;}directorMap.set(review.director,stat);}
+    getViewingEvents(review).forEach(event=>{const year=event.watchedAt.slice(0,4),stat=yearMap.get(year)||{count:0,rewatches:0};stat.count++;if(event.kind==='重看')stat.rewatches++;yearMap.set(year,stat);});
+  });
+  const categories=[...categoryMap.entries()].map(([name,stat])=>({name,...stat,average:stat.rated?stat.ratingSum/stat.rated:0})).sort((a,b)=>b.count-a.count||b.average-a.average);
+  const directors=[...directorMap.entries()].map(([name,stat])=>({name,...stat,average:stat.rated?stat.ratingSum/stat.rated:0})).sort((a,b)=>b.count-a.count||b.average-a.average);
+  const years=[...yearMap.entries()].map(([name,stat])=>({name,...stat})).sort((a,b)=>b.name.localeCompare(a.name)).slice(0,8);
+  const ratedReviews=reviews.map(review=>getLatestReviewRating(review)).filter(Boolean),watchTotal=reviews.reduce((sum,review)=>sum+getWatchCount(review),0),rewatched=reviews.filter(review=>getRewatches(review).length).length;
+  const representatives=reviews.map(review=>({review,score:getLatestReviewRating(review)*4+getRewatches(review).length*3+getProfileCategories(review).length+(review.comment?1:0)})).sort((a,b)=>b.score-a.score||b.review.rating-a.review.rating).slice(0,6);
+  return {categories,directors,years,legacyCategoryCount,watchTotal,rewatched,average:ratedReviews.length?ratedReviews.reduce((a,b)=>a+b,0)/ratedReviews.length:0,representatives};
+}
+
+function renderTasteProfile() {
+  const root=document.getElementById('tasteContent');if(!reviews.length){root.innerHTML='<div class="taste-empty">至少记录一部电影后，才能生成品味画像。</div>';return;}
+  const data=buildTasteProfile(),top=data.categories[0],best=data.categories.filter(item=>item.rated>=2).sort((a,b)=>b.average-a.average||b.count-a.count)[0],director=data.directors[0];
+  const bars=(items,valueText)=>items.slice(0,8).map(item=>`<div class="taste-bar-row"><span class="taste-bar-label" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</span><span class="taste-bar-track"><span class="taste-bar-fill" style="width:${Math.max(4,item.count/Math.max(items[0].count,1)*100)}%"></span></span><span class="taste-bar-value">${valueText(item)}</span></div>`).join('');
+  root.innerHTML=`<div class="taste-grid"><div class="taste-metric"><strong>${reviews.length}</strong><span>电影数量</span></div><div class="taste-metric"><strong>${data.watchTotal}</strong><span>总观看次数</span></div><div class="taste-metric"><strong>${data.average.toFixed(1)}</strong><span>最近评分平均值</span></div><div class="taste-metric"><strong>${reviews.length?(data.rewatched/reviews.length*100).toFixed(0):0}%</strong><span>电影重看率</span></div></div>
+  <section class="taste-section"><h3>画像摘要</h3><p class="taste-section-note">${top?`观看最集中的分类是“${escapeHtml(top.name)}”，共 ${top.count} 部。`:''}${best?` 平均评分最高的稳定分类是“${escapeHtml(best.name)}”，平均 ${best.average.toFixed(1)} 星。`:''}${director?` 记录最多的导演是“${escapeHtml(director.name)}”，共 ${director.count} 部。`:''}</p></section>
+  <section class="taste-section"><h3>分类偏好</h3><p class="taste-section-note">按电影数量排序；评分采用每部电影最近一次有效评分。${data.legacyCategoryCount?` 其中 ${data.legacyCategoryCount} 部旧记录暂用补充标签代替正式分类。`:''}</p><div class="taste-bars">${bars(data.categories,item=>`${item.count}部 · ${item.average?item.average.toFixed(1)+'星':'未评分'}`)||'<span class="taste-section-note">尚未填写分类</span>'}</div></section>
+  <section class="taste-section"><h3>导演偏好</h3><div class="taste-bars">${bars(data.directors,item=>`${item.count}部 · 重看${item.rewatches}次`)||'<span class="taste-section-note">尚未填写导演</span>'}</div></section>
+  <section class="taste-section"><h3>年度观影</h3><div class="taste-bars">${bars(data.years,item=>`${item.count}次 · 重看${item.rewatches}次`)}</div></section>
+  <section class="taste-section"><h3>代表电影</h3><p class="taste-section-note">按最近评分、重看次数、分类丰富度和评论完整度综合排序，规则固定且可解释。</p><div class="taste-representatives">${data.representatives.map(item=>`<button type="button" onclick="closeTasteProfile();openDetail('${escapeHtml(item.review.id)}')">${escapeHtml(item.review.title)}</button>`).join('')}</div></section>`;
+}
+
+function openTasteProfile() { renderTasteProfile();document.getElementById('tasteOverlay').classList.add('active'); }
+function closeTasteProfile() { document.getElementById('tasteOverlay').classList.remove('active'); }
+
+function getAnnualYears() { return [...new Set(reviews.flatMap(review=>getViewingEvents(review).map(event=>event.watchedAt.slice(0,4))))].sort().reverse(); }
+function buildAnnualReport(year) { const events=[];reviews.forEach(review=>getViewingEvents(review).forEach(event=>{if(event.watchedAt.startsWith(year))events.push({review,event});}));const films=new Set(events.map(item=>item.review.id)),ratings=events.map(item=>item.event.rating).filter(value=>Number.isInteger(value)&&value>0),months=Array(12).fill(0),categories=new Map(),directors=new Map();events.forEach(({review,event})=>{months[parseInt(event.watchedAt.slice(5,7))-1]++;getProfileCategories(review).forEach(value=>categories.set(value,(categories.get(value)||0)+1));if(review.director)directors.set(review.director,(directors.get(review.director)||0)+1);});const sorted=map=>[...map.entries()].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'zh-CN'));return{year,events,filmCount:films.size,rewatches:events.filter(item=>item.event.kind==='重看').length,average:ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:0,months,categories:sorted(categories),directors:sorted(directors)}; }
+function openAnnualReport(){const select=document.getElementById('annualYear'),years=getAnnualYears();select.replaceChildren(...years.map(year=>new Option(`${year} 年`,year)));if(!years.length)select.add(new Option('暂无年份',''));renderAnnualReport();document.getElementById('annualOverlay').classList.add('active');}
+function closeAnnualReport(){document.getElementById('annualOverlay').classList.remove('active');}
+function renderAnnualReport(){const year=document.getElementById('annualYear').value,root=document.getElementById('annualContent');if(!year){root.innerHTML='<div class="taste-empty">暂无观影记录</div>';return;}const data=buildAnnualReport(year),topMonth=data.months.indexOf(Math.max(...data.months))+1;root.innerHTML=`<div class="report-grid"><div class="report-card"><strong>${data.events.length}</strong><span>年度观看次数</span></div><div class="report-card"><strong>${data.filmCount}</strong><span>不同电影</span></div><div class="report-card"><strong>${data.rewatches}</strong><span>重看次数</span></div><div class="report-card"><strong>${data.average.toFixed(1)}</strong><span>观看事件平均评分</span></div></div><section class="taste-section"><h3>年度摘要</h3><p class="taste-section-note">观影最密集月份：${topMonth} 月 · 最常见分类：${escapeHtml(data.categories[0]?.[0]||'未分类')} · 最常出现导演：${escapeHtml(data.directors[0]?.[0]||'未填写')}</p></section><section class="taste-section"><h3>月度分布</h3><div class="taste-bars">${data.months.map((count,index)=>`<div class="taste-bar-row"><span class="taste-bar-label">${index+1} 月</span><span class="taste-bar-track"><span class="taste-bar-fill" style="width:${count/Math.max(...data.months,1)*100}%"></span></span><span class="taste-bar-value">${count}次</span></div>`).join('')}</div></section><section class="taste-section"><h3>年度分类</h3><div class="taste-representatives">${data.categories.slice(0,12).map(([name,count])=>`<button type="button">${escapeHtml(name)} · ${count}</button>`).join('')}</div></section>`;}
+async function exportAnnualReport(){const year=document.getElementById('annualYear').value;if(!year)return;const body=document.getElementById('annualContent').innerHTML,html=`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>${year} 年度观影报告</title><style>body{font-family:system-ui;background:#0d0b0c;color:#f3ede5;padding:32px;max-width:960px;margin:auto}.report-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.report-card,.taste-section{padding:14px;border:1px solid #35292d;border-radius:10px;margin-top:14px}.report-card strong{font-size:24px;color:#d6b06a}.taste-bar-track{display:inline-block;width:60%;height:8px;background:#211a1d}.taste-bar-fill{display:block;height:100%;background:#a44752}</style><h1>${year} 年度观影报告</h1>${body}</html>`;const result=await desktopMethod('export_annual_report')(`年度观影报告-${year}.html`,html);if(result.ok)showToast('年度报告已导出');else if(!result.cancelled)showToast(result.error||'导出失败','error');}
+
+function buildArchiveHealth(){const issues={missingImage:[],missingCategory:[],missingDirector:[],missingRating:[],missingComment:[],missingPersonal:[],dateOrder:[],duplicates:[]},seen=new Map(),categoryNames=new Set();reviews.forEach(review=>{if(!review.image)issues.missingImage.push(review);if(!review.categories?.length)issues.missingCategory.push(review);else review.categories.forEach(value=>categoryNames.add(value));if(!review.director)issues.missingDirector.push(review);if(!getLatestReviewRating(review))issues.missingRating.push(review);if(!review.comment)issues.missingComment.push(review);if(!review.personalContext)issues.missingPersonal.push(review);if(getRewatches(review).some(entry=>entry.watchedAt.slice(0,10)<review.date))issues.dateOrder.push(review);const key=`${review.title.trim().toLowerCase()}|${(review.director||'').trim().toLowerCase()}`;if(seen.has(key)){issues.duplicates.push(review);issues.duplicates.push(seen.get(key));}else seen.set(key,review);});issues.duplicates=[...new Map(issues.duplicates.map(item=>[item.id,item])).values()];const aliasGroups=new Map();categoryNames.forEach(value=>{const key=value.replace(/\s+/g,'').replace(/电影$|片$/,'').toLowerCase();if(!aliasGroups.has(key))aliasGroups.set(key,[]);aliasGroups.get(key).push(value);});const aliases=[...aliasGroups.values()].filter(values=>values.length>1);return{issues,aliases,categories:[...categoryNames].sort((a,b)=>a.localeCompare(b,'zh-CN'))};}
+function openArchiveHealth(){renderArchiveHealth();document.getElementById('healthOverlay').classList.add('active');}
+function closeArchiveHealth(){document.getElementById('healthOverlay').classList.remove('active');}
+function renderArchiveHealth(){const data=buildArchiveHealth(),root=document.getElementById('healthContent'),defs=[['缺少剧照','missingImage'],['缺少正式分类','missingCategory'],['缺少导演','missingDirector'],['缺少评分','missingRating'],['缺少评论','missingComment'],['缺少私人关系','missingPersonal'],['重看早于初看','dateOrder'],['疑似重复电影','duplicates']],problemCount=defs.reduce((sum,[,key])=>sum+data.issues[key].length,0),score=Math.max(0,Math.round(100-problemCount/Math.max(reviews.length,1)*12));root.innerHTML=`<div class="health-grid"><div class="health-card"><strong>${score}</strong><span>档案健康度 / 100</span></div><div class="health-card"><strong>${reviews.length}</strong><span>电影总数</span></div><div class="health-card"><strong>${problemCount}</strong><span>问题命中数</span></div><div class="health-card"><strong>${data.aliases.length}</strong><span>疑似分类别名组</span></div></div><div class="health-list">${defs.map(([label,key])=>`<div class="health-item"><span>${label}</span><span>${data.issues[key].length} 部</span></div>`).join('')}${data.aliases.map(values=>`<div class="health-item"><span>疑似同义分类：${escapeHtml(values.join(' / '))}</span><span>建议合并</span></div>`).join('')}</div>`;const source=document.getElementById('mergeSource');source.replaceChildren(new Option('选择来源分类',''),...data.categories.map(value=>new Option(value,value)));document.getElementById('mergeImpact').textContent='';}
+async function mergeCategory(){const source=document.getElementById('mergeSource').value,target=document.getElementById('mergeTarget').value.trim();if(!source||!target||source===target){showToast('请选择不同的来源分类和目标分类','error');return;}const affected=reviews.filter(review=>(review.categories||[]).includes(source));document.getElementById('mergeImpact').textContent=`将影响 ${affected.length} 部电影：${affected.slice(0,8).map(item=>item.title).join('、')}${affected.length>8?'…':''}`;if(!affected.length||!confirm(`把“${source}”统一合并为“${target}”吗？将修改 ${affected.length} 部电影，保存前会自动备份。`))return;const next=reviews.map(review=>{if(!(review.categories||[]).includes(source))return review;return{...review,categories:[...new Set(review.categories.map(value=>value===source?target:value))],updatedAt:Date.now()};});try{await persistReviews(next);renderAll();renderArchiveHealth();showToast(`已将“${source}”合并为“${target}”`);}catch(error){showToast(error.message||'合并失败','error');}}
+
+async function exportKnowledgeGraph(){if(galleryMode!=='relation'||!knowledgeGraphState){showToast('请先打开关系图视图','error');return;}try{drawKnowledgeGraph();const result=await desktopMethod('export_graph_image')(knowledgeGraphState.canvas.toDataURL('image/png'));if(result.ok)showToast('知识图谱 PNG 已导出');else if(!result.cancelled)showToast(result.error||'导出失败','error');}catch(error){showToast(error.message||'导出失败','error');}}
+
 function updateStats() {
-  const total = reviews.length;
-  const avgRating = total > 0
-    ? (reviews.reduce((s, r) => s + r.rating, 0) / total).toFixed(1)
+  const reviewCount = reviews.length;
+  const watchTotal = reviews.reduce((sum, review) => sum + getWatchCount(review), 0);
+  const avgRating = reviewCount > 0
+    ? (reviews.reduce((s, r) => s + r.rating, 0) / reviewCount).toFixed(1)
     : '0.0';
   const thisMonth = new Date().getMonth();
   const thisYear = new Date().getFullYear();
-  const monthCount = reviews.filter(r => {
-    const d = new Date(r.date);
+  const monthCount = reviews.reduce((sum, review) => sum + getWatchMoments(review).filter(value => {
+    const d = new Date(value);
     return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
-  }).length;
+  }).length, 0);
   const tagSet = new Set();
-  reviews.forEach(r => (r.tags || []).forEach(t => tagSet.add(t)));
+  reviews.forEach(r => [...(r.categories || []), ...(r.tags || [])].forEach(t => tagSet.add(t)));
 
   document.getElementById('statsBar').innerHTML = `
-    <div class="stat-card"><div class="stat-value">${total}</div><div class="stat-label">观影总数</div></div>
+    <div class="stat-card"><div class="stat-value">${watchTotal}</div><div class="stat-label">观影总数</div></div>
     <div class="stat-card"><div class="stat-value">⭐ ${avgRating}</div><div class="stat-label">平均评分</div></div>
     <div class="stat-card"><div class="stat-value">${monthCount}</div><div class="stat-label">本月观影</div></div>
     <div class="stat-card"><div class="stat-value">${tagSet.size}</div><div class="stat-label">涉及分类</div></div>
@@ -757,7 +1518,7 @@ function updateStats() {
 /* ===== Tag Filter ===== */
 function updateTagFilter() {
   const tagSet = new Set();
-  reviews.forEach(r => (r.tags || []).forEach(t => tagSet.add(t)));
+  reviews.forEach(r => [...(r.categories || []), ...(r.tags || [])].forEach(t => tagSet.add(t)));
   const sel = document.getElementById('filterTag');
   const currentVal = sel.value;
   sel.replaceChildren(new Option('全部分类', 'all'));
@@ -938,11 +1699,64 @@ function removeReviewImage() {
   setFormImage(null);
 }
 
+function initRewatchStarSelector(initialRating = 0) {
+  const container = document.getElementById('rewatchStarSelector');
+  container.replaceChildren();
+  document.getElementById('rewatchRating').value = initialRating;
+  const paint = count => container.querySelectorAll('.star').forEach((star,index)=>{star.textContent=index<count?'⭐':'☆';star.style.opacity=index<count?'1':'.3';});
+  for(let i=1;i<=5;i++){const star=document.createElement('span');star.className='star';star.onclick=()=>{document.getElementById('rewatchRating').value=i;paint(i);};star.onmouseenter=()=>paint(i);container.append(star);}
+  container.onmouseleave=()=>paint(parseInt(document.getElementById('rewatchRating').value)||0);
+  paint(initialRating);
+}
+
 /* ===== Modal ===== */
+function clearEditWatchHistory() {
+  document.getElementById('editWatchHistorySection').classList.remove('visible');
+  document.getElementById('editWatchHistory').replaceChildren();
+  document.getElementById('editWatchCount').textContent = '';
+}
+
+function renderEditWatchHistory(review) {
+  const section = document.getElementById('editWatchHistorySection');
+  const history = document.getElementById('editWatchHistory');
+  history.replaceChildren();
+  document.getElementById('editWatchCount').textContent = `共 ${getWatchCount(review)} 次`;
+
+  const appendEntry = (number, watchedAt, feeling, rating, isFirst) => {
+    const item = document.createElement('article');
+    item.className = 'rewatch-entry';
+    const meta = document.createElement('div');
+    meta.className = 'rewatch-entry-meta';
+    const label = document.createElement('span');
+    label.className = 'rewatch-entry-number';
+    label.textContent = `第 ${number} 次${isFirst ? ' · 初次观看' : ' · 重看'}`;
+    const watchedDate = document.createElement('span');
+    if (isFirst) watchedDate.dataset.editInitialWatchDate = 'true';
+    watchedDate.textContent = `📅 ${isFirst ? formatDate(watchedAt) : formatWatchedAt(watchedAt)}`;
+    meta.append(label, watchedDate);
+    if (rating) { const score=document.createElement('span'); score.textContent=`⭐ ${rating}`; meta.append(score); }
+    item.append(meta);
+    if (!isFirst) {
+      const note = document.createElement('div');
+      note.className = `rewatch-entry-feeling${feeling ? '' : ' empty'}`;
+      note.textContent = feeling || '未填写这次重看的感受。';
+      item.append(note);
+    }
+    history.append(item);
+  };
+
+  appendEntry(1, review.date, '', review.rating, true);
+  getRewatches(review).forEach((entry, index) => appendEntry(index + 2, entry.watchedAt, entry.feeling, entry.rating, false));
+  section.classList.add('visible');
+}
+
 function openModal(editId = null) {
   const overlay = document.getElementById('modalOverlay');
   const form = document.getElementById('movieForm');
   form.reset();
+  selectedCategories = [];
+  renderCategoryPicker();
+  clearEditWatchHistory();
   activeNativeImageDropId = null;
   resetImageDropState();
   setImagePickerBusy(false);
@@ -957,9 +1771,14 @@ function openModal(editId = null) {
     document.getElementById('movieDirector').value = review.director || '';
     document.getElementById('movieDate').value = review.date;
     document.getElementById('movieTags').value = (review.tags || []).join(', ');
+    selectedCategories = [...(review.categories || [])];
+    renderCategoryPicker();
     document.getElementById('movieComment').value = review.comment || '';
+    const context=review.personalContext||{};
+    document.getElementById('contextLocation').value=context.location||'';document.getElementById('contextCompanions').value=context.companions||'';document.getElementById('contextMood').value=context.mood||'';document.getElementById('contextLifeStage').value=context.lifeStage||'';document.getElementById('contextImpact').value=context.impact||'';document.getElementById('contextFavoriteScene').value=context.favoriteScene||'';document.getElementById('contextFavoriteQuote').value=context.favoriteQuote||'';document.getElementById('contextRecommendTo').value=context.recommendTo||'';document.getElementById('contextWatchAgain').value=context.watchAgain===true?'yes':context.watchAgain===false?'no':'';
     initStarSelector(review.rating);
     setFormImage(review.image || null);
+    renderEditWatchHistory(review);
   } else {
     document.getElementById('modalTitle').textContent = '写新影评';
     document.getElementById('movieDate').value = new Date().toISOString().split('T')[0];
@@ -976,10 +1795,19 @@ function closeModal() {
   setImagePickerBusy(false);
   clearFormImageUrl();
   formImage = null;
+  clearEditWatchHistory();
 }
 
 document.getElementById('modalOverlay').addEventListener('click', (e) => {
   if (e.target === e.currentTarget) closeModal();
+});
+
+document.getElementById('movieDate').addEventListener('input', event => {
+  const watchedDate = document.querySelector('[data-edit-initial-watch-date]');
+  if (watchedDate) watchedDate.textContent = event.target.value ? `📅 ${formatDate(event.target.value)}` : '📅 尚未选择日期';
+});
+document.getElementById('categoryInput').addEventListener('keydown', event => {
+  if (event.key === 'Enter') { event.preventDefault(); addCategoryFromInput(); }
 });
 
 /* ===== Form Submit (async for file save) ===== */
@@ -997,6 +1825,10 @@ async function handleSubmit(e) {
   const tagsRaw = document.getElementById('movieTags').value;
   const comment = document.getElementById('movieComment').value.trim();
   const tags = tagsRaw ? tagsRaw.split(/[,，]/).map(t => t.trim()).filter(Boolean) : [];
+  const categories = [...selectedCategories];
+  const personalContext={location:document.getElementById('contextLocation').value.trim(),companions:document.getElementById('contextCompanions').value.trim(),mood:document.getElementById('contextMood').value.trim(),lifeStage:document.getElementById('contextLifeStage').value.trim(),impact:document.getElementById('contextImpact').value.trim(),favoriteScene:document.getElementById('contextFavoriteScene').value.trim(),favoriteQuote:document.getElementById('contextFavoriteQuote').value.trim(),recommendTo:document.getElementById('contextRecommendTo').value.trim()};
+  const watchAgainValue=document.getElementById('contextWatchAgain').value;if(watchAgainValue)personalContext.watchAgain=watchAgainValue==='yes';
+  const hasPersonalContext=Object.values(personalContext).some(value=>value!==''&&value!==null);
 
   if (!title) { showToast('请输入电影名称', 'error'); return; }
   if (!date) { showToast('请选择观影日期', 'error'); return; }
@@ -1006,17 +1838,20 @@ async function handleSubmit(e) {
     const idx = reviews.findIndex(r => r.id === id);
     if (idx > -1) {
       nextReviews = [...reviews];
-      const updated = { ...reviews[idx], title, director, date, rating, tags, comment, updatedAt: Date.now() };
+      const updated = { ...reviews[idx], title, director, date, rating, tags, categories, comment, personalContext, updatedAt: Date.now() };
+      if (!categories.length) delete updated.categories;
+      if (!hasPersonalContext) delete updated.personalContext;
       if (formImage) updated.image = { ...formImage };
       else delete updated.image;
       nextReviews[idx] = updated;
     }
   } else {
     const created = {
-      id: generateId(), title, director, date, rating, tags, comment,
+      id: generateId(), title, director, date, rating, tags, categories, comment, personalContext,
       createdAt: Date.now(), updatedAt: Date.now()
     };
     if (formImage) created.image = { ...formImage };
+    if (!hasPersonalContext) delete created.personalContext;
     nextReviews = [...reviews, created];
   }
 
@@ -1033,6 +1868,133 @@ async function handleSubmit(e) {
 
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+/* ===== Repeat viewing ===== */
+function openRewatchModal(id = detailReviewId, editIndex = null) {
+  if (rewatchMutationBusy) return;
+  const review = reviews.find(item => item.id === id);
+  if (!review) return;
+  const rewatches = getRewatches(review);
+  const isEditing = Number.isInteger(editIndex);
+  if (isEditing && (editIndex < 0 || editIndex >= rewatches.length)) return;
+
+  if (document.getElementById('detailOverlay').classList.contains('active')) closeDetail();
+  rewatchReviewId = review.id;
+  rewatchEditIndex = isEditing ? editIndex : null;
+  document.getElementById('rewatchForm').reset();
+  const currentWatchCount = getWatchCount(review);
+  const saveButton = document.getElementById('saveRewatchButton');
+
+  if (isEditing) {
+    const watchedNumber = editIndex + 2;
+    const entry = rewatches[editIndex];
+    document.getElementById('rewatchModalTitle').textContent = `调整第 ${watchedNumber} 次观看`;
+    document.getElementById('rewatchMovieTitle').textContent = `修改《${review.title}》第 ${watchedNumber} 次观看的时间与感受，不会改变观看次数。`;
+    document.getElementById('rewatchWatchedAt').value = entry.watchedAt;
+    document.getElementById('rewatchFeeling').value = entry.feeling || '';
+    initRewatchStarSelector(Number.isInteger(entry.rating) ? entry.rating : review.rating);
+    saveButton.textContent = '保存调整';
+  } else {
+    document.getElementById('rewatchModalTitle').textContent = `记录第 ${currentWatchCount + 1} 次观看`;
+    document.getElementById('rewatchMovieTitle').textContent = `《${review.title}》目前已观看 ${currentWatchCount} 次，保存后将记录为第 ${currentWatchCount + 1} 次观看。`;
+    document.getElementById('rewatchWatchedAt').value = localDateTimeValue();
+    initRewatchStarSelector(review.rating);
+    saveButton.textContent = '保存重看记录';
+  }
+  document.getElementById('rewatchOverlay').classList.add('active');
+}
+
+function closeRewatchModal(force = false) {
+  if (rewatchMutationBusy && !force) return;
+  document.getElementById('rewatchOverlay').classList.remove('active');
+  document.getElementById('rewatchForm').reset();
+  document.getElementById('saveRewatchButton').textContent = '保存重看记录';
+  rewatchReviewId = null;
+  rewatchEditIndex = null;
+}
+
+function setRewatchActionsBusy(busy) {
+  document.querySelectorAll('.rewatch-entry-actions button').forEach(button => { button.disabled = busy; });
+}
+
+async function handleRewatchSubmit(event) {
+  event.preventDefault();
+  if (rewatchMutationBusy) return;
+  const id = rewatchReviewId;
+  const editIndex = rewatchEditIndex;
+  const watchedAt = document.getElementById('rewatchWatchedAt').value;
+  const feeling = document.getElementById('rewatchFeeling').value.trim();
+  const rating = parseInt(document.getElementById('rewatchRating').value) || 0;
+  const review = reviews.find(item => item.id === id);
+  const currentEntries = review ? [...getRewatches(review)] : [];
+  const isEditing = Number.isInteger(editIndex) && editIndex >= 0 && editIndex < currentEntries.length;
+  if (!review || !watchedAt || (rewatchEditIndex !== null && !isEditing)) {
+    showToast(!watchedAt ? '请选择重看时间' : '需要调整的重看记录已不存在', 'error');
+    return;
+  }
+
+  let watchedNumber;
+  if (isEditing) {
+    watchedNumber = editIndex + 2;
+    currentEntries[editIndex] = { ...currentEntries[editIndex], watchedAt, feeling, rating };
+  } else {
+    currentEntries.push({ watchedAt, feeling, rating, createdAt: Date.now() });
+    watchedNumber = currentEntries.length + 1;
+  }
+  const savedReviews = reviews.map(item => item.id === id
+    ? { ...item, rewatches: currentEntries, updatedAt: Date.now() }
+    : item
+  );
+  rewatchMutationBusy = true;
+  const saveButton = document.getElementById('saveRewatchButton');
+  saveButton.disabled = true;
+  try {
+    await persistReviews(savedReviews);
+    closeRewatchModal(true);
+    renderAll();
+    openDetail(id);
+    showToast(isEditing ? `第 ${watchedNumber} 次观看已调整` : `第 ${watchedNumber} 次观看已记录`);
+  } catch (error) {
+    showToast(error.message || '保存失败', 'error');
+  } finally {
+    rewatchMutationBusy = false;
+    saveButton.disabled = false;
+  }
+}
+
+async function deleteRewatch(reviewId, rewatchIndex) {
+  if (rewatchMutationBusy) return;
+  const review = reviews.find(item => item.id === reviewId);
+  const currentEntries = review ? getRewatches(review) : [];
+  if (!review || !Number.isInteger(rewatchIndex) || rewatchIndex < 0 || rewatchIndex >= currentEntries.length) {
+    showToast('需要删除的重看记录已不存在', 'error');
+    return;
+  }
+  const watchedNumber = rewatchIndex + 2;
+  const nextWatchCount = getWatchCount(review) - 1;
+  if (!confirm(`确定删除第 ${watchedNumber} 次观看记录吗？删除后该电影将显示已看 ${nextWatchCount} 次，保存前会自动保留备份。`)) return;
+
+  const nextEntries = currentEntries.filter((_, index) => index !== rewatchIndex);
+  const savedReviews = reviews.map(item => {
+    if (item.id !== reviewId) return item;
+    const updated = { ...item, rewatches: nextEntries, updatedAt: Date.now() };
+    if (!nextEntries.length) delete updated.rewatches;
+    return updated;
+  });
+  rewatchMutationBusy = true;
+  setRewatchActionsBusy(true);
+  try {
+    await persistReviews(savedReviews);
+    renderAll();
+    openDetail(reviewId);
+    showToast(`第 ${watchedNumber} 次观看记录已删除`);
+  } catch (error) {
+    showToast(error.message || '删除失败', 'error');
+  } finally {
+    rewatchMutationBusy = false;
+    setRewatchActionsBusy(false);
+  }
 }
 
 /* ===== Delete (async for file save) ===== */
@@ -1087,6 +2049,99 @@ async function loadDetailImage(image) {
   }
 }
 
+function renderRewatchHistory(review) {
+  document.getElementById('detailWatchCount').textContent = `已看 ${getWatchCount(review)} 次`;
+  const history = document.getElementById('rewatchHistory');
+  history.replaceChildren();
+
+  const appendEntry = (number, watchedAt, feeling, rating, isFirst, rewatchIndex = null) => {
+    const entry = document.createElement('article');
+    entry.className = 'rewatch-entry';
+    const meta = document.createElement('div');
+    meta.className = 'rewatch-entry-meta';
+    const label = document.createElement('span');
+    label.className = 'rewatch-entry-number';
+    label.textContent = `第 ${number} 次${isFirst ? ' · 初次观看' : ' · 重看'}`;
+    const date = document.createElement('span');
+    date.textContent = `📅 ${isFirst ? formatDate(watchedAt) : formatWatchedAt(watchedAt)}`;
+    meta.append(label, date);
+    if (rating) { const score=document.createElement('span'); score.textContent=`⭐ ${rating}`; meta.append(score); }
+    if (!isFirst) {
+      const actions = document.createElement('div');
+      actions.className = 'rewatch-entry-actions';
+      const adjustButton = document.createElement('button');
+      adjustButton.type = 'button';
+      adjustButton.className = 'btn btn-ghost btn-sm';
+      adjustButton.textContent = '调整';
+      adjustButton.setAttribute('aria-label', `调整第 ${number} 次观看记录`);
+      adjustButton.addEventListener('click', () => openRewatchModal(review.id, rewatchIndex));
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'btn btn-danger btn-sm';
+      deleteButton.textContent = '删除';
+      deleteButton.setAttribute('aria-label', `删除第 ${number} 次观看记录`);
+      deleteButton.addEventListener('click', () => deleteRewatch(review.id, rewatchIndex));
+      actions.append(adjustButton, deleteButton);
+      meta.append(actions);
+    }
+    entry.append(meta);
+    if (!isFirst) {
+      const note = document.createElement('div');
+      note.className = `rewatch-entry-feeling${feeling ? '' : ' empty'}`;
+      note.textContent = feeling || '未填写这次重看的感受。';
+      entry.append(note);
+    }
+    history.append(entry);
+  };
+
+  appendEntry(1, review.date, '', review.rating, true);
+  getRewatches(review).forEach((entry, index) => appendEntry(index + 2, entry.watchedAt, entry.feeling, entry.rating, false, index));
+}
+
+function renderRatingEvolution(review) {
+  const section=document.getElementById('ratingEvolution'),svg=document.getElementById('ratingEvolutionChart'),summary=document.getElementById('ratingEvolutionSummary');
+  const all=[{number:1,rating:review.rating},...getRewatches(review).map((entry,index)=>({number:index+2,rating:entry.rating}))];
+  const rated=all.filter(point=>Number.isInteger(point.rating)&&point.rating>0);
+  svg.replaceChildren();
+  if(rated.length<2){section.classList.remove('visible');return;}
+  section.classList.add('visible');
+  const ns='http://www.w3.org/2000/svg',left=46,right=610,top=22,bottom=150,maxIndex=Math.max(all.length-1,1);
+  const x=number=>left+(number-1)/maxIndex*(right-left),y=rating=>bottom-(rating-1)/4*(bottom-top);
+  for(let score=1;score<=5;score++){const line=document.createElementNS(ns,'line');line.setAttribute('x1',left);line.setAttribute('x2',right);line.setAttribute('y1',y(score));line.setAttribute('y2',y(score));line.setAttribute('stroke','rgba(177,165,166,.16)');svg.append(line);const label=document.createElementNS(ns,'text');label.setAttribute('x','22');label.setAttribute('y',String(y(score)+4));label.setAttribute('fill','#786d70');label.setAttribute('font-size','11');label.textContent=`${score}星`;svg.append(label);}
+  const polyline=document.createElementNS(ns,'polyline');polyline.setAttribute('points',rated.map(point=>`${x(point.number)},${y(point.rating)}`).join(' '));polyline.setAttribute('fill','none');polyline.setAttribute('stroke','#d6b06a');polyline.setAttribute('stroke-width','3');polyline.setAttribute('stroke-linecap','round');polyline.setAttribute('stroke-linejoin','round');svg.append(polyline);
+  rated.forEach(point=>{const circle=document.createElementNS(ns,'circle');circle.setAttribute('cx',x(point.number));circle.setAttribute('cy',y(point.rating));circle.setAttribute('r','6');circle.setAttribute('fill','#a44752');circle.setAttribute('stroke','#f3ede5');circle.setAttribute('stroke-width','2');svg.append(circle);const label=document.createElementNS(ns,'text');label.setAttribute('x',x(point.number));label.setAttribute('y','174');label.setAttribute('fill','#b1a5a6');label.setAttribute('font-size','11');label.setAttribute('text-anchor','middle');label.textContent=`第${point.number}次`;svg.append(label);});
+  const delta=rated[rated.length-1].rating-rated[0].rating;
+  const trend=delta>0?'越来越喜欢':delta<0?'逐渐降温':'评分稳定';
+  summary.textContent=`${trend} · 从 ${rated[0].rating} 星到 ${rated[rated.length-1].rating} 星 · 已记录 ${rated.length} 次独立评分`;
+}
+
+function renderPersonalContext(review) {
+  const section=document.getElementById('personalDetail'),grid=document.getElementById('personalDetailGrid'),context=review.personalContext||{};
+  grid.replaceChildren();const labels={location:'观看地点',companions:'同行人',mood:'当时心情',lifeStage:'人生阶段',impact:'对我的影响',favoriteScene:'难忘场景',favoriteQuote:'喜欢的台词',recommendTo:'推荐给谁'};
+  Object.entries(labels).forEach(([key,label])=>{if(!context[key])return;const item=document.createElement('div');item.className='personal-detail-item';const strong=document.createElement('strong');strong.textContent=label;const value=document.createElement('span');value.textContent=context[key];item.append(strong,value);grid.append(item);});
+  if(typeof context.watchAgain==='boolean'){const item=document.createElement('div');item.className='personal-detail-item';item.innerHTML=`<strong>再次重看意愿</strong><span>${context.watchAgain?'愿意':'暂时不想'}</span>`;grid.append(item);}
+  section.classList.toggle('visible',grid.children.length>0);
+}
+
+function getDetailSequence() {
+  const visible=getVisibleReviews();
+  return visible.some(item=>item.id===detailReviewId) ? visible : [...reviews];
+}
+
+function updateDetailNavigation() {
+  const sequence=getDetailSequence(),index=sequence.findIndex(item=>item.id===detailReviewId),previous=index>0?sequence[index-1]:null,next=index>=0&&index<sequence.length-1?sequence[index+1]:null;
+  const previousButton=document.getElementById('detailPrevious'),nextButton=document.getElementById('detailNext');
+  previousButton.disabled=!previous;nextButton.disabled=!next;
+  document.getElementById('detailPreviousTitle').textContent=previous?previous.title:'已经是第一条';
+  document.getElementById('detailNextTitle').textContent=next?next.title:'已经是最后一条';
+  previousButton.setAttribute('aria-label',previous?`上一个影评：${previous.title}`:'已经是第一条影评');
+  nextButton.setAttribute('aria-label',next?`下一个影评：${next.title}`:'已经是最后一条影评');
+}
+
+function navigateDetail(direction) {
+  if(!detailReviewId)return;const sequence=getDetailSequence(),index=sequence.findIndex(item=>item.id===detailReviewId),target=sequence[index+direction];if(target)openDetail(target.id);
+}
+
 function openDetail(id) {
   const review = reviews.find(item => item.id === id);
   if (!review) return;
@@ -1107,7 +2162,7 @@ function openDetail(id) {
 
   const tags = document.getElementById('detailTags');
   tags.replaceChildren();
-  (review.tags || []).forEach(value => {
+  [...(review.categories || []), ...(review.tags || [])].forEach(value => {
     const tag = document.createElement('span');
     tag.className = 'tag';
     tag.textContent = value;
@@ -1117,12 +2172,16 @@ function openDetail(id) {
   const comment = document.getElementById('detailComment');
   comment.textContent = review.comment || '还没有写评论。';
   comment.classList.toggle('empty', !review.comment);
+  renderRewatchHistory(review);
+  renderRatingEvolution(review);
+  renderPersonalContext(review);
 
   const section = document.getElementById('detailImageSection');
   section.className = 'detail-image-section';
   document.getElementById('detailImageState').textContent = '';
   releaseDetailImage();
   document.getElementById('detailOverlay').classList.add('active');
+  updateDetailNavigation();
   if (review.image) loadDetailImage(review.image);
 }
 
@@ -1154,6 +2213,253 @@ function openLightbox() {
 function closeLightbox() {
   document.getElementById('lightboxOverlay').classList.remove('active');
   document.getElementById('lightboxImage').removeAttribute('src');
+}
+
+/* ===== Rating-driven curation wall ===== */
+function getGalleryRatingClass(rating) {
+  if (rating >= 5) return 'rating-5';
+  if (rating === 4) return 'rating-4';
+  if (rating === 3) return 'rating-3';
+  if (rating === 2) return 'rating-2';
+  return 'rating-low';
+}
+
+function getGalleryFilterSummary(items) {
+  const parts = [];
+  const search = document.getElementById('searchInput').value.trim();
+  const rating = document.getElementById('filterRating').value;
+  const tag = document.getElementById('filterTag').value;
+  if (search) parts.push(`搜索“${search}”`);
+  if (rating !== 'all') parts.push(`${rating} 星`);
+  if (tag !== 'all') parts.push(`标签：${tag}`);
+  return parts.length ? `当前策展 · ${parts.join(' · ')}` : `当前策展 · 全部影评`;
+}
+
+function setGalleryMode(mode) {
+  galleryMode = mode === 'wall' ? 'wall' : 'relation';
+  document.getElementById('relationViewButton').classList.toggle('active', galleryMode === 'relation');
+  document.getElementById('wallViewButton').classList.toggle('active', galleryMode === 'wall');
+  document.getElementById('relationDimension').hidden = galleryMode !== 'relation';
+  if (document.getElementById('galleryOverlay').classList.contains('active')) renderGallery(getVisibleReviews());
+}
+
+function setRelationDimension(value) {
+  relationDimension = ['category','director','year','rating','rewatch','tag'].includes(value) ? value : 'category';
+  if (document.getElementById('galleryOverlay').classList.contains('active') && galleryMode === 'relation') renderGallery(getVisibleReviews());
+}
+
+function getRelationDimensionName() {
+  return {category:'电影风格',director:'导演',year:'观影年份',rating:'评分',rewatch:'重看状态',tag:'补充标签'}[relationDimension];
+}
+
+function getPrimaryCategory(review) {
+  return getRelationLabels(review)[0];
+}
+
+function getRelationLabels(review) {
+  if (relationDimension === 'director') return [review.director || '未填写导演'];
+  if (relationDimension === 'year') {
+    const years=[...new Set(getWatchMoments(review).map(value=>String(value).slice(0,4)))].filter(Boolean).sort().reverse();
+    return years.length ? years.map(value=>`${value} 年`) : ['日期未知'];
+  }
+  if (relationDimension === 'rating') return [review.rating ? `${review.rating} 星` : '未评分'];
+  if (relationDimension === 'rewatch') return [getWatchCount(review)>1 ? '有重看' : '仅看一次'];
+  if (relationDimension === 'tag') return (review.tags && review.tags.length) ? review.tags : ['无补充标签'];
+  const values=(review.categories && review.categories.length) ? review.categories : (review.tags || []);
+  return values.length ? values : ['未分类'];
+}
+
+function renderRelationGraph(items) {
+  const wall=document.getElementById('galleryWall');
+  if (knowledgeGraphFrame) cancelAnimationFrame(knowledgeGraphFrame);
+  wall.className='gallery-wall knowledge-graph-mode';
+  wall.innerHTML='<div class="knowledge-graph-shell"><canvas class="knowledge-graph-canvas" id="knowledgeGraphCanvas" tabindex="0" aria-label="电影知识图谱"></canvas><div class="knowledge-graph-help">拖拽移动 · 滚轮缩放 · 点击节点查看关系</div><aside class="knowledge-graph-panel" id="knowledgeGraphPanel"><div class="knowledge-graph-placeholder">点击电影节点，可以查看它连接了哪些关系，以及通过共同关系关联了哪些电影。</div></aside></div>';
+  document.getElementById('gallerySummary').textContent=`${getGalleryFilterSummary(items)} · ${getRelationDimensionName()}知识图谱`;
+  const canvas=document.getElementById('knowledgeGraphCanvas');
+  const shell=canvas.parentElement;
+  const width=Math.max(shell.clientWidth,720), height=Math.max(shell.clientHeight,560), graphWidth=width-(width>760?290:0);
+  const labels=[...new Set(items.flatMap(getRelationLabels))].sort((a,b)=>a.localeCompare(b,'zh-CN'));
+  const nodes=[], nodeMap=new Map(), edges=[];
+  const center={x:graphWidth*.48,y:height*.5}, radius=Math.max(120,Math.min(graphWidth,height)*.36);
+  labels.forEach((label,index)=>{
+    const angle=(Math.PI*2*index/Math.max(labels.length,1))-Math.PI/2;
+    const node={id:`relation:${label}`,kind:'relation',label,x:center.x,y:center.y,targetX:center.x+Math.cos(angle)*radius,targetY:center.y+Math.sin(angle)*radius,size:18};
+    nodes.push(node);nodeMap.set(node.id,node);
+  });
+  const stableHash=value=>[...value].reduce((hash,char)=>(hash*31+char.charCodeAt(0))>>>0,2166136261);
+  items.forEach(review=>{
+    const relations=getRelationLabels(review), hubs=relations.map(label=>nodeMap.get(`relation:${label}`)).filter(Boolean);
+    const baseX=hubs.reduce((sum,node)=>sum+node.targetX,0)/Math.max(hubs.length,1), baseY=hubs.reduce((sum,node)=>sum+node.targetY,0)/Math.max(hubs.length,1);
+    const hash=stableHash(review.id), angle=(hash%628)/100, distance=28+(hash%72);
+    const node={id:`movie:${review.id}`,kind:'movie',label:review.title,review,x:center.x,y:center.y,targetX:baseX+Math.cos(angle)*distance,targetY:baseY+Math.sin(angle)*distance,size:6};
+    nodes.push(node);nodeMap.set(node.id,node);
+    relations.forEach(label=>edges.push({source:node.id,target:`relation:${label}`,label}));
+  });
+  knowledgeGraphState={canvas,width,height,nodes,nodeMap,edges,panX:0,panY:0,zoom:1,selectedId:null,hoverId:null,activeNodes:null,drag:null,progress:0};
+  setupKnowledgeGraphEvents();
+  const started=performance.now();
+  const animate=now=>{ if(!knowledgeGraphState||knowledgeGraphState.canvas!==canvas)return; knowledgeGraphState.progress=Math.min(1,(now-started)/850); drawKnowledgeGraph(); if(knowledgeGraphState.progress<1) knowledgeGraphFrame=requestAnimationFrame(animate); };
+  knowledgeGraphFrame=requestAnimationFrame(animate);
+}
+
+function knowledgeGraphPosition(node) {
+  const state=knowledgeGraphState, eased=1-Math.pow(1-state.progress,3);
+  return {x:node.x+(node.targetX-node.x)*eased,y:node.y+(node.targetY-node.y)*eased};
+}
+
+function drawKnowledgeGraph() {
+  const state=knowledgeGraphState;if(!state)return;const {canvas,width,height}=state,dpr=Math.min(devicePixelRatio||1,1.5);
+  if(canvas.width!==Math.round(width*dpr)||canvas.height!==Math.round(height*dpr)){canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);}
+  const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);ctx.save();ctx.translate(state.panX,state.panY);ctx.scale(state.zoom,state.zoom);
+  state.edges.forEach(edge=>{const a=state.nodeMap.get(edge.source),b=state.nodeMap.get(edge.target),pa=knowledgeGraphPosition(a),pb=knowledgeGraphPosition(b),active=!state.activeNodes||state.activeNodes.has(a.id)&&state.activeNodes.has(b.id);ctx.beginPath();ctx.moveTo(pa.x,pa.y);ctx.lineTo(pb.x,pb.y);ctx.strokeStyle=active?'rgba(214,176,106,.68)':'rgba(177,165,166,.10)';ctx.lineWidth=active?1.5:.55;ctx.stroke();});
+  const selectedNode=state.selectedId&&state.nodeMap.get(state.selectedId);
+  state.nodes.forEach(node=>{
+    const p=knowledgeGraphPosition(node),active=!state.activeNodes||state.activeNodes.has(node.id),hover=node.id===state.hoverId||node.id===state.selectedId;
+    const showConnectedMovieName=selectedNode&&selectedNode.kind==='relation'&&node.kind==='movie'&&active;
+    ctx.globalAlpha=active?1:.18;ctx.beginPath();ctx.arc(p.x,p.y,hover?node.size+3:node.size,0,Math.PI*2);ctx.fillStyle=node.kind==='relation'?'#d6b06a':hover?'#f0c674':'#6fa7a1';ctx.fill();
+    if(node.kind==='relation'||hover||showConnectedMovieName||state.zoom>1.55){
+      const text=node.label.length>16?node.label.slice(0,15)+'…':node.label;
+      ctx.font=node.kind==='relation'?'700 12px sans-serif':'11px sans-serif';ctx.textAlign='center';
+      if(showConnectedMovieName&&!hover){const metrics=ctx.measureText(text),y=p.y+node.size+15;ctx.fillStyle='rgba(13,11,12,.88)';ctx.fillRect(p.x-metrics.width/2-3,y-11,metrics.width+6,15);}
+      ctx.fillStyle='#f3ede5';ctx.fillText(text,p.x,p.y+node.size+15);
+    }
+  });ctx.globalAlpha=1;ctx.restore();
+}
+
+function knowledgeGraphHit(x,y) {const s=knowledgeGraphState;if(!s)return null;const wx=(x-s.panX)/s.zoom,wy=(y-s.panY)/s.zoom;let hit=null,best=Infinity;s.nodes.forEach(node=>{const p=knowledgeGraphPosition(node),d=Math.hypot(wx-p.x,wy-p.y),r=Math.max(node.size+5,10);if(d<r&&d<best){hit=node;best=d;}});return hit;}
+
+function setupKnowledgeGraphEvents() {
+  const s=knowledgeGraphState,c=s.canvas;
+  c.onpointerdown=e=>{c.setPointerCapture(e.pointerId);s.drag={x:e.offsetX,y:e.offsetY,panX:s.panX,panY:s.panY,moved:false};c.classList.add('dragging');};
+  c.onpointermove=e=>{if(s.drag){const dx=e.offsetX-s.drag.x,dy=e.offsetY-s.drag.y;s.drag.moved=s.drag.moved||Math.hypot(dx,dy)>3;s.panX=s.drag.panX+dx;s.panY=s.drag.panY+dy;drawKnowledgeGraph();return;}const hit=knowledgeGraphHit(e.offsetX,e.offsetY);s.hoverId=hit&&hit.id;c.style.cursor=hit?'pointer':'grab';drawKnowledgeGraph();};
+  c.onpointerup=e=>{const moved=s.drag&&s.drag.moved;s.drag=null;c.classList.remove('dragging');if(!moved){const hit=knowledgeGraphHit(e.offsetX,e.offsetY);selectKnowledgeGraphNode(hit&&hit.id);}};
+  c.onwheel=e=>{e.preventDefault();const old=s.zoom,next=Math.max(.45,Math.min(2.6,old*(e.deltaY<0?1.12:.89)));s.panX=e.offsetX-(e.offsetX-s.panX)*(next/old);s.panY=e.offsetY-(e.offsetY-s.panY)*(next/old);s.zoom=next;drawKnowledgeGraph();};
+}
+
+function selectKnowledgeGraphNode(id) {
+  const s=knowledgeGraphState;if(!s)return;s.selectedId=id;s.activeNodes=null;const panel=document.getElementById('knowledgeGraphPanel');if(!id){panel.innerHTML='<div class="knowledge-graph-placeholder">点击电影节点，可以查看它连接了哪些关系，以及通过共同关系关联了哪些电影。</div>';drawKnowledgeGraph();return;}
+  const node=s.nodeMap.get(id),active=new Set([id]);let relationLabels=[],related=[];
+  if(node.kind==='movie'){relationLabels=getRelationLabels(node.review);relationLabels.forEach(label=>active.add(`relation:${label}`));related=s.nodes.filter(other=>other.kind==='movie'&&other.id!==id).map(other=>({node:other,shared:getRelationLabels(other.review).filter(value=>relationLabels.includes(value))})).filter(item=>item.shared.length).sort((a,b)=>b.shared.length-a.shared.length||b.node.review.rating-a.node.review.rating);related.forEach(item=>active.add(item.node.id));}
+  else {relationLabels=[node.label];related=s.nodes.filter(other=>other.kind==='movie'&&getRelationLabels(other.review).includes(node.label)).map(other=>({node:other,shared:[node.label]}));related.forEach(item=>active.add(item.node.id));}
+  s.activeNodes=active;
+  panel.innerHTML=`<h3>${escapeHtml(node.label)}</h3><p>${node.kind==='movie'?`通过${getRelationDimensionName()}与 ${related.length} 部电影相关`:`关联 ${related.length} 部电影`}</p><h4>关系</h4><div class="knowledge-graph-pills">${relationLabels.map(value=>`<span class="knowledge-graph-pill">${escapeHtml(value)}</span>`).join('')}</div>${node.kind==='movie'?`<button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="openGalleryDetail('${escapeHtml(node.review.id)}')">查看影评详情</button>`:''}<h4>相关电影</h4><div class="knowledge-graph-related">${related.slice(0,30).map(item=>`<button type="button" onclick="selectKnowledgeGraphNode('movie:${escapeHtml(item.node.review.id)}')">${escapeHtml(item.node.label)} · ${escapeHtml(item.shared.join('、'))}</button>`).join('')||'<p>暂无相关电影</p>'}</div>`;drawKnowledgeGraph();
+}
+
+function openGallery() {
+  galleryLastTrigger = document.activeElement;
+  if (document.getElementById('lightboxOverlay').classList.contains('active')) closeLightbox();
+  if (document.getElementById('detailOverlay').classList.contains('active')) closeDetail();
+  if (document.getElementById('rewatchOverlay').classList.contains('active')) closeRewatchModal();
+  if (document.getElementById('modalOverlay').classList.contains('active')) closeModal();
+  cardImageQueue = [];
+  cardImageQueued.clear();
+  renderGallery(getVisibleReviews());
+  document.getElementById('galleryOverlay').classList.add('active');
+  document.body.classList.add('gallery-open');
+  requestAnimationFrame(() => document.getElementById('galleryStage').focus());
+}
+
+function closeGallery() {
+  const overlay = document.getElementById('galleryOverlay');
+  if (!overlay.classList.contains('active')) return;
+  overlay.classList.remove('active');
+  document.body.classList.remove('gallery-open');
+  if (galleryImageObserver) galleryImageObserver.disconnect();
+  if (relationObserver) relationObserver.disconnect();
+  if (knowledgeGraphFrame) cancelAnimationFrame(knowledgeGraphFrame);
+  knowledgeGraphFrame = null;
+  knowledgeGraphState = null;
+  cardImageQueue = [];
+  cardImageQueued.clear();
+  galleryImageNodes.clear();
+  document.getElementById('galleryWall').replaceChildren();
+  requestAnimationFrame(hydrateCardImages);
+  if (galleryLastTrigger && typeof galleryLastTrigger.focus === 'function') galleryLastTrigger.focus();
+  galleryLastTrigger = null;
+}
+
+function clearGalleryFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterRating').value = 'all';
+  document.getElementById('filterTag').value = 'all';
+  document.getElementById('sortBy').value = 'date-desc';
+  render();
+  renderGallery(getVisibleReviews());
+}
+
+function renderGallery(items) {
+  const wall = document.getElementById('galleryWall');
+  const stage = document.getElementById('galleryStage');
+  document.getElementById('gallerySummary').textContent = getGalleryFilterSummary(items);
+  document.getElementById('galleryCount').textContent = `${items.length} 条影评`;
+  stage.scrollTop = 0;
+
+  if (!items.length) {
+    wall.innerHTML = `
+      <div class="gallery-empty">
+        <div style="font-size:2.8rem;">✦</div>
+        <strong>当前筛选没有影评可展示</strong>
+        <span>调整筛选条件，或恢复全部影评后再进入策展墙。</span>
+        <div class="gallery-empty-actions">
+          <button class="btn btn-ghost" onclick="clearGalleryFilters()">清除筛选</button>
+          <button class="btn btn-primary" onclick="closeGallery()">关闭</button>
+        </div>
+      </div>`;
+    hydrateGalleryImages();
+    return;
+  }
+
+  if (galleryMode === 'relation') {
+    renderRelationGraph(items);
+    return;
+  }
+
+  wall.className = 'gallery-wall';
+
+  wall.innerHTML = items.map(review => `
+    <article class="gallery-card ${getGalleryRatingClass(review.rating)} ${review.image ? 'has-image' : 'no-image'}"
+      role="button" tabindex="0" data-gallery-review-id="${escapeHtml(review.id)}"
+      aria-label="查看《${escapeHtml(review.title)}》影评详情">
+      ${review.image ? `
+        <img class="gallery-card-image" data-gallery-image-path="${escapeHtml(review.image.path)}" alt="《${escapeHtml(review.title)}》剧照">
+        <div class="gallery-card-loading">正在加载剧照</div>
+        <div class="gallery-card-shade"></div>
+      ` : `<div class="gallery-card-no-image-mark">✦</div>`}
+      <div class="gallery-card-rating">${renderStars(review.rating)}</div>
+      <div class="gallery-card-content">
+        <div class="gallery-card-title">${escapeHtml(review.title)}</div>
+        <div class="gallery-card-meta">📅 ${formatCompactDate(review.date)} · ${getWatchCount(review)} 次</div>
+      </div>
+    </article>
+  `).join('');
+  hydrateGalleryImages();
+}
+
+function setGalleryFocus(card) {
+  const wall = document.getElementById('galleryWall');
+  wall.querySelectorAll('.gallery-card.is-focused').forEach(item => item.classList.remove('is-focused'));
+  card.classList.add('is-focused');
+  wall.classList.add('has-focus');
+  if (galleryMode === 'relation') {
+    const review=reviews.find(item=>item.id===card.dataset.galleryReviewId);
+    const related=new Set(review ? getRelationLabels(review) : []);
+    wall.classList.add('has-related');
+    wall.querySelectorAll('.relation-cluster').forEach(cluster=>cluster.classList.toggle('is-related',related.has(cluster.dataset.relationCategory)));
+  }
+}
+
+function clearGalleryFocus(card) {
+  if (card) card.classList.remove('is-focused');
+  const wall = document.getElementById('galleryWall');
+  if (!wall.querySelector('.gallery-card.is-focused')) {
+    wall.classList.remove('has-focus','has-related');
+    wall.querySelectorAll('.relation-cluster.is-related').forEach(cluster=>cluster.classList.remove('is-related'));
+  }
+}
+
+function openGalleryDetail(id) {
+  closeGallery();
+  openDetail(id);
 }
 
 /* ===== Export / Import ===== */
@@ -1188,7 +2494,7 @@ async function handleImport() {
 }
 
 /* ===== Render ===== */
-function render() {
+function getVisibleReviews() {
   const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
   const filterRating = document.getElementById('filterRating').value;
   const filterTag = document.getElementById('filterTag').value;
@@ -1201,7 +2507,8 @@ function render() {
       r.title.toLowerCase().includes(searchTerm) ||
       (r.director || '').toLowerCase().includes(searchTerm) ||
       (r.comment || '').toLowerCase().includes(searchTerm) ||
-      (r.tags || []).some(t => t.toLowerCase().includes(searchTerm))
+      getRewatches(r).some(item => (item.feeling || '').toLowerCase().includes(searchTerm)) ||
+      [...(r.categories || []), ...(r.tags || [])].some(t => t.toLowerCase().includes(searchTerm))
     );
   }
 
@@ -1210,18 +2517,22 @@ function render() {
   }
 
   if (filterTag !== 'all') {
-    filtered = filtered.filter(r => (r.tags || []).includes(filterTag));
+    filtered = filtered.filter(r => [...(r.categories || []), ...(r.tags || [])].includes(filterTag));
   }
 
   switch (sortBy) {
-    case 'date-asc': filtered.sort((a, b) => new Date(a.date) - new Date(b.date)); break;
-    case 'date-desc': filtered.sort((a, b) => new Date(b.date) - new Date(a.date)); break;
+    case 'date-asc': filtered.sort((a, b) => getEarliestWatchMoment(a) - getEarliestWatchMoment(b)); break;
+    case 'date-desc': filtered.sort((a, b) => getLatestWatchMoment(b) - getLatestWatchMoment(a)); break;
     case 'rating-desc': filtered.sort((a, b) => b.rating - a.rating); break;
     case 'rating-asc': filtered.sort((a, b) => a.rating - b.rating); break;
     case 'title': filtered.sort((a, b) => a.title.localeCompare(b.title, 'zh-CN')); break;
   }
 
-  renderGrid(filtered);
+  return filtered;
+}
+
+function render() {
+  renderGrid(getVisibleReviews());
 }
 
 function renderGrid(items) {
@@ -1233,33 +2544,40 @@ function renderGrid(items) {
         <p>还没有影评记录</p>
         <p style="font-size:.8rem;margin-top:4px;">点击「写影评」开始记录你的观影体验吧</p>
       </div>`;
+    hydrateCardImages();
     return;
   }
 
   grid.innerHTML = items.map(r => `
-    <div class="movie-card" role="button" tabindex="0" data-review-id="${escapeHtml(r.id)}" aria-label="查看《${escapeHtml(r.title)}》影评详情">
-      <div class="card-header">
-        <div class="card-title">${escapeHtml(r.title)}</div>
-        <div class="card-rating">${renderStars(r.rating)}</div>
-      </div>
-      <div class="card-meta">
-        ${r.director ? `<span>🎬 ${escapeHtml(r.director)}</span>` : ''}
-        <span>📅 ${formatDate(r.date)}</span>
-      </div>
-      ${r.tags && r.tags.length ? `
-        <div class="card-tags">${r.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
-      ` : ''}
-      ${r.comment ? `
-        <div class="card-comment">
-          ${escapeHtml(r.comment)}
+    <div class="movie-card ${r.image ? 'has-image' : 'no-image'}" role="button" tabindex="0" data-review-id="${escapeHtml(r.id)}" aria-label="查看《${escapeHtml(r.title)}》影评详情">
+      <div class="card-visual ${r.image ? 'has-image' : 'no-image'}">
+        ${r.image ? `
+          <img class="card-image" data-card-image-path="${escapeHtml(r.image.path)}" alt="《${escapeHtml(r.title)}》剧照">
+          <div class="card-image-loading">正在加载剧照</div>
+          <div class="card-image-overlay"></div>
+        ` : `<div class="card-fallback-mark">✦</div>`}
+        <div class="card-rating-chip">${renderStars(r.rating)}</div>
+        <div class="card-visual-copy">
+          <div class="card-visual-title">${escapeHtml(r.title)}</div>
+          <div class="card-visual-meta">${r.director ? `🎬 ${escapeHtml(r.director)} · ` : ''}📅 ${formatDate(r.date)} · 已看 ${getWatchCount(r)} 次</div>
         </div>
-      ` : ''}
-      <div class="card-actions">
-        <button class="btn btn-ghost btn-sm" data-action="edit" data-id="${escapeHtml(r.id)}">✏️ 编辑</button>
-        <button class="btn btn-danger btn-sm" data-action="delete" data-id="${escapeHtml(r.id)}">🗑️ 删除</button>
+      </div>
+      <div class="card-body">
+        ${r.tags && r.tags.length ? `
+          <div class="card-tags">${r.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
+        ` : ''}
+        ${r.comment ? `
+          <div class="card-comment">${escapeHtml(r.comment)}</div>
+        ` : `<div class="card-comment" style="color:var(--text3);font-style:italic;">还没有写评论</div>`}
+        <div class="card-actions">
+          <button class="btn btn-ghost btn-sm" data-action="rewatch" data-id="${escapeHtml(r.id)}">＋ 记录重看</button>
+          <button class="btn btn-ghost btn-sm" data-action="edit" data-id="${escapeHtml(r.id)}">✏️ 编辑</button>
+          <button class="btn btn-danger btn-sm" data-action="delete" data-id="${escapeHtml(r.id)}">🗑️ 删除</button>
+        </div>
       </div>
     </div>
   `).join('');
+  hydrateCardImages();
 }
 
 function renderStars(rating) {
@@ -1271,7 +2589,9 @@ function renderStars(rating) {
 }
 
 function renderAll() {
+  syncCardImageCache();
   updateStats();
+  renderMemorySpotlight();
   updateTagFilter();
   render();
 }
@@ -1299,6 +2619,18 @@ function formatDate(dateStr) {
   return `${parts[0]}年${parseInt(parts[1])}月${parseInt(parts[2])}日`;
 }
 
+function formatCompactDate(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  return `${parts[0]}/${parseInt(parts[1])}/${parseInt(parts[2])}`;
+}
+
+function formatWatchedAt(value) {
+  if (!value) return '';
+  const [datePart, timePart] = value.split('T');
+  return `${formatDate(datePart)}${timePart ? ` ${timePart}` : ''}`;
+}
+
 /* ===== Event delegation & Init ===== */
 document.getElementById('movieGrid').addEventListener('click', event => {
   const target = event.target.closest('[data-action]');
@@ -1306,6 +2638,7 @@ document.getElementById('movieGrid').addEventListener('click', event => {
     event.stopPropagation();
     const action = target.dataset.action;
     const id = target.dataset.id;
+    if (action === 'rewatch') openRewatchModal(id);
     if (action === 'edit') openModal(id);
     if (action === 'delete') deleteReview(id);
     return;
@@ -1327,18 +2660,71 @@ document.getElementById('detailOverlay').addEventListener('click', event => {
   if (event.target === event.currentTarget) closeDetail();
 });
 
+document.getElementById('rewatchOverlay').addEventListener('click', event => {
+  if (event.target === event.currentTarget) closeRewatchModal();
+});
+document.getElementById('tasteOverlay').addEventListener('click', event => {
+  if (event.target === event.currentTarget) closeTasteProfile();
+});
+document.getElementById('annualOverlay').addEventListener('click', event => { if(event.target===event.currentTarget)closeAnnualReport(); });
+document.getElementById('healthOverlay').addEventListener('click', event => { if(event.target===event.currentTarget)closeArchiveHealth(); });
+
 document.getElementById('lightboxOverlay').addEventListener('click', event => {
   if (event.target === event.currentTarget) closeLightbox();
 });
 
+document.getElementById('galleryWall').addEventListener('pointerover', event => {
+  const card = event.target.closest('.gallery-card');
+  if (!card || card.contains(event.relatedTarget)) return;
+  setGalleryFocus(card);
+});
+
+document.getElementById('galleryWall').addEventListener('pointerout', event => {
+  const card = event.target.closest('.gallery-card');
+  if (!card || card.contains(event.relatedTarget)) return;
+  clearGalleryFocus(card);
+});
+
+document.getElementById('galleryWall').addEventListener('focusin', event => {
+  const card = event.target.closest('.gallery-card');
+  if (card) setGalleryFocus(card);
+});
+
+document.getElementById('galleryWall').addEventListener('focusout', event => {
+  const card = event.target.closest('.gallery-card');
+  if (card && !card.contains(event.relatedTarget)) clearGalleryFocus(card);
+});
+
+document.getElementById('galleryWall').addEventListener('click', event => {
+  const card = event.target.closest('.gallery-card');
+  if (card) openGalleryDetail(card.dataset.galleryReviewId);
+});
+
+document.getElementById('galleryWall').addEventListener('keydown', event => {
+  const card = event.target.closest('.gallery-card');
+  if (card && (event.key === 'Enter' || event.key === ' ')) {
+    event.preventDefault();
+    openGalleryDetail(card.dataset.galleryReviewId);
+  }
+});
+
 document.addEventListener('keydown', event => {
+  const detailActive=document.getElementById('detailOverlay').classList.contains('active');
+  const blockingOverlay=document.getElementById('lightboxOverlay').classList.contains('active')||document.getElementById('rewatchOverlay').classList.contains('active')||document.getElementById('modalOverlay').classList.contains('active');
+  if(detailActive&&!blockingOverlay&&!['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName)&&(event.key==='ArrowLeft'||event.key==='ArrowRight')){event.preventDefault();navigateDetail(event.key==='ArrowLeft'?-1:1);return;}
   if (event.key !== 'Escape') return;
-  if (document.getElementById('lightboxOverlay').classList.contains('active')) closeLightbox();
+  if (document.getElementById('galleryOverlay').classList.contains('active')) closeGallery();
+  else if (document.getElementById('lightboxOverlay').classList.contains('active')) closeLightbox();
+  else if (document.getElementById('rewatchOverlay').classList.contains('active')) closeRewatchModal();
+  else if (document.getElementById('tasteOverlay').classList.contains('active')) closeTasteProfile();
+  else if (document.getElementById('annualOverlay').classList.contains('active')) closeAnnualReport();
+  else if (document.getElementById('healthOverlay').classList.contains('active')) closeArchiveHealth();
   else if (document.getElementById('modalOverlay').classList.contains('active')) closeModal();
   else if (document.getElementById('detailOverlay').classList.contains('active')) closeDetail();
 });
 
 window.addEventListener('pywebviewready', initApp);
+RECOMMENDED_CATEGORIES.forEach(value => document.getElementById('categoryOptions').append(new Option(value, value)));
 initImageDropZone();
 detectDesktopBridge();
 </script>

@@ -46,10 +46,47 @@ def sample_review(**changes):
 
 class NormalizeReviewsTests(unittest.TestCase):
     def test_normalizes_valid_review_and_deduplicates_tags(self):
-        result = normalize_reviews([sample_review()])
+        result = normalize_reviews([sample_review(categories=["科幻", "悬疑", "科幻"])])
         self.assertEqual(result[0]["title"], "一部电影")
         self.assertEqual(result[0]["tags"], ["剧情", "经典"])
         self.assertEqual(result[0]["rating"], 5)
+        self.assertEqual(result[0]["categories"], ["科幻", "悬疑"])
+        self.assertNotIn("rewatches", result[0])
+
+    def test_normalizes_repeat_viewing_notes_and_keeps_legacy_records_compatible(self):
+        result = normalize_reviews(
+            [
+                sample_review(
+                    rewatches=[
+                        {
+                            "watchedAt": "2026-08-20T19:30",
+                            "feeling": "第二次看更喜欢配乐。",
+                            "rating": 4,
+                            "createdAt": 1_700_000_100_000,
+                        }
+                    ]
+                )
+            ]
+        )
+        self.assertEqual(
+            result[0]["rewatches"],
+            [{"watchedAt": "2026-08-20T19:30", "feeling": "第二次看更喜欢配乐。", "createdAt": 1_700_000_100_000, "rating": 4}],
+        )
+
+    def test_rejects_invalid_repeat_viewing_note(self):
+        with self.assertRaisesRegex(DataValidationError, "观影时间"):
+            normalize_reviews([sample_review(rewatches=[{"watchedAt": "2026-02-30T19:30", "feeling": "", "createdAt": 1}])])
+        with self.assertRaisesRegex(DataValidationError, "观看记录不是对象"):
+            normalize_reviews([sample_review(rewatches=["not a record"])])
+        with self.assertRaisesRegex(DataValidationError, "评分"):
+            normalize_reviews([sample_review(rewatches=[{"watchedAt": "2026-08-20T19:30", "feeling": "", "rating": 6}])])
+
+    def test_normalizes_private_movie_relationship_fields(self):
+        context = {"location": "电影院", "companions": "朋友", "mood": "期待", "lifeStage": "毕业季", "impact": "开始关注摄影", "favoriteScene": "结尾", "favoriteQuote": "一句台词", "recommendTo": "家人", "watchAgain": True}
+        result = normalize_reviews([sample_review(personalContext=context)])
+        self.assertEqual(result[0]["personalContext"], context)
+        with self.assertRaisesRegex(DataValidationError, "再次重看意愿"):
+            normalize_reviews([sample_review(personalContext={"watchAgain": "yes"})])
 
     def test_rejects_invalid_date(self):
         with self.assertRaisesRegex(DataValidationError, "观影日期"):
@@ -108,6 +145,32 @@ class ReviewStoreTests(unittest.TestCase):
             self.assertEqual(current[0]["title"], "新标题")
             self.assertTrue(any(document and document[0]["title"] == "旧标题" for document in backup_documents))
             self.assertFalse(list(Path(directory).glob("*.tmp")))
+
+    def test_rewatch_adjustment_and_deletion_persist(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = ReviewStore(Path(directory))
+            saved = store.save(
+                [
+                    sample_review(
+                        rewatches=[
+                            {"watchedAt": "2026-08-20T19:30", "feeling": "第一次重看", "createdAt": 100},
+                            {"watchedAt": "2026-08-21T20:00", "feeling": "第二次重看", "createdAt": 200},
+                        ]
+                    )
+                ]
+            )
+
+            adjusted_entries = [dict(entry) for entry in saved[0]["rewatches"]]
+            adjusted_entries[1]["watchedAt"] = "2026-08-22T21:15"
+            adjusted_entries[1]["feeling"] = "调整后的感受"
+            adjusted = store.save([{**saved[0], "rewatches": adjusted_entries}])
+            self.assertEqual(adjusted[0]["rewatches"][1]["watchedAt"], "2026-08-22T21:15")
+            self.assertEqual(adjusted[0]["rewatches"][1]["feeling"], "调整后的感受")
+            self.assertEqual(adjusted[0]["rewatches"][1]["createdAt"], 200)
+
+            remaining = store.save([{**adjusted[0], "rewatches": adjusted[0]["rewatches"][:1]}])
+            self.assertEqual(len(remaining[0]["rewatches"]), 1)
+            self.assertEqual(remaining[0]["rewatches"][0]["feeling"], "第一次重看")
 
     def test_corrupt_primary_file_is_not_overwritten_on_load(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -249,7 +312,18 @@ class ReviewStoreTests(unittest.TestCase):
             source_store.directory.mkdir()
             referenced = source_store.import_image(self.write_png(root / "referenced.png"))
             source_store.import_image(self.write_png(root / "unreferenced.png", b"unused"))
-            reviews = [sample_review(image=referenced)]
+            reviews = [
+                sample_review(
+                    image=referenced,
+                    rewatches=[
+                        {
+                            "watchedAt": "2026-08-20T19:30",
+                            "feeling": "重看后留意到了更多细节。",
+                            "createdAt": 1_700_000_100_000,
+                        }
+                    ],
+                )
+            ]
             source_store.save(reviews)
 
             backup = root / "backup.zip"
@@ -369,6 +443,8 @@ class DesktopApiTests(unittest.TestCase):
                     "select_import_file",
                     "apply_import",
                     "export_backup",
+                    "export_annual_report",
+                    "export_graph_image",
                     "open_data_directory",
                     "exit_app",
                 ],
@@ -391,6 +467,28 @@ class DesktopApiTests(unittest.TestCase):
         self.assertEqual(len(callback_args), 2)
         self.assertIs(callback_args[0], fake_window)
         self.assertEqual(start.call_args.kwargs["gui"], "edgechromium")
+
+    def test_generated_report_and_graph_exports_write_valid_files(self):
+        class FakeWindow:
+            def __init__(self, paths):
+                self.paths = iter(paths)
+            def create_file_dialog(self, *_args, **_kwargs):
+                return [str(next(self.paths))]
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            report = root / "report.html"
+            graph = root / "graph.png"
+            api = DesktopApi(SettingsStore(root / "settings.json"))
+            api._window = FakeWindow([report, graph])
+            fake_webview = SimpleNamespace(FileDialog=SimpleNamespace(SAVE="save"))
+            with mock.patch.dict("sys.modules", {"webview": fake_webview}):
+                report_result = api.export_annual_report("年度观影报告-2026.html", "<!doctype html><meta charset='utf-8'><h1>报告</h1>")
+                graph_result = api.export_graph_image("data:image/png;base64," + base64.b64encode(VALID_PNG).decode("ascii"))
+            self.assertTrue(report_result["ok"])
+            self.assertIn("报告", report.read_text(encoding="utf-8"))
+            self.assertTrue(graph_result["ok"])
+            self.assertEqual(graph.read_bytes(), VALID_PNG)
 
     def test_choose_data_directory_prepares_and_remembers_selected_folder(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -492,6 +590,190 @@ class FrontendImageDropTests(unittest.TestCase):
         self.assertIn("if (imageImportBusy)", self.html)
         self.assertIn("saveReviewButton", self.html)
         self.assertIn("window.handleNativeImageDropResult", self.html)
+
+    def test_homepage_cards_have_image_visual_and_text_fallback(self):
+        self.assertIn("card-visual", self.html)
+        self.assertIn("card-image-overlay", self.html)
+        self.assertIn("card-rating-chip", self.html)
+        self.assertIn("card-fallback-mark", self.html)
+        self.assertIn("movie-card ${r.image ? 'has-image' : 'no-image'}", self.html)
+
+    def test_homepage_card_images_are_lazy_loaded_and_cached(self):
+        self.assertIn("const cardImageCache = new Map()", self.html)
+        self.assertIn("const MAX_CARD_IMAGE_CACHE = 24", self.html)
+        self.assertIn("IntersectionObserver", self.html)
+        self.assertIn("rootMargin: '280px 0px'", self.html)
+        self.assertIn("while (cardImageInFlight < 2", self.html)
+        self.assertIn("URL.revokeObjectURL(url)", self.html)
+
+    def test_curation_wall_uses_current_filtered_reviews_and_rating_weights(self):
+        self.assertIn('id="galleryButton"', self.html)
+        self.assertIn("renderGallery(getVisibleReviews())", self.html)
+        self.assertIn("gallery-card.rating-5", self.html)
+        self.assertIn("gallery-card.rating-4", self.html)
+        self.assertIn("gallery-card.rating-3", self.html)
+        self.assertIn("gallery-card.rating-2", self.html)
+        self.assertIn("rating-low", self.html)
+
+    def test_curation_wall_focus_and_accessibility_behaviors_are_present(self):
+        self.assertIn("gallery-wall.has-focus", self.html)
+        self.assertIn("transform: translateY(-2px) scale(1.035)", self.html)
+        self.assertIn("setGalleryFocus", self.html)
+        self.assertIn("openGalleryDetail", self.html)
+        self.assertIn("prefers-reduced-motion", self.html)
+        self.assertIn("getElementById('galleryOverlay').classList.contains('active')", self.html)
+
+    def test_curation_wall_has_all_rating_tiers_and_empty_filter_fallback(self):
+        self.assertIn("function getGalleryRatingClass", self.html)
+        self.assertIn("if (rating >= 5)", self.html)
+        self.assertIn("if (rating === 4)", self.html)
+        self.assertIn("if (rating === 3)", self.html)
+        self.assertIn("if (rating === 2)", self.html)
+        self.assertIn("当前筛选没有影评可展示", self.html)
+        self.assertIn("clearGalleryFilters", self.html)
+
+    def test_curation_wall_reuses_image_cache_and_handles_keyboard_close(self):
+        self.assertIn("galleryImageNodes", self.html)
+        self.assertIn("hydrateGalleryImages", self.html)
+        self.assertIn("root: stage", self.html)
+        self.assertIn("openGalleryDetail(card.dataset.galleryReviewId)", self.html)
+        self.assertIn("if (document.getElementById('galleryOverlay').classList.contains('active')) closeGallery();", self.html)
+
+    def test_curation_wall_is_dense_and_bounds_image_memory(self):
+        self.assertIn("repeat(auto-fill, minmax(132px, 1fr))", self.html)
+        self.assertIn("aspect-ratio: 2 / 3", self.html)
+        self.assertIn("content-visibility: auto", self.html)
+        self.assertIn("while (cardImageCache.size > MAX_CARD_IMAGE_CACHE)", self.html)
+        self.assertIn("resetCachedImageNodes(oldestPath)", self.html)
+        self.assertIn("root: stage, rootMargin: '220px 0px'", self.html)
+        self.assertIn("requestAnimationFrame(hydrateCardImages)", self.html)
+        self.assertNotIn("transform: scale(1.4)", self.html)
+        self.assertIn("function renderRelationGraph", self.html)
+        self.assertIn("knowledge-graph-canvas", self.html)
+        self.assertIn("knowledge-graph-panel", self.html)
+        self.assertIn("setGalleryMode('relation')", self.html)
+        self.assertIn("function getRelationLabels", self.html)
+        self.assertIn("function selectKnowledgeGraphNode", self.html)
+        self.assertIn("relations.forEach(label=>edges.push", self.html)
+        self.assertIn("shared:getRelationLabels", self.html)
+        self.assertIn("通过共同关系关联了哪些电影", self.html)
+        self.assertIn("showConnectedMovieName", self.html)
+        self.assertIn("selectedNode.kind==='relation'", self.html)
+        self.assertIn("c.onwheel", self.html)
+
+    def test_relation_graph_switches_one_dimension_at_a_time(self):
+        self.assertIn('id="relationDimension"', self.html)
+        self.assertIn('value="category"', self.html)
+        self.assertIn('value="director"', self.html)
+        self.assertIn('value="year"', self.html)
+        self.assertIn('value="rating"', self.html)
+        self.assertIn('value="rewatch"', self.html)
+        self.assertIn('value="tag"', self.html)
+        self.assertIn('value="cast" disabled', self.html)
+        self.assertIn("function setRelationDimension", self.html)
+        self.assertIn("getWatchMoments(review)", self.html)
+        self.assertIn("${getRelationDimensionName()}知识图谱", self.html)
+
+    def test_category_picker_supports_recommended_and_custom_values(self):
+        self.assertIn("RECOMMENDED_CATEGORIES", self.html)
+        self.assertIn('id="categoryInput"', self.html)
+        self.assertIn('id="categoryOptions"', self.html)
+        self.assertIn("function addCategoryFromInput", self.html)
+        self.assertIn("selectedCategories.length >= 8", self.html)
+        self.assertIn("title, director, date, rating, tags, categories, comment", self.html)
+
+    def test_cinematic_archive_theme_is_consistent(self):
+        self.assertIn("--bg: #0d0b0c", self.html)
+        self.assertIn("--accent: #a44752", self.html)
+        self.assertIn("--gold: #d6b06a", self.html)
+        self.assertIn("--graph-movie: #6fa7a1", self.html)
+        self.assertIn("node.kind==='relation'?'#d6b06a'", self.html)
+        self.assertIn("hover?'#f0c674':'#6fa7a1'", self.html)
+        for old_color in ("#6366f1", "#818cf8", "#a78bfa", "#67e8f9", "#fbbf24"):
+            self.assertNotIn(old_color, self.html.lower())
+
+    def test_repeat_viewing_ui_records_time_feeling_and_derived_count(self):
+        self.assertIn('id="rewatchOverlay"', self.html)
+        self.assertIn('id="rewatchWatchedAt"', self.html)
+        self.assertIn('id="rewatchFeeling"', self.html)
+        self.assertIn('data-action="rewatch"', self.html)
+        self.assertIn("function getWatchCount", self.html)
+        self.assertIn("function handleRewatchSubmit", self.html)
+        self.assertIn("currentEntries.push({ watchedAt, feeling, rating, createdAt: Date.now() })", self.html)
+        self.assertIn("const watchTotal = reviews.reduce", self.html)
+        self.assertIn("/ reviewCount).toFixed(1)", self.html)
+        self.assertIn("＋ 记录重看", self.html)
+        self.assertIn("记录第 ${currentWatchCount + 1} 次观看", self.html)
+        self.assertIn("保存重看记录", self.html)
+        self.assertIn("历次观看记录", self.html)
+        self.assertIn("rewatchEditIndex", self.html)
+        self.assertIn("调整第 ${watchedNumber} 次观看", self.html)
+        self.assertIn("function deleteRewatch", self.html)
+        self.assertIn("currentEntries.filter((_, index) => index !== rewatchIndex)", self.html)
+        self.assertIn("第 ${watchedNumber} 次观看记录已删除", self.html)
+
+    def test_edit_modal_shows_every_watch_record_and_date(self):
+        self.assertIn('id="editWatchHistorySection"', self.html)
+        self.assertIn('id="editWatchHistory"', self.html)
+        self.assertIn("function renderEditWatchHistory", self.html)
+        self.assertIn("appendEntry(1, review.date, '', review.rating, true)", self.html)
+        self.assertIn("getRewatches(review).forEach", self.html)
+        self.assertIn("formatWatchedAt(watchedAt)", self.html)
+        self.assertIn("data-edit-initial-watch-date", self.html)
+        self.assertIn("独立评分与当次感受", Path("README.md").read_text(encoding="utf-8"))
+
+    def test_rewatch_ratings_render_an_evolution_curve(self):
+        self.assertIn('id="rewatchStarSelector"', self.html)
+        self.assertIn('id="rewatchRating"', self.html)
+        self.assertIn("function renderRatingEvolution", self.html)
+        self.assertIn("polyline.setAttribute('stroke','#d6b06a')", self.html)
+        self.assertIn("越来越喜欢", self.html)
+        self.assertIn("逐渐降温", self.html)
+        self.assertIn("评分稳定", self.html)
+
+    def test_today_memories_include_rewatches_and_explain_fallbacks(self):
+        self.assertIn('id="memorySpotlight"', self.html)
+        self.assertIn("function getViewingEvents", self.html)
+        self.assertIn("function getTodayMemoryData", self.html)
+        self.assertIn("yearsAgo>0", self.html)
+        self.assertIn("getRewatches(review).map", self.html)
+        self.assertIn("item.rating>=4&&item.daysAgo>=365", self.html)
+        self.assertIn("今日重看建议", self.html)
+        self.assertIn("记录重看", self.html)
+
+    def test_taste_profile_is_local_deterministic_and_explained(self):
+        self.assertIn('onclick="openTasteProfile()"', self.html)
+        self.assertIn('id="tasteOverlay"', self.html)
+        self.assertIn("function buildTasteProfile", self.html)
+        self.assertIn("function getLatestReviewRating", self.html)
+        self.assertIn("data.rewatched/reviews.length*100", self.html)
+        self.assertIn("item.rated>=2", self.html)
+        self.assertIn("legacyCategoryCount", self.html)
+        self.assertIn("规则固定且可解释", self.html)
+        self.assertIn("closeTasteProfile();openDetail", self.html)
+
+    def test_archive_extensions_cover_context_reports_health_merge_and_graph_export(self):
+        self.assertIn('id="contextLocation"', self.html)
+        self.assertIn("function renderPersonalContext", self.html)
+        self.assertIn("function buildAnnualReport", self.html)
+        self.assertIn("export_annual_report", self.html)
+        self.assertIn("function buildArchiveHealth", self.html)
+        self.assertIn("重看早于初看", self.html)
+        self.assertIn("function mergeCategory", self.html)
+        self.assertIn("保存前会自动备份", self.html)
+        self.assertIn("function exportKnowledgeGraph", self.html)
+        self.assertIn("export_graph_image", self.html)
+
+    def test_detail_dialog_navigates_previous_and_next_in_visible_order(self):
+        self.assertIn('id="detailPrevious"', self.html)
+        self.assertIn('id="detailNext"', self.html)
+        self.assertIn("function getDetailSequence", self.html)
+        self.assertIn("function updateDetailNavigation", self.html)
+        self.assertIn("function navigateDetail", self.html)
+        self.assertIn("visible.some(item=>item.id===detailReviewId)", self.html)
+        self.assertIn("event.key==='ArrowLeft'||event.key==='ArrowRight'", self.html)
+        self.assertIn("已经是第一条", self.html)
+        self.assertIn("已经是最后一条", self.html)
 
 
 if __name__ == "__main__":

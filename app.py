@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import hashlib
 import json
 import os
@@ -22,6 +23,7 @@ APP_NAME = "MovieReview"
 DATA_FILE_NAME = "movie-reviews.json"
 MAX_IMPORT_BYTES = 50 * 1024 * 1024
 MAX_REVIEWS = 100_000
+MAX_REWATCHES_PER_REVIEW = 10_000
 MAX_BACKUPS = 20
 MAX_IMAGE_BYTES = 50 * 1024 * 1024
 MAX_IMAGE_CHUNK_BYTES = 1024 * 1024
@@ -30,6 +32,7 @@ MAX_BACKUP_ENTRIES = MAX_REVIEWS + 2
 BACKUP_FORMAT = "movie-review-backup"
 BACKUP_FORMAT_VERSION = 1
 IMAGE_PATH_RE = re.compile(r"media/([0-9a-f]{64})\.(jpg|png|webp)")
+REWATCH_TIMESTAMP_RE = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?$")
 IMAGE_TYPES = {
     "jpg": "image/jpeg",
     "png": "image/png",
@@ -109,6 +112,62 @@ def _normalize_image(value: Any, index: int) -> dict[str, Any] | None:
     return {"path": path, "name": name, "mime": mime, "size": size}
 
 
+def _normalize_rewatches(value: Any, index: int, now_ms: int) -> list[dict[str, Any]]:
+    """Validate repeat-viewing notes while preserving old review files without them."""
+    if value is None:
+        return []
+    if not isinstance(value, list) or len(value) > MAX_REWATCHES_PER_REVIEW:
+        raise DataValidationError(f"第 {index} 条的重复观看记录格式不正确")
+
+    normalized: list[dict[str, Any]] = []
+    for rewatch_index, item in enumerate(value, start=1):
+        if not isinstance(item, dict):
+            raise DataValidationError(f"第 {index} 条的第 {rewatch_index} 次观看记录不是对象")
+
+        raw_watched_at = item.get("watchedAt")
+        if not isinstance(raw_watched_at, str) or REWATCH_TIMESTAMP_RE.fullmatch(raw_watched_at) is None:
+            raise DataValidationError(f"第 {index} 条的第 {rewatch_index} 次观影时间格式不正确")
+        try:
+            watched_at = datetime.fromisoformat(raw_watched_at)
+        except ValueError as exc:
+            raise DataValidationError(f"第 {index} 条的第 {rewatch_index} 次观影时间格式不正确") from exc
+        if watched_at.tzinfo is not None:
+            raise DataValidationError(f"第 {index} 条的第 {rewatch_index} 次观影时间格式不正确")
+
+        feeling = _clean_text(item.get("feeling"), f"第 {index} 条的第 {rewatch_index} 次观影感受", 100_000)
+        created_at = _clean_timestamp(item.get("createdAt"), now_ms)
+        normalized_item = {
+            "watchedAt": watched_at.replace(second=0, microsecond=0).isoformat(timespec="minutes"),
+            "feeling": feeling,
+            "createdAt": created_at,
+        }
+        raw_rating = item.get("rating")
+        if raw_rating is not None:
+            if isinstance(raw_rating, bool) or not isinstance(raw_rating, (int, float)) or int(raw_rating) != raw_rating:
+                raise DataValidationError(f"第 {index} 条的第 {rewatch_index} 次评分必须是 0 到 5 的整数")
+            rating = int(raw_rating)
+            if not 0 <= rating <= 5:
+                raise DataValidationError(f"第 {index} 条的第 {rewatch_index} 次评分必须是 0 到 5 的整数")
+            normalized_item["rating"] = rating
+        normalized.append(normalized_item)
+    return normalized
+
+
+def _normalize_personal_context(value: Any, index: int) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise DataValidationError(f"第 {index} 条的电影与我的关系格式不正确")
+    limits = {"location": 200, "companions": 300, "mood": 200, "lifeStage": 300, "impact": 5_000, "favoriteScene": 5_000, "favoriteQuote": 2_000, "recommendTo": 500}
+    normalized = {key: _clean_text(value.get(key), f"第 {index} 条的{key}", limit) for key, limit in limits.items()}
+    watch_again = value.get("watchAgain")
+    if watch_again is not None and not isinstance(watch_again, bool):
+        raise DataValidationError(f"第 {index} 条的再次重看意愿格式不正确")
+    if isinstance(watch_again, bool):
+        normalized["watchAgain"] = watch_again
+    return normalized if any(item not in ("", None) for item in normalized.values()) else None
+
+
 def normalize_reviews(value: Any) -> list[dict[str, Any]]:
     """Validate and normalize imported or UI-provided review records."""
     if not isinstance(value, list):
@@ -154,6 +213,17 @@ def normalize_reviews(value: Any) -> list[dict[str, Any]]:
             if tag and tag not in tags:
                 tags.append(tag)
 
+        raw_categories = item.get("categories", [])
+        if raw_categories is None:
+            raw_categories = []
+        if not isinstance(raw_categories, list) or len(raw_categories) > 8:
+            raise DataValidationError(f"第 {index} 条的电影分类格式不正确")
+        categories: list[str] = []
+        for raw_category in raw_categories:
+            category = _clean_text(raw_category, f"第 {index} 条的电影分类", 40)
+            if category and category not in categories:
+                categories.append(category)
+
         review_id = item.get("id")
         if not isinstance(review_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", review_id):
             review_id = uuid.uuid4().hex
@@ -174,6 +244,14 @@ def normalize_reviews(value: Any) -> list[dict[str, Any]]:
             "createdAt": created_at,
             "updatedAt": updated_at,
         }
+        if categories:
+            review["categories"] = categories
+        personal_context = _normalize_personal_context(item.get("personalContext"), index)
+        if personal_context:
+            review["personalContext"] = personal_context
+        rewatched = _normalize_rewatches(item.get("rewatches"), index, now_ms)
+        if rewatched:
+            review["rewatches"] = rewatched
         image = _normalize_image(item.get("image"), index)
         if image is not None:
             review["image"] = image
@@ -877,6 +955,47 @@ class DesktopApi:
         except (OSError, DataValidationError, zipfile.BadZipFile) as exc:
             return {"ok": False, "cancelled": False, "error": f"导出失败：{exc}"}
 
+    def export_annual_report(self, filename: str, content: str) -> dict[str, Any]:
+        if self._window is None:
+            return {"ok": False, "cancelled": False, "error": "窗口尚未就绪"}
+        if not isinstance(filename, str) or not re.fullmatch(r"[\w\-\u4e00-\u9fff]{1,80}\.html", filename):
+            return {"ok": False, "cancelled": False, "error": "报告文件名无效"}
+        if not isinstance(content, str) or not 0 < len(content) <= 10_000_000:
+            return {"ok": False, "cancelled": False, "error": "报告内容无效或过大"}
+        import webview
+        selected = self._window.create_file_dialog(webview.FileDialog.SAVE, directory=str(self._store.directory) if self._store else "", save_filename=filename, file_types=("HTML 年度报告 (*.html)",))
+        if not selected:
+            return {"ok": False, "cancelled": True, "error": ""}
+        destination = Path(selected[0]).with_suffix(".html")
+        try:
+            atomic_write(destination, content.encode("utf-8"))
+            return {"ok": True, "cancelled": False, "path": str(destination), "error": ""}
+        except OSError as exc:
+            return {"ok": False, "cancelled": False, "error": f"报告导出失败：{exc}"}
+
+    def export_graph_image(self, data_url: str) -> dict[str, Any]:
+        if self._window is None:
+            return {"ok": False, "cancelled": False, "error": "窗口尚未就绪"}
+        prefix = "data:image/png;base64,"
+        if not isinstance(data_url, str) or not data_url.startswith(prefix) or len(data_url) > 70_000_000:
+            return {"ok": False, "cancelled": False, "error": "图谱图片数据无效或过大"}
+        try:
+            content = base64.b64decode(data_url[len(prefix):], validate=True)
+        except (ValueError, binascii.Error):
+            return {"ok": False, "cancelled": False, "error": "图谱图片编码无效"}
+        if not content.startswith(b"\x89PNG\r\n\x1a\n"):
+            return {"ok": False, "cancelled": False, "error": "图谱图片不是有效 PNG"}
+        import webview
+        selected = self._window.create_file_dialog(webview.FileDialog.SAVE, directory=str(self._store.directory) if self._store else "", save_filename=f"电影知识图谱-{datetime.now().strftime('%Y%m%d-%H%M%S')}.png", file_types=("PNG 图片 (*.png)",))
+        if not selected:
+            return {"ok": False, "cancelled": True, "error": ""}
+        destination = Path(selected[0]).with_suffix(".png")
+        try:
+            atomic_write(destination, content)
+            return {"ok": True, "cancelled": False, "path": str(destination), "error": ""}
+        except OSError as exc:
+            return {"ok": False, "cancelled": False, "error": f"图谱导出失败：{exc}"}
+
     def open_data_directory(self) -> dict[str, Any]:
         if self._store is None:
             return {"ok": False, "error": "尚未选择数据目录"}
@@ -908,6 +1027,8 @@ def expose_desktop_api(window: Any, api: DesktopApi) -> None:
         api.select_import_file,
         api.apply_import,
         api.export_backup,
+        api.export_annual_report,
+        api.export_graph_image,
         api.open_data_directory,
         api.exit_app,
     )
