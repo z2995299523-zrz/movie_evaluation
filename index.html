@@ -316,6 +316,7 @@ body {
   opacity: 0; visibility: hidden; transition: .25s ease;
 }
 .modal-overlay.active { opacity: 1; visibility: visible; }
+body.gallery-open .modal-overlay { z-index: 2600; }
 
 .modal {
   background: var(--surface);
@@ -417,6 +418,7 @@ body {
 
 /* ===== Review Detail ===== */
 .detail-overlay { z-index: 1100; }
+body.gallery-open .detail-overlay { z-index: 2700; }
 .detail-modal { max-width: 780px; padding: 0; overflow: hidden; }
 .detail-nav { position: absolute; top: 50%; z-index: 4; width: 112px; min-height: 64px; padding: 9px; border: 1px solid rgba(214,176,106,.34); border-radius: 12px; background: rgba(23,19,21,.9); color: var(--text2); cursor: pointer; transform: translateY(-50%); backdrop-filter: blur(12px); }
 .detail-nav:hover:not(:disabled) { border-color: var(--gold); color: var(--text); }
@@ -472,15 +474,26 @@ body {
 /* ===== Fullscreen Image Lightbox ===== */
 .lightbox-overlay {
   position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center;
-  padding: 24px; background: rgba(0,0,0,.94); opacity: 0; visibility: hidden; transition: .2s ease;
+  padding: 24px; overflow: hidden; background: rgba(0,0,0,.94); opacity: 0; visibility: hidden; transition: .2s ease;
 }
 .lightbox-overlay.active { opacity: 1; visibility: visible; }
-.lightbox-overlay img { max-width: 96vw; max-height: 92vh; object-fit: contain; cursor: zoom-out; }
+body.gallery-open .lightbox-overlay { z-index: 2800; }
+.lightbox-stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
+.lightbox-stage img { display: block; max-width: 96vw; max-height: 92vh; object-fit: contain; user-select: none; -webkit-user-drag: none; cursor: zoom-in; transform-origin: center; }
+.lightbox-stage.is-zoomed img { cursor: grab; }
+.lightbox-stage.is-dragging img { cursor: grabbing; }
+.lightbox-controls { position: absolute; left: 50%; bottom: 20px; z-index: 2; display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid rgba(255,255,255,.2); border-radius: 12px; background: rgba(13,11,12,.88); transform: translateX(-50%); }
+.lightbox-controls button { min-width: 38px; min-height: 38px; padding: 6px 10px; border: 1px solid rgba(255,255,255,.18); border-radius: 8px; background: #211a1d; color: #fff; cursor: pointer; }
+.lightbox-controls button:disabled { opacity: .38; cursor: default; }
+.lightbox-controls output { min-width: 52px; color: #f3ede5; font-size: .82rem; text-align: center; }
+.lightbox-hint { position: absolute; left: 50%; bottom: 82px; z-index: 2; color: #c9c0bf; font-size: .72rem; transform: translateX(-50%); pointer-events: none; white-space: nowrap; }
 .lightbox-close {
   position: absolute; top: 18px; right: 22px; width: 42px; height: 42px; border-radius: 50%;
   border: 1px solid rgba(255,255,255,.25); background: rgba(0,0,0,.5); color: #fff;
   font-size: 1.4rem; cursor: pointer;
 }
+.lightbox-overlay > .lightbox-close { z-index: 3; }
+@media (max-width: 600px) { .lightbox-hint { display: none; } .lightbox-controls { bottom: 12px; } }
 
 /* ===== Rating-driven curation wall ===== */
 body.gallery-open { overflow: hidden; }
@@ -625,6 +638,16 @@ body.gallery-open { overflow: hidden; }
 .setup-card .setup-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 .setup-error { color: var(--danger); font-size: .82rem; line-height: 1.5; margin-top: 12px; }
 
+/* Browser account dialogs share the archive theme without setup button sizing. */
+.web-account-dialog { padding: 16px; }
+.web-account-dialog .setup-card { padding: 24px; }
+.web-account-dialog .setup-card .btn { width: auto; margin-bottom: 0; flex: 0 0 auto; }
+.web-account-dialog [hidden] { display: none !important; }
+.web-account-dialog .setup-error { margin-bottom: 12px; }
+@media (max-width: 600px) {
+  .web-account-dialog .setup-card { padding: 20px; }
+}
+
 /* ===== Empty State ===== */
 .empty-state {
   text-align: center; padding: 60px 20px;
@@ -650,8 +673,8 @@ body.gallery-open { overflow: hidden; }
 @media (max-width: 600px) {
   .app-wrapper { padding: 18px 14px 48px; }
   .app-header { flex-direction: column; align-items: flex-start; }
-  .header-actions { width: 100%; }
-  .header-actions .btn-primary { margin-left: auto; }
+  .header-actions { width: 100%; flex-wrap: wrap; }
+  .header-actions .btn { flex: 1 1 auto; justify-content: center; }
   .movie-grid { grid-template-columns: 1fr; }
   .movie-card.has-image .card-visual { min-height: 226px; }
   .toolbar { flex-direction: column; }
@@ -918,7 +941,16 @@ body.gallery-open { overflow: hidden; }
 <!-- Fullscreen still image -->
 <div class="lightbox-overlay" id="lightboxOverlay" role="dialog" aria-modal="true" aria-label="全屏查看剧照">
   <button class="lightbox-close" type="button" onclick="closeLightbox()" aria-label="关闭全屏剧照">×</button>
-  <img id="lightboxImage" alt="全屏剧照" onclick="closeLightbox()">
+  <div class="lightbox-stage" id="lightboxStage">
+    <img id="lightboxImage" alt="全屏剧照" draggable="false">
+  </div>
+  <div class="lightbox-hint">滚轮缩放 · 放大后拖动查看 · 双击图片切换大小</div>
+  <div class="lightbox-controls" role="toolbar" aria-label="剧照缩放">
+    <button type="button" id="lightboxZoomOut" onclick="zoomLightbox(1/1.5)" aria-label="缩小剧照">−</button>
+    <output id="lightboxZoomLabel" aria-live="polite">100%</output>
+    <button type="button" id="lightboxZoomIn" onclick="zoomLightbox(1.5)" aria-label="放大剧照">＋</button>
+    <button type="button" id="lightboxZoomReset" onclick="resetLightboxZoom()" aria-label="恢复剧照原始显示大小">重置</button>
+  </div>
 </div>
 
 <!-- Rating-driven review curation wall -->
@@ -943,7 +975,7 @@ body.gallery-open { overflow: hidden; }
         <option value="tag">补充标签</option>
         <option value="cast" disabled>主演（需要演员数据）</option>
       </select>
-      <button class="btn btn-ghost btn-sm" type="button" onclick="exportKnowledgeGraph()">导出 PNG</button>
+      <button class="btn btn-ghost btn-sm" id="galleryExportButton" type="button" onclick="exportGallery()">导出互动关系图 HTML</button>
       <span class="gallery-count" id="galleryCount"></span>
       <button class="lightbox-close" type="button" onclick="closeGallery()" aria-label="关闭策展墙">×</button>
     </div>
@@ -990,6 +1022,8 @@ let desktopState = null;
 let appInitialized = false;
 let bridgeReady = false;
 let formImage = null;
+let pendingCreateId = null;
+let pendingCreateAt = null;
 let formImageUrl = '';
 let formImageLoadToken = 0;
 let imageSelectionBusy = false;
@@ -1003,6 +1037,10 @@ let rewatchMutationBusy = false;
 let selectedCategories = [];
 let detailImageUrl = '';
 let detailImageLoadToken = 0;
+let lightboxZoom = 1;
+let lightboxPanX = 0;
+let lightboxPanY = 0;
+let lightboxPointer = null;
 const cardImageCache = new Map();
 const MAX_CARD_IMAGE_CACHE = 24;
 const cardImageQueued = new Set();
@@ -1014,6 +1052,7 @@ let cardImageInFlight = 0;
 let cardImageObserver = null;
 let galleryImageObserver = null;
 let galleryLastTrigger = null;
+let galleryDetailReturnTarget = null;
 let galleryMode = 'relation';
 let relationDimension = 'category';
 let relationObserver = null;
@@ -1046,6 +1085,11 @@ function addCategoryFromInput() {
 }
 
 function desktopMethod(name) {
+  if (window.MOVIE_REVIEW_WEB) {
+    const method = window.MovieReviewWeb && window.MovieReviewWeb[name];
+    if (typeof method !== 'function') throw new Error('网页接口尚未就绪');
+    return method;
+  }
   const api = window.pywebview && window.pywebview.api;
   if (!api || typeof api[name] !== 'function') {
     throw new Error('桌面接口正在初始化，请稍候重试');
@@ -1067,7 +1111,8 @@ function base64ToBytes(value) {
   return bytes;
 }
 
-async function loadImageObjectUrl(image, onProgress, isCurrent) {
+async function loadImageObjectUrl(image, onProgress, isCurrent, thumbnail = false) {
+  if (window.MOVIE_REVIEW_WEB) return window.MovieReviewWeb.loadImageObjectUrl(image, onProgress, isCurrent, thumbnail);
   const info = await desktopMethod('get_review_image_info')(image.path);
   if (!info.ok) throw new Error(info.error || '剧照文件缺失');
   const parts = [];
@@ -1150,7 +1195,10 @@ function rememberCardImage(path, url) {
     if (!oldest) break;
     const [oldestPath, oldestUrl] = oldest;
     cardImageCache.delete(oldestPath);
-    resetCachedImageNodes(oldestPath);
+    // Revoking a Blob URL prevents future consumers from opening it, but an
+    // image element that has already received the URL keeps its loaded image.
+    // Do not reset those elements here: an IntersectionObserver callback may
+    // already have fired, leaving an evicted visible card stuck on “loading”.
     URL.revokeObjectURL(oldestUrl);
   }
 }
@@ -1217,7 +1265,7 @@ function drainCardImageQueue() {
     const image = cardImagesByPath.get(path);
     if (!image || cardImageCache.has(path)) continue;
     cardImageInFlight++;
-    loadImageObjectUrl(image, () => {}, () => cardImagesByPath.has(path))
+    loadImageObjectUrl(image, () => {}, () => cardImagesByPath.has(path), true)
       .then(url => {
         if (!url) return;
         if (!cardImagesByPath.has(path)) {
@@ -1337,6 +1385,11 @@ function exitApp() {
 
 function updateStorageUI() {
   const el = document.getElementById('storageStatus');
+  if (window.MOVIE_REVIEW_WEB && desktopState && desktopState.ok) {
+    el.className = 'storage-status file';
+    window.MovieReviewWeb.renderAccountStatus(el);
+    return;
+  }
   if (desktopState && desktopState.ok) {
     const safePath = escapeHtml(desktopState.dataFile);
     el.className = 'storage-status file';
@@ -1376,6 +1429,7 @@ async function initApp() {
 }
 
 function detectDesktopBridge() {
+  if (window.MOVIE_REVIEW_WEB) { initApp(); return; }
   const api = window.pywebview && window.pywebview.api;
   if (api && typeof api.get_state === 'function' && typeof api.choose_data_directory === 'function') {
     initApp();
@@ -1409,9 +1463,16 @@ function getEarliestWatchMoment(review) {
   return Math.min(...getWatchMoments(review).map(value => new Date(value).getTime()));
 }
 
+function archiveNowParts(value = new Date()) {
+  if (!window.MOVIE_REVIEW_WEB) return {year:value.getFullYear(),month:value.getMonth()+1,day:value.getDate(),hour:value.getHours(),minute:value.getMinutes()};
+  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(value).filter(part=>part.type!=='literal').map(part=>[part.type,Number(part.value)]));
+  return {year:parts.year,month:parts.month,day:parts.day,hour:parts.hour,minute:parts.minute};
+}
+
 function localDateTimeValue(value = new Date()) {
   const pad = part => String(part).padStart(2, '0');
-  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}`;
+  const parts=archiveNowParts(value);
+  return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}T${pad(parts.hour)}:${pad(parts.minute)}`;
 }
 
 function getViewingEvents(review) {
@@ -1419,17 +1480,17 @@ function getViewingEvents(review) {
 }
 
 function getTodayMemoryData(now = new Date()) {
-  const year=now.getFullYear(),month=now.getMonth()+1,day=now.getDate(),memories=[];
+  const {year,month,day}=archiveNowParts(now),memories=[];
   reviews.forEach(review=>getViewingEvents(review).forEach(event=>{const datePart=event.watchedAt.split('T')[0],parts=datePart.split('-').map(Number),yearsAgo=year-parts[0];if(yearsAgo>0&&parts[1]===month&&parts[2]===day) memories.push({review,event,yearsAgo});}));
   memories.sort((a,b)=>b.yearsAgo-a.yearsAgo||b.event.watchedAt.localeCompare(a.event.watchedAt));
   const memoryIds=new Set(memories.map(item=>item.review.id)),dayMs=86400000;
-  const suggestions=reviews.map(review=>{const events=getViewingEvents(review),latest=events.reduce((best,event)=>event.watchedAt>best.watchedAt?event:best,events[0]),parts=latest.watchedAt.split('T')[0].split('-').map(Number),lastTime=new Date(parts[0],parts[1]-1,parts[2]).getTime(),daysAgo=Math.floor((now.getTime()-lastTime)/dayMs),rating=Number.isInteger(latest.rating)?latest.rating:review.rating;return{review,latest,daysAgo,rating};}).filter(item=>!memoryIds.has(item.review.id)&&item.rating>=4&&item.daysAgo>=365).sort((a,b)=>b.rating-a.rating||b.daysAgo-a.daysAgo).slice(0,3);
+  const suggestions=reviews.map(review=>{const events=getViewingEvents(review),latest=events.reduce((best,event)=>event.watchedAt>best.watchedAt?event:best,events[0]),parts=latest.watchedAt.split('T')[0].split('-').map(Number),lastTime=window.MOVIE_REVIEW_WEB?Date.UTC(parts[0],parts[1]-1,parts[2]):new Date(parts[0],parts[1]-1,parts[2]).getTime(),daysAgo=Math.floor(((window.MOVIE_REVIEW_WEB?Date.UTC(year,month-1,day):now.getTime())-lastTime)/dayMs),rating=Number.isInteger(latest.rating)?latest.rating:review.rating;return{review,latest,daysAgo,rating};}).filter(item=>!memoryIds.has(item.review.id)&&item.rating>=4&&item.daysAgo>=365).sort((a,b)=>b.rating-a.rating||b.daysAgo-a.daysAgo).slice(0,3);
   return {memories:memories.slice(0,6),suggestions};
 }
 
 function renderMemorySpotlight() {
   const section=document.getElementById('memorySpotlight'),list=document.getElementById('memoryList'),now=new Date(),data=getTodayMemoryData(now);
-  list.replaceChildren();document.getElementById('memoryDate').textContent=`${now.getMonth()+1}月${now.getDate()}日`;
+  list.replaceChildren();const today=archiveNowParts(now);document.getElementById('memoryDate').textContent=`${today.month}月${today.day}日`;
   const appendCard=(review,kicker,meta,note)=>{const card=document.createElement('article');card.className='memory-card';const k=document.createElement('div');k.className='memory-card-kicker';k.textContent=kicker;const title=document.createElement('div');title.className='memory-card-title';title.textContent=review.title;const m=document.createElement('div');m.className='memory-card-meta';m.textContent=meta;card.append(k,title,m);if(note){const n=document.createElement('div');n.className='memory-card-note';n.textContent=note;card.append(n);}const actions=document.createElement('div');actions.className='memory-card-actions';const detail=document.createElement('button');detail.type='button';detail.className='btn btn-ghost btn-sm';detail.textContent='查看详情';detail.onclick=()=>openDetail(review.id);const rewatch=document.createElement('button');rewatch.type='button';rewatch.className='btn btn-primary btn-sm';rewatch.textContent='记录重看';rewatch.onclick=()=>openRewatchModal(review.id);actions.append(detail,rewatch);card.append(actions);list.append(card);};
   data.memories.forEach(item=>appendCard(item.review,`${item.yearsAgo} 年前的今天 · ${item.event.kind}`,`${formatDate(item.event.watchedAt.split('T')[0])}${item.event.rating?` · ${item.event.rating} 星`:''}`,item.event.feeling));
   if(!data.memories.length) data.suggestions.forEach(item=>appendCard(item.review,'今日重看建议',`已 ${item.daysAgo} 天未观看 · ${item.rating} 星`,item.latest.feeling||item.review.comment));
@@ -1490,7 +1551,86 @@ function closeArchiveHealth(){document.getElementById('healthOverlay').classList
 function renderArchiveHealth(){const data=buildArchiveHealth(),root=document.getElementById('healthContent'),defs=[['缺少剧照','missingImage'],['缺少正式分类','missingCategory'],['缺少导演','missingDirector'],['缺少评分','missingRating'],['缺少评论','missingComment'],['缺少私人关系','missingPersonal'],['重看早于初看','dateOrder'],['疑似重复电影','duplicates']],problemCount=defs.reduce((sum,[,key])=>sum+data.issues[key].length,0),score=Math.max(0,Math.round(100-problemCount/Math.max(reviews.length,1)*12));root.innerHTML=`<div class="health-grid"><div class="health-card"><strong>${score}</strong><span>档案健康度 / 100</span></div><div class="health-card"><strong>${reviews.length}</strong><span>电影总数</span></div><div class="health-card"><strong>${problemCount}</strong><span>问题命中数</span></div><div class="health-card"><strong>${data.aliases.length}</strong><span>疑似分类别名组</span></div></div><div class="health-list">${defs.map(([label,key])=>`<div class="health-item"><span>${label}</span><span>${data.issues[key].length} 部</span></div>`).join('')}${data.aliases.map(values=>`<div class="health-item"><span>疑似同义分类：${escapeHtml(values.join(' / '))}</span><span>建议合并</span></div>`).join('')}</div>`;const source=document.getElementById('mergeSource');source.replaceChildren(new Option('选择来源分类',''),...data.categories.map(value=>new Option(value,value)));document.getElementById('mergeImpact').textContent='';}
 async function mergeCategory(){const source=document.getElementById('mergeSource').value,target=document.getElementById('mergeTarget').value.trim();if(!source||!target||source===target){showToast('请选择不同的来源分类和目标分类','error');return;}const affected=reviews.filter(review=>(review.categories||[]).includes(source));document.getElementById('mergeImpact').textContent=`将影响 ${affected.length} 部电影：${affected.slice(0,8).map(item=>item.title).join('、')}${affected.length>8?'…':''}`;if(!affected.length||!confirm(`把“${source}”统一合并为“${target}”吗？将修改 ${affected.length} 部电影，保存前会自动备份。`))return;const next=reviews.map(review=>{if(!(review.categories||[]).includes(source))return review;return{...review,categories:[...new Set(review.categories.map(value=>value===source?target:value))],updatedAt:Date.now()};});try{await persistReviews(next);renderAll();renderArchiveHealth();showToast(`已将“${source}”合并为“${target}”`);}catch(error){showToast(error.message||'合并失败','error');}}
 
-async function exportKnowledgeGraph(){if(galleryMode!=='relation'||!knowledgeGraphState){showToast('请先打开关系图视图','error');return;}try{drawKnowledgeGraph();const result=await desktopMethod('export_graph_image')(knowledgeGraphState.canvas.toDataURL('image/png'));if(result.ok)showToast('知识图谱 PNG 已导出');else if(!result.cancelled)showToast(result.error||'导出失败','error');}catch(error){showToast(error.message||'导出失败','error');}}
+async function exportGallery() {
+  if (!getVisibleReviews().length) { showToast('当前筛选没有可导出的电影','error'); return; }
+  if (galleryMode === 'wall') return exportPosterWall();
+  return exportKnowledgeGraph();
+}
+
+async function exportKnowledgeGraph() {
+  const state=knowledgeGraphState;
+  if (!state) { showToast('请先打开关系图视图','error'); return; }
+  const data={
+    dimension:getRelationDimensionName(),
+    summary:document.getElementById('gallerySummary').textContent,
+    nodes:state.nodes.map(node=>({
+      id:node.id,kind:node.kind,label:node.label,x:node.targetX,y:node.targetY,
+      ...(node.review ? {rating:node.review.rating,date:node.review.date,director:node.review.director||'',categories:node.review.categories||[],tags:node.review.tags||[]} : {})
+    })),
+    edges:state.edges.map(edge=>({source:edge.source,target:edge.target}))
+  };
+  try {
+    const result=await desktopMethod('export_interactive_graph')(data);
+    if(result.ok)showToast('互动关系图 HTML 已导出');
+    else if(!result.cancelled)showToast(result.error||'导出失败','error');
+  } catch(error) { showToast(error.message||'导出失败','error'); }
+}
+
+async function exportPosterWall() {
+  const items=getVisibleReviews(),cardWidth=220,cardHeight=330,gap=18,padding=64,header=174,footer=66;
+  const layout=Array.from({length:13},(_,index)=>index+6).map(columns=>{
+    const rows=Math.ceil(items.length/columns),width=padding*2+columns*cardWidth+(columns-1)*gap;
+    const height=header+rows*cardHeight+Math.max(0,rows-1)*gap+footer;
+    return {columns,width,height};
+  }).find(candidate=>candidate.height<=16000&&candidate.width*candidate.height<=80000000);
+  if(!layout) {
+    showToast('海报墙图片过大，请先缩小筛选范围再导出','error');return;
+  }
+  const {columns,width,height}=layout;
+  const button=document.getElementById('galleryExportButton');
+  button.disabled=true;
+  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+  const ctx=canvas.getContext('2d');
+  try {
+    ctx.fillStyle='#0d0b0c';ctx.fillRect(0,0,width,height);
+    ctx.fillStyle='#d6b06a';ctx.font='700 17px sans-serif';ctx.fillText('CURATED REVIEW WALL',padding,52);
+    ctx.fillStyle='#f3ede5';ctx.font='700 42px sans-serif';ctx.fillText('我的电影策展墙',padding,105);
+    ctx.fillStyle='#aaa0a2';ctx.font='17px sans-serif';
+    ctx.fillText(`${getGalleryFilterSummary(items)} · ${items.length} 部电影`,padding,143);
+    for(let index=0;index<items.length;index++) {
+      const review=items[index],x=padding+(index%columns)*(cardWidth+gap),y=header+Math.floor(index/columns)*(cardHeight+gap);
+      ctx.fillStyle='#241a1e';ctx.fillRect(x,y,cardWidth,cardHeight);
+      if(review.image?.path) {
+        let url='';
+        try {
+          url=await loadImageObjectUrl(review.image,()=>{},()=>true);
+          const image=new Image();image.src=url;await image.decode();
+          const scale=Math.max(cardWidth/image.naturalWidth,cardHeight/image.naturalHeight);
+          const sw=cardWidth/scale,sh=cardHeight/scale;
+          ctx.drawImage(image,(image.naturalWidth-sw)/2,(image.naturalHeight-sh)/2,sw,sh,x,y,cardWidth,cardHeight);
+          image.removeAttribute('src');
+        } catch(_) { /* Missing images retain the fallback card. */ }
+        finally { if(url)URL.revokeObjectURL(url); }
+      }
+      const shade=ctx.createLinearGradient(0,y+cardHeight*.42,0,y+cardHeight);
+      shade.addColorStop(0,'rgba(5,5,8,0)');shade.addColorStop(1,'rgba(5,5,8,.96)');
+      ctx.fillStyle=shade;ctx.fillRect(x,y,cardWidth,cardHeight);
+      ctx.strokeStyle=review.rating>=5?'#d6b06a':'#57424a';ctx.lineWidth=2;ctx.strokeRect(x+1,y+1,cardWidth-2,cardHeight-2);
+      ctx.fillStyle='#d6b06a';ctx.font='16px sans-serif';ctx.fillText(review.rating?`${review.rating} ★`:'未评分',x+12,y+27);
+      ctx.fillStyle='#fff';ctx.font='700 19px sans-serif';
+      const title=review.title.length>18?review.title.slice(0,17)+'…':review.title;
+      ctx.fillText(title,x+12,y+cardHeight-52,cardWidth-24);
+      ctx.fillStyle='#c9c0bf';ctx.font='14px sans-serif';
+      ctx.fillText(`${formatCompactDate(review.date)} · ${getWatchCount(review)} 次观看`,x+12,y+cardHeight-23,cardWidth-24);
+      if(index%6===0) { button.textContent=`正在制作 ${index+1}/${items.length}`; await new Promise(resolve=>setTimeout(resolve,0)); }
+    }
+    ctx.fillStyle='#8d8183';ctx.font='14px sans-serif';ctx.fillText('我的影评记录 · 本地策展',padding,height-24);
+    const result=await desktopMethod('export_graph_image')(canvas.toDataURL('image/png'),'电影海报墙');
+    if(result.ok)showToast('海报墙 PNG 已导出');
+    else if(!result.cancelled)showToast(result.error||'导出失败','error');
+  } catch(error) { showToast(error.message||'导出失败','error'); }
+  finally { button.disabled=false;button.textContent=galleryMode==='wall'?'导出海报墙 PNG':'导出互动关系图 HTML';canvas.width=0;canvas.height=0; }
+}
 
 function updateStats() {
   const reviewCount = reviews.length;
@@ -1498,11 +1638,11 @@ function updateStats() {
   const avgRating = reviewCount > 0
     ? (reviews.reduce((s, r) => s + r.rating, 0) / reviewCount).toFixed(1)
     : '0.0';
-  const thisMonth = new Date().getMonth();
-  const thisYear = new Date().getFullYear();
+  const today = archiveNowParts(),thisMonth = today.month,thisYear = today.year;
   const monthCount = reviews.reduce((sum, review) => sum + getWatchMoments(review).filter(value => {
-    const d = new Date(value);
-    return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+    if (!window.MOVIE_REVIEW_WEB) {const d=new Date(value);return d.getMonth() === thisMonth-1 && d.getFullYear() === thisYear;}
+    const dateOnly=String(value).slice(0,10);
+    return Number(dateOnly.slice(5,7)) === thisMonth && Number(dateOnly.slice(0,4)) === thisYear;
   }).length, 0);
   const tagSet = new Set();
   reviews.forEach(r => [...(r.categories || []), ...(r.tags || [])].forEach(t => tagSet.add(t)));
@@ -1579,6 +1719,10 @@ function resetImageDropState() {
 }
 
 function initImageDropZone() {
+  if (window.MOVIE_REVIEW_WEB) {
+    window.MovieReviewWeb.bindImageDrop(document.getElementById('imagePicker'));
+    return;
+  }
   const picker = document.getElementById('imagePicker');
   picker.addEventListener('dragenter', event => {
     event.preventDefault();
@@ -1751,6 +1895,8 @@ function renderEditWatchHistory(review) {
 }
 
 function openModal(editId = null) {
+  pendingCreateId = null;
+  pendingCreateAt = null;
   const overlay = document.getElementById('modalOverlay');
   const form = document.getElementById('movieForm');
   form.reset();
@@ -1781,7 +1927,8 @@ function openModal(editId = null) {
     renderEditWatchHistory(review);
   } else {
     document.getElementById('modalTitle').textContent = '写新影评';
-    document.getElementById('movieDate').value = new Date().toISOString().split('T')[0];
+    if(window.MOVIE_REVIEW_WEB){const today=archiveNowParts();document.getElementById('movieDate').value=`${today.year}-${String(today.month).padStart(2,'0')}-${String(today.day).padStart(2,'0')}`;}
+    else document.getElementById('movieDate').value = new Date().toISOString().split('T')[0];
     initStarSelector(0);
     setFormImage(null);
   }
@@ -1846,9 +1993,10 @@ async function handleSubmit(e) {
       nextReviews[idx] = updated;
     }
   } else {
+    const createdAt = pendingCreateAt || (pendingCreateAt = Date.now());
     const created = {
-      id: generateId(), title, director, date, rating, tags, categories, comment, personalContext,
-      createdAt: Date.now(), updatedAt: Date.now()
+      id: pendingCreateId || (pendingCreateId = generateId()), title, director, date, rating, tags, categories, comment, personalContext,
+      createdAt, updatedAt: createdAt
     };
     if (formImage) created.image = { ...formImage };
     if (!hasPersonalContext) delete created.personalContext;
@@ -2189,6 +2337,13 @@ function closeDetail() {
   document.getElementById('detailOverlay').classList.remove('active');
   releaseDetailImage();
   detailReviewId = null;
+  if (galleryDetailReturnTarget) {
+    const target=galleryDetailReturnTarget;
+    galleryDetailReturnTarget=null;
+    if(document.getElementById('galleryOverlay').classList.contains('active')) {
+      (target.isConnected?target:document.getElementById('galleryStage')).focus();
+    }
+  }
 }
 
 function editFromDetail() {
@@ -2206,6 +2361,7 @@ async function deleteFromDetail() {
 
 function openLightbox() {
   if (!detailImageUrl) return;
+  resetLightboxZoom();
   document.getElementById('lightboxImage').src = detailImageUrl;
   document.getElementById('lightboxOverlay').classList.add('active');
 }
@@ -2213,6 +2369,47 @@ function openLightbox() {
 function closeLightbox() {
   document.getElementById('lightboxOverlay').classList.remove('active');
   document.getElementById('lightboxImage').removeAttribute('src');
+  resetLightboxZoom();
+}
+
+function clampLightboxPan() {
+  if(lightboxZoom<=1){lightboxPanX=0;lightboxPanY=0;return;}
+  const stage=document.getElementById('lightboxStage'),image=document.getElementById('lightboxImage');
+  const maxX=Math.max(0,(image.offsetWidth*lightboxZoom-stage.clientWidth)/2);
+  const maxY=Math.max(0,(image.offsetHeight*lightboxZoom-stage.clientHeight)/2);
+  lightboxPanX=Math.max(-maxX,Math.min(maxX,lightboxPanX));
+  lightboxPanY=Math.max(-maxY,Math.min(maxY,lightboxPanY));
+}
+
+function renderLightboxZoom() {
+  clampLightboxPan();
+  document.getElementById('lightboxImage').style.transform=`translate(${lightboxPanX}px,${lightboxPanY}px) scale(${lightboxZoom})`;
+  document.getElementById('lightboxZoomLabel').value=`${Math.round(lightboxZoom*100)}%`;
+  document.getElementById('lightboxZoomOut').disabled=lightboxZoom<=1;
+  document.getElementById('lightboxZoomIn').disabled=lightboxZoom>=10;
+  document.getElementById('lightboxZoomReset').disabled=lightboxZoom===1;
+  document.getElementById('lightboxStage').classList.toggle('is-zoomed',lightboxZoom>1);
+}
+
+function zoomLightbox(factor,clientX=null,clientY=null) {
+  if(!document.getElementById('lightboxOverlay').classList.contains('active'))return;
+  const previous=lightboxZoom,next=Math.max(1,Math.min(10,previous*factor));
+  if(next===previous)return;
+  if(clientX!==null&&clientY!==null){
+    const bounds=document.getElementById('lightboxStage').getBoundingClientRect();
+    const x=clientX-bounds.left-bounds.width/2,y=clientY-bounds.top-bounds.height/2,ratio=next/previous;
+    lightboxPanX=x-(x-lightboxPanX)*ratio;
+    lightboxPanY=y-(y-lightboxPanY)*ratio;
+  }
+  lightboxZoom=next;
+  renderLightboxZoom();
+}
+
+function resetLightboxZoom() {
+  lightboxZoom=1;lightboxPanX=0;lightboxPanY=0;lightboxPointer=null;
+  lightboxPointers.clear();lightboxPinchDistance=0;
+  document.getElementById('lightboxStage').classList.remove('is-dragging');
+  renderLightboxZoom();
 }
 
 /* ===== Rating-driven curation wall ===== */
@@ -2240,6 +2437,7 @@ function setGalleryMode(mode) {
   document.getElementById('relationViewButton').classList.toggle('active', galleryMode === 'relation');
   document.getElementById('wallViewButton').classList.toggle('active', galleryMode === 'wall');
   document.getElementById('relationDimension').hidden = galleryMode !== 'relation';
+  document.getElementById('galleryExportButton').textContent = galleryMode === 'wall' ? '导出海报墙 PNG' : '导出互动关系图 HTML';
   if (document.getElementById('galleryOverlay').classList.contains('active')) renderGallery(getVisibleReviews());
 }
 
@@ -2273,7 +2471,7 @@ function renderRelationGraph(items) {
   const wall=document.getElementById('galleryWall');
   if (knowledgeGraphFrame) cancelAnimationFrame(knowledgeGraphFrame);
   wall.className='gallery-wall knowledge-graph-mode';
-  wall.innerHTML='<div class="knowledge-graph-shell"><canvas class="knowledge-graph-canvas" id="knowledgeGraphCanvas" tabindex="0" aria-label="电影知识图谱"></canvas><div class="knowledge-graph-help">拖拽移动 · 滚轮缩放 · 点击节点查看关系</div><aside class="knowledge-graph-panel" id="knowledgeGraphPanel"><div class="knowledge-graph-placeholder">点击电影节点，可以查看它连接了哪些关系，以及通过共同关系关联了哪些电影。</div></aside></div>';
+  wall.innerHTML='<div class="knowledge-graph-shell"><canvas class="knowledge-graph-canvas" id="knowledgeGraphCanvas" tabindex="0" aria-label="电影知识图谱"></canvas><div class="knowledge-graph-help">拖拽移动 · 滚轮或双指缩放 · 点击节点查看关系</div><aside class="knowledge-graph-panel" id="knowledgeGraphPanel"><div class="knowledge-graph-placeholder">点击电影节点，可以查看它连接了哪些关系，以及通过共同关系关联了哪些电影。</div></aside></div>';
   document.getElementById('gallerySummary').textContent=`${getGalleryFilterSummary(items)} · ${getRelationDimensionName()}知识图谱`;
   const canvas=document.getElementById('knowledgeGraphCanvas');
   const shell=canvas.parentElement;
@@ -2330,9 +2528,12 @@ function knowledgeGraphHit(x,y) {const s=knowledgeGraphState;if(!s)return null;c
 
 function setupKnowledgeGraphEvents() {
   const s=knowledgeGraphState,c=s.canvas;
-  c.onpointerdown=e=>{c.setPointerCapture(e.pointerId);s.drag={x:e.offsetX,y:e.offsetY,panX:s.panX,panY:s.panY,moved:false};c.classList.add('dragging');};
-  c.onpointermove=e=>{if(s.drag){const dx=e.offsetX-s.drag.x,dy=e.offsetY-s.drag.y;s.drag.moved=s.drag.moved||Math.hypot(dx,dy)>3;s.panX=s.drag.panX+dx;s.panY=s.drag.panY+dy;drawKnowledgeGraph();return;}const hit=knowledgeGraphHit(e.offsetX,e.offsetY);s.hoverId=hit&&hit.id;c.style.cursor=hit?'pointer':'grab';drawKnowledgeGraph();};
-  c.onpointerup=e=>{const moved=s.drag&&s.drag.moved;s.drag=null;c.classList.remove('dragging');if(!moved){const hit=knowledgeGraphHit(e.offsetX,e.offsetY);selectKnowledgeGraphNode(hit&&hit.id);}};
+  const pointers=new Map();let pinch=null;
+  const local=e=>{const r=c.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};};
+  c.onpointerdown=e=>{if(e.pointerType==='mouse'&&e.button!==0)return;const p=local(e);pointers.set(e.pointerId,p);c.setPointerCapture(e.pointerId);if(pointers.size===1){s.drag={x:p.x,y:p.y,panX:s.panX,panY:s.panY,moved:false};c.classList.add('dragging');}else if(pointers.size===2){const[a,b]=[...pointers.values()];pinch={distance:Math.hypot(a.x-b.x,a.y-b.y),zoom:s.zoom};s.drag=null;}};
+  c.onpointermove=e=>{const p=local(e);if(pointers.has(e.pointerId))pointers.set(e.pointerId,p);if(pinch&&pointers.size===2){const[a,b]=[...pointers.values()],center={x:(a.x+b.x)/2,y:(a.y+b.y)/2},next=Math.max(.45,Math.min(2.6,pinch.zoom*Math.hypot(a.x-b.x,a.y-b.y)/Math.max(pinch.distance,1))),ratio=next/s.zoom;s.panX=center.x-(center.x-s.panX)*ratio;s.panY=center.y-(center.y-s.panY)*ratio;s.zoom=next;drawKnowledgeGraph();return;}if(s.drag&&pointers.has(e.pointerId)){const dx=p.x-s.drag.x,dy=p.y-s.drag.y;s.drag.moved=s.drag.moved||Math.hypot(dx,dy)>3;s.panX=s.drag.panX+dx;s.panY=s.drag.panY+dy;drawKnowledgeGraph();return;}const hit=knowledgeGraphHit(p.x,p.y);s.hoverId=hit&&hit.id;c.style.cursor=hit?'pointer':'grab';drawKnowledgeGraph();};
+  c.onpointerup=e=>{const p=local(e),wasPinch=Boolean(pinch),moved=s.drag&&s.drag.moved;pointers.delete(e.pointerId);if(pointers.size<2)pinch=null;s.drag=null;c.classList.remove('dragging');if(pointers.size===1){const remaining=[...pointers.values()][0];s.drag={x:remaining.x,y:remaining.y,panX:s.panX,panY:s.panY,moved:true};}if(!wasPinch&&!moved&&pointers.size===0){const hit=knowledgeGraphHit(p.x,p.y);selectKnowledgeGraphNode(hit&&hit.id);}};
+  c.onpointercancel=e=>{pointers.delete(e.pointerId);pinch=null;s.drag=null;c.classList.remove('dragging');};
   c.onwheel=e=>{e.preventDefault();const old=s.zoom,next=Math.max(.45,Math.min(2.6,old*(e.deltaY<0?1.12:.89)));s.panX=e.offsetX-(e.offsetX-s.panX)*(next/old);s.panY=e.offsetY-(e.offsetY-s.panY)*(next/old);s.zoom=next;drawKnowledgeGraph();};
 }
 
@@ -2376,6 +2577,7 @@ function closeGallery() {
   requestAnimationFrame(hydrateCardImages);
   if (galleryLastTrigger && typeof galleryLastTrigger.focus === 'function') galleryLastTrigger.focus();
   galleryLastTrigger = null;
+  galleryDetailReturnTarget = null;
 }
 
 function clearGalleryFilters() {
@@ -2458,7 +2660,7 @@ function clearGalleryFocus(card) {
 }
 
 function openGalleryDetail(id) {
-  closeGallery();
+  galleryDetailReturnTarget=document.activeElement;
   openDetail(id);
 }
 
@@ -2481,7 +2683,7 @@ async function handleImport() {
       return;
     }
     const formatName = selected.format === 'zip' ? '完整 ZIP 备份' : 'JSON 数据';
-    if (!confirm(`即将从${formatName}导入 ${selected.reviews.length} 条影评，当前数据会先自动备份，然后被替换。是否继续？`)) return;
+    if (!confirm(`即将从${formatName}导入 ${selected.recordCount ?? selected.reviews.length} 条影评，当前数据会先自动备份，然后被替换。是否继续？`)) return;
     const result = await desktopMethod('apply_import')(selected.importToken);
     applyDesktopState(result);
     if (!result.ok) throw new Error(result.error || '导入失败');
@@ -2594,6 +2796,11 @@ function renderAll() {
   renderMemorySpotlight();
   updateTagFilter();
   render();
+  if(document.getElementById('galleryOverlay').classList.contains('active')) {
+    const stage=document.getElementById('galleryStage'),scrollTop=stage.scrollTop;
+    renderGallery(getVisibleReviews());
+    stage.scrollTop=scrollTop;
+  }
 }
 
 /* ===== Toast ===== */
@@ -2672,6 +2879,60 @@ document.getElementById('healthOverlay').addEventListener('click', event => { if
 document.getElementById('lightboxOverlay').addEventListener('click', event => {
   if (event.target === event.currentTarget) closeLightbox();
 });
+const lightboxStage=document.getElementById('lightboxStage');
+const lightboxPointers=new Map();
+let lightboxPinchDistance=0;
+lightboxStage.addEventListener('wheel',event=>{
+  event.preventDefault();
+  zoomLightbox(event.deltaY<0?1.2:1/1.2,event.clientX,event.clientY);
+},{passive:false});
+lightboxStage.addEventListener('pointerdown',event=>{
+  if(event.pointerType==='mouse'&&event.button!==0)return;
+  lightboxPointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+  lightboxStage.setPointerCapture(event.pointerId);
+  if(lightboxPointers.size===2){const[a,b]=[...lightboxPointers.values()];lightboxPinchDistance=Math.hypot(a.x-b.x,a.y-b.y);lightboxPointer=null;}
+  if(lightboxPointers.size!==1)return;
+  lightboxPointer={id:event.pointerId,x:event.clientX,y:event.clientY,panX:lightboxPanX,panY:lightboxPanY,moved:false,blank:event.target===lightboxStage};
+});
+lightboxStage.addEventListener('pointermove',event=>{
+  if(lightboxPointers.has(event.pointerId))lightboxPointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+  if(lightboxPointers.size===2){const[a,b]=[...lightboxPointers.values()],distance=Math.hypot(a.x-b.x,a.y-b.y);if(lightboxPinchDistance>0)zoomLightbox(distance/lightboxPinchDistance,(a.x+b.x)/2,(a.y+b.y)/2);lightboxPinchDistance=distance;return;}
+  if(!lightboxPointer||lightboxPointer.id!==event.pointerId)return;
+  const dx=event.clientX-lightboxPointer.x,dy=event.clientY-lightboxPointer.y;
+  if(Math.hypot(dx,dy)>3)lightboxPointer.moved=true;
+  if(lightboxZoom<=1||!lightboxPointer.moved)return;
+  lightboxPanX=lightboxPointer.panX+dx;
+  lightboxPanY=lightboxPointer.panY+dy;
+  renderLightboxZoom();
+  lightboxStage.classList.add('is-dragging');
+});
+lightboxStage.addEventListener('pointerup',event=>{
+  lightboxPointers.delete(event.pointerId);
+  if(lightboxPointers.size<2)lightboxPinchDistance=0;
+  if(!lightboxPointer&&lightboxPointers.size===1){const[id,p]=[...lightboxPointers.entries()][0];lightboxPointer={id,x:p.x,y:p.y,panX:lightboxPanX,panY:lightboxPanY,moved:true,blank:false};return;}
+  if(!lightboxPointer||lightboxPointer.id!==event.pointerId)return;
+  const close=lightboxPointer.blank&&!lightboxPointer.moved;
+  lightboxPointer=null;
+  lightboxStage.classList.remove('is-dragging');
+  if(close)closeLightbox();
+});
+lightboxStage.addEventListener('pointercancel',event=>{
+  lightboxPointers.delete(event.pointerId);
+  lightboxPinchDistance=0;
+  lightboxPointer=null;
+  lightboxStage.classList.remove('is-dragging');
+});
+lightboxStage.addEventListener('dblclick',event=>{
+  event.preventDefault();
+  if(document.getElementById('lightboxOverlay').classList.contains('active')){
+    if(lightboxZoom>1)resetLightboxZoom();
+    else zoomLightbox(2,event.clientX,event.clientY);
+  }
+});
+document.getElementById('lightboxImage').addEventListener('load',renderLightboxZoom);
+window.addEventListener('resize',()=>{
+  if(document.getElementById('lightboxOverlay').classList.contains('active'))renderLightboxZoom();
+});
 
 document.getElementById('galleryWall').addEventListener('pointerover', event => {
   const card = event.target.closest('.gallery-card');
@@ -2709,18 +2970,23 @@ document.getElementById('galleryWall').addEventListener('keydown', event => {
 });
 
 document.addEventListener('keydown', event => {
+  if(document.getElementById('lightboxOverlay').classList.contains('active')&&!['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName)){
+    if(event.key==='+'||event.key==='='){event.preventDefault();zoomLightbox(1.5);return;}
+    if(event.key==='-'||event.key==='_'){event.preventDefault();zoomLightbox(1/1.5);return;}
+    if(event.key==='0'){event.preventDefault();resetLightboxZoom();return;}
+  }
   const detailActive=document.getElementById('detailOverlay').classList.contains('active');
   const blockingOverlay=document.getElementById('lightboxOverlay').classList.contains('active')||document.getElementById('rewatchOverlay').classList.contains('active')||document.getElementById('modalOverlay').classList.contains('active');
   if(detailActive&&!blockingOverlay&&!['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName)&&(event.key==='ArrowLeft'||event.key==='ArrowRight')){event.preventDefault();navigateDetail(event.key==='ArrowLeft'?-1:1);return;}
   if (event.key !== 'Escape') return;
-  if (document.getElementById('galleryOverlay').classList.contains('active')) closeGallery();
-  else if (document.getElementById('lightboxOverlay').classList.contains('active')) closeLightbox();
+  if (document.getElementById('lightboxOverlay').classList.contains('active')) closeLightbox();
   else if (document.getElementById('rewatchOverlay').classList.contains('active')) closeRewatchModal();
   else if (document.getElementById('tasteOverlay').classList.contains('active')) closeTasteProfile();
   else if (document.getElementById('annualOverlay').classList.contains('active')) closeAnnualReport();
   else if (document.getElementById('healthOverlay').classList.contains('active')) closeArchiveHealth();
   else if (document.getElementById('modalOverlay').classList.contains('active')) closeModal();
   else if (document.getElementById('detailOverlay').classList.contains('active')) closeDetail();
+  else if (document.getElementById('galleryOverlay').classList.contains('active')) closeGallery();
 });
 
 window.addEventListener('pywebviewready', initApp);

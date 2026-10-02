@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily private movie archive backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 Asia/Shanghai
+Persistent=true
+Unit=movie-review-backup.service
+
+[Install]
+WantedBy=timers.target

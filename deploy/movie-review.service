@@ -1,0 +1,22 @@
+[Unit]
+Description=Private Movie Review Web
+After=network.target
+
+[Service]
+Type=simple
+User=movie-review
+Group=movie-review
+WorkingDirectory=/opt/movie-review/current
+EnvironmentFile=/etc/movie-review/app.env
+ExecStart=/opt/movie-review/current/.venv/bin/uvicorn web.main:app --host 127.0.0.1 --port 8000 --workers 1 --proxy-headers --forwarded-allow-ips 127.0.0.1
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/movie-review
+
+[Install]
+WantedBy=multi-user.target

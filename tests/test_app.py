@@ -445,6 +445,7 @@ class DesktopApiTests(unittest.TestCase):
                     "export_backup",
                     "export_annual_report",
                     "export_graph_image",
+                    "export_interactive_graph",
                     "open_data_directory",
                     "exit_app",
                 ],
@@ -479,16 +480,27 @@ class DesktopApiTests(unittest.TestCase):
             root = Path(directory)
             report = root / "report.html"
             graph = root / "graph.png"
+            interactive = root / "interactive.html"
             api = DesktopApi(SettingsStore(root / "settings.json"))
-            api._window = FakeWindow([report, graph])
+            api._window = FakeWindow([report, graph, interactive])
             fake_webview = SimpleNamespace(FileDialog=SimpleNamespace(SAVE="save"))
             with mock.patch.dict("sys.modules", {"webview": fake_webview}):
                 report_result = api.export_annual_report("年度观影报告-2026.html", "<!doctype html><meta charset='utf-8'><h1>报告</h1>")
                 graph_result = api.export_graph_image("data:image/png;base64," + base64.b64encode(VALID_PNG).decode("ascii"))
+                interactive_result = api.export_interactive_graph({
+                    "dimension": "电影风格",
+                    "nodes": [{"id": "movie:1", "kind": "movie", "label": "</script><script>alert(1)</script>", "x": 1, "y": 1}],
+                    "edges": [],
+                })
             self.assertTrue(report_result["ok"])
             self.assertIn("报告", report.read_text(encoding="utf-8"))
             self.assertTrue(graph_result["ok"])
             self.assertEqual(graph.read_bytes(), VALID_PNG)
+            self.assertTrue(interactive_result["ok"])
+            content = interactive.read_text(encoding="utf-8")
+            self.assertIn("电影风格", content)
+            self.assertIn("\\u003c/script\\u003e", content)
+            self.assertNotIn("</script><script>alert(1)</script>", content)
 
     def test_choose_data_directory_prepares_and_remembers_selected_folder(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -637,14 +649,26 @@ class FrontendImageDropTests(unittest.TestCase):
         self.assertIn("hydrateGalleryImages", self.html)
         self.assertIn("root: stage", self.html)
         self.assertIn("openGalleryDetail(card.dataset.galleryReviewId)", self.html)
-        self.assertIn("if (document.getElementById('galleryOverlay').classList.contains('active')) closeGallery();", self.html)
+        detail_open = self.html.split("function openGalleryDetail(id)", 1)[1].split("/* ===== Export / Import ===== */", 1)[0]
+        self.assertIn("openDetail(id)", detail_open)
+        self.assertNotIn("closeGallery()", detail_open)
+        self.assertIn("body.gallery-open .detail-overlay { z-index: 2700; }", self.html)
+        escape_handler = self.html.split("if (event.key !== 'Escape') return;", 1)[1]
+        self.assertLess(
+            escape_handler.index("else if (document.getElementById('detailOverlay').classList.contains('active')) closeDetail()"),
+            escape_handler.index("else if (document.getElementById('galleryOverlay').classList.contains('active')) closeGallery()"),
+        )
 
     def test_curation_wall_is_dense_and_bounds_image_memory(self):
         self.assertIn("repeat(auto-fill, minmax(132px, 1fr))", self.html)
         self.assertIn("aspect-ratio: 2 / 3", self.html)
         self.assertIn("content-visibility: auto", self.html)
         self.assertIn("while (cardImageCache.size > MAX_CARD_IMAGE_CACHE)", self.html)
-        self.assertIn("resetCachedImageNodes(oldestPath)", self.html)
+        remember_cache_body = self.html.split("function rememberCardImage", 1)[1].split(
+            "function applyCardImage", 1
+        )[0]
+        self.assertIn("URL.revokeObjectURL(oldestUrl)", remember_cache_body)
+        self.assertNotIn("resetCachedImageNodes(oldestPath)", remember_cache_body)
         self.assertIn("root: stage, rootMargin: '220px 0px'", self.html)
         self.assertIn("requestAnimationFrame(hydrateCardImages)", self.html)
         self.assertNotIn("transform: scale(1.4)", self.html)

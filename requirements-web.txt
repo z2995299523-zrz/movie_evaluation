@@ -1,0 +1,5 @@
+# Pin direct web dependencies. Install in a dedicated Linux virtual environment.
+fastapi==0.141.1
+uvicorn==0.53.0
+Pillow==12.3.0
+python-multipart==0.0.32

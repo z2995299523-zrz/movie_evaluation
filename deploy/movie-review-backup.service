@@ -1,0 +1,17 @@
+[Unit]
+Description=Create and verify a private movie archive backup
+After=movie-review.service
+
+[Service]
+Type=oneshot
+User=movie-review
+Group=movie-review
+WorkingDirectory=/opt/movie-review/current
+ExecStart=/opt/movie-review/current/.venv/bin/python -m web.manage --data-dir /var/lib/movie-review backup-daily /var/backups/movie-review
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=/var/lib/movie-review /opt/movie-review/current
+ReadWritePaths=/var/backups/movie-review

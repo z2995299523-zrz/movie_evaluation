@@ -1,0 +1,26 @@
+{
+    auto_https disable_redirects
+    servers {
+        protocols h1 h2
+    }
+}
+
+# Replace reviews.example.com with the actual controlled domain after checking
+# DNS, port 80, port 8443, certificate issuance, and the existing port 443 node.
+http://reviews.example.com {
+    redir https://reviews.example.com:8443{uri} 308
+}
+
+https://reviews.example.com:8443 {
+    tls {
+        issuer acme {
+            disable_tlsalpn_challenge
+        }
+    }
+
+    request_body {
+        max_size 201MB
+    }
+    encode gzip
+    reverse_proxy 127.0.0.1:8000
+}

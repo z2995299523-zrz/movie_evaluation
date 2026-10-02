@@ -3,6 +3,26 @@ movie-reviews*.json
 movie-reviews-backup-*.zip
 backups/
 media/
+feils/
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+*.zip
+
+# Credentials and machine-specific configuration
+.env
+.env.*
+*.env
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Production evidence stays local, outside the public source repository
+deploy/*-record.md
+影评网站上线方案/
 
 # Local tools and editor state
 .codebuddy/
@@ -10,6 +30,7 @@ media/
 .codex/
 .venv/
 .runtime-test/
+.runtime-web/
 .vercel/
 node_modules/
 

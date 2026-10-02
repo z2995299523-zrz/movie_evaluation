@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>互动电影关系图</title>
+<style>
+  :root { color-scheme: dark; font-family: "Microsoft YaHei", system-ui, sans-serif; background:#0d0b0c; color:#f3ede5; }
+  * { box-sizing:border-box; }
+  body { margin:0; }
+  header { padding:18px 24px; border-bottom:1px solid #403037; }
+  h1 { margin:0 0 5px; font-size:23px; }
+  header p { margin:0; color:#aaa0a2; font-size:13px; }
+  main { display:grid; grid-template-columns:minmax(0,1fr) 300px; height:calc(100vh - 91px); min-height:480px; }
+  .graph { position:relative; min-width:0; background:radial-gradient(circle at 48% 48%,#271b21,#0d0b0c 60%); }
+  svg { width:100%; height:100%; display:block; cursor:grab; touch-action:none; }
+  svg.dragging { cursor:grabbing; }
+  .hint { position:absolute; top:12px; left:12px; padding:8px 11px; border-radius:8px; background:#171315e8; color:#b9adaf; font-size:12px; pointer-events:none; }
+  aside { border-left:1px solid #403037; background:#171315; padding:16px; overflow:auto; }
+  input { width:100%; padding:9px 10px; border-radius:8px; border:1px solid #4a353d; background:#211a1d; color:white; margin-bottom:14px; }
+  h2 { font-size:18px; margin:0 0 5px; word-break:break-word; }
+  h3 { font-size:13px; color:#d6b06a; margin:20px 0 8px; }
+  p, .meta { color:#b9adaf; font-size:13px; line-height:1.6; }
+  .pill { display:inline-block; margin:2px; padding:5px 7px; border-radius:12px; background:#3a2229; color:#e7a7ad; font-size:12px; }
+  button { display:block; width:100%; padding:8px; margin:4px 0; text-align:left; border:1px solid #4a353d; border-radius:7px; background:#211a1d; color:#f3ede5; cursor:pointer; }
+  button:hover, button:focus-visible { border-color:#d6b06a; outline:none; }
+  .edge { stroke:#d6b06a; stroke-width:1.4; opacity:.52; }
+  .node { cursor:pointer; }
+  .node circle { stroke:#0d0b0c; stroke-width:2; }
+  .node.relation circle { fill:#d6b06a; }
+  .node.movie circle { fill:#6fa7a1; }
+  .node text { fill:#f3ede5; font:12px "Microsoft YaHei",sans-serif; text-anchor:middle; paint-order:stroke; stroke:#0d0b0c; stroke-width:3px; stroke-linejoin:round; }
+  .node.movie text { display:none; }
+  .node.movie:hover text, .node.movie.selected text { display:block; }
+  .dim { opacity:.15; }
+  .node.selected circle { stroke:#fff; stroke-width:3; }
+  @media(max-width:700px) { main { grid-template-columns:1fr; grid-template-rows:minmax(330px,60vh) auto; height:auto; } aside { border-left:0; border-top:1px solid #403037; min-height:260px; } }
+</style>
+</head>
+<body>
+<header><h1>互动电影关系图</h1><p id="summary"></p></header>
+<main>
+  <div class="graph">
+    <svg id="graph" role="img" aria-label="可点击的电影关系图"></svg>
+    <div class="hint">点击节点查看关联电影 · 拖拽移动 · 滚轮缩放</div>
+  </div>
+  <aside>
+    <input id="search" type="search" placeholder="搜索电影或关系节点" aria-label="搜索节点">
+    <div id="details"><p>点击电影或关系节点，查看它连接的电影。</p></div>
+  </aside>
+</main>
+<script type="application/json" id="graph-data">__GRAPH_DATA__</script>
+<script>
+(() => {
+  const data=JSON.parse(document.getElementById('graph-data').textContent);
+  const nodes=data.nodes, edges=data.edges, byId=new Map(nodes.map(node=>[node.id,node]));
+  const svg=document.getElementById('graph'),details=document.getElementById('details');
+  document.getElementById('summary').textContent=(data.summary||'')+' · '+nodes.filter(node=>node.kind==='movie').length+' 部电影 · '+(data.dimension||'')+'维度';
+  const ns='http://www.w3.org/2000/svg';
+  const element=(tag,attributes={})=>{const node=document.createElementNS(ns,tag);for(const [key,value] of Object.entries(attributes))node.setAttribute(key,String(value));return node;};
+  const extent=nodes.reduce((bounds,node)=>({
+    minX:Math.min(bounds.minX,node.x-100),minY:Math.min(bounds.minY,node.y-60),
+    maxX:Math.max(bounds.maxX,node.x+100),maxY:Math.max(bounds.maxY,node.y+60)
+  }),{minX:0,minY:0,maxX:700,maxY:560});
+  const width=extent.maxX-extent.minX,height=extent.maxY-extent.minY;
+  let view={x:extent.minX,y:extent.minY,w:width,h:height},selected=null,drag=null,moved=false;
+  function applyView(){svg.setAttribute('viewBox',`${view.x} ${view.y} ${view.w} ${view.h}`);}
+  applyView();
+  const edgeGroup=element('g'),nodeGroup=element('g');svg.append(edgeGroup,nodeGroup);
+  const edgeElements=edges.map(edge=>{
+    const a=byId.get(edge.source),b=byId.get(edge.target);
+    if(!a||!b)return null;
+    const line=element('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:'edge'});
+    edgeGroup.append(line);return {edge,line};
+  }).filter(Boolean);
+  const nodeElements=new Map();
+  for(const node of nodes){
+    const group=element('g',{class:'node '+node.kind,transform:`translate(${node.x} ${node.y})`,tabindex:0,role:'button','aria-label':node.kind==='movie'?'电影：'+node.label:'关系：'+node.label});
+    group.dataset.id=node.id;
+    group.append(element('circle',{r:node.kind==='relation'?18:7}));
+    const label=element('text',{y:node.kind==='relation'?35:22});label.textContent=node.label.length>18?node.label.slice(0,17)+'…':node.label;group.append(label);
+    const title=element('title');title.textContent=node.label;group.append(title);
+    group.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();select(node.id);}});
+    nodeGroup.append(group);nodeElements.set(node.id,group);
+  }
+  const appendText=(parent,tag,value,className)=>{const el=document.createElement(tag);el.textContent=value;if(className)el.className=className;parent.append(el);return el;};
+  function select(id){
+    const node=byId.get(id);if(!node)return;selected=id;
+    const connected=edges.filter(edge=>edge.source===id||edge.target===id);
+    const relationIds=node.kind==='movie'?connected.map(edge=>edge.target):[id];
+    const movieIds=node.kind==='movie'?[id]:connected.map(edge=>edge.source);
+    const related=node.kind==='movie'
+      ?nodes.filter(other=>other.kind==='movie'&&other.id!==id&&edges.some(edge=>edge.source===other.id&&relationIds.includes(edge.target)))
+      :movieIds.map(movieId=>byId.get(movieId)).filter(Boolean);
+    const active=new Set([id,...relationIds,...related.map(item=>item.id)]);
+    for(const [nodeId,el] of nodeElements){el.classList.toggle('dim',!active.has(nodeId));el.classList.toggle('selected',nodeId===id);}
+    for(const {edge,line} of edgeElements)line.classList.toggle('dim',!active.has(edge.source)||!active.has(edge.target));
+    details.replaceChildren();appendText(details,'h2',node.label);
+    appendText(details,'p',node.kind==='movie'? `通过${data.dimension||'当前关系'}关联 ${related.length} 部电影`:`关联 ${related.length} 部电影`);
+    if(node.kind==='movie'){
+      appendText(details,'div',[`评分：${node.rating||'未评分'}`,`观影日期：${node.date||'未知'}`,`导演：${node.director||'未填写'}`].join(' · '),'meta');
+    }
+    appendText(details,'h3','关系');
+    for(const relationId of relationIds){const relation=byId.get(relationId);if(relation)appendText(details,'span',relation.label,'pill');}
+    appendText(details,'h3','关联电影');
+    if(!related.length)appendText(details,'p','暂无关联电影');
+    for(const movie of related){const button=appendText(details,'button',movie.label+(movie.rating?` · ${movie.rating} 星`:''));button.type='button';button.onclick=()=>select(movie.id);}
+  }
+  document.getElementById('search').addEventListener('input',event=>{
+    const query=event.target.value.trim().toLocaleLowerCase();
+    if(!query)return;
+    const match=nodes.find(node=>node.label.toLocaleLowerCase().includes(query));
+    if(match)select(match.id);
+  });
+  svg.addEventListener('pointerdown',event=>{if(event.button!==0)return;drag={x:event.clientX,y:event.clientY,startX:view.x,startY:view.y,id:event.target.closest('[data-id]')?.dataset.id};moved=false;svg.setPointerCapture(event.pointerId);svg.classList.add('dragging');});
+  svg.addEventListener('pointermove',event=>{if(!drag)return;const dx=event.clientX-drag.x,dy=event.clientY-drag.y;if(Math.hypot(dx,dy)>3)moved=true;view.x=drag.startX-dx*view.w/svg.clientWidth;view.y=drag.startY-dy*view.h/svg.clientHeight;applyView();});
+  svg.addEventListener('pointerup',()=>{if(drag&&!moved&&drag.id)select(drag.id);drag=null;svg.classList.remove('dragging');});
+  svg.addEventListener('wheel',event=>{event.preventDefault();const bounds=svg.getBoundingClientRect(),rx=(event.clientX-bounds.left)/bounds.width,ry=(event.clientY-bounds.top)/bounds.height,factor=event.deltaY<0?.88:1.12,nextW=Math.max(180,Math.min(width*4,view.w*factor)),nextH=Math.max(140,Math.min(height*4,view.h*factor));view.x+=rx*(view.w-nextW);view.y+=ry*(view.h-nextH);view.w=nextW;view.h=nextH;applyView();},{passive:false});
+})();
+</script>
+</body>
+</html>

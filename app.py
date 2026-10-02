@@ -973,9 +973,11 @@ class DesktopApi:
         except OSError as exc:
             return {"ok": False, "cancelled": False, "error": f"报告导出失败：{exc}"}
 
-    def export_graph_image(self, data_url: str) -> dict[str, Any]:
+    def export_graph_image(self, data_url: str, title: str = "电影知识图谱") -> dict[str, Any]:
         if self._window is None:
             return {"ok": False, "cancelled": False, "error": "窗口尚未就绪"}
+        if title not in {"电影知识图谱", "电影海报墙"}:
+            return {"ok": False, "cancelled": False, "error": "图片名称无效"}
         prefix = "data:image/png;base64,"
         if not isinstance(data_url, str) or not data_url.startswith(prefix) or len(data_url) > 70_000_000:
             return {"ok": False, "cancelled": False, "error": "图谱图片数据无效或过大"}
@@ -986,7 +988,7 @@ class DesktopApi:
         if not content.startswith(b"\x89PNG\r\n\x1a\n"):
             return {"ok": False, "cancelled": False, "error": "图谱图片不是有效 PNG"}
         import webview
-        selected = self._window.create_file_dialog(webview.FileDialog.SAVE, directory=str(self._store.directory) if self._store else "", save_filename=f"电影知识图谱-{datetime.now().strftime('%Y%m%d-%H%M%S')}.png", file_types=("PNG 图片 (*.png)",))
+        selected = self._window.create_file_dialog(webview.FileDialog.SAVE, directory=str(self._store.directory) if self._store else "", save_filename=f"{title}-{datetime.now().strftime('%Y%m%d-%H%M%S')}.png", file_types=("PNG 图片 (*.png)",))
         if not selected:
             return {"ok": False, "cancelled": True, "error": ""}
         destination = Path(selected[0]).with_suffix(".png")
@@ -995,6 +997,38 @@ class DesktopApi:
             return {"ok": True, "cancelled": False, "path": str(destination), "error": ""}
         except OSError as exc:
             return {"ok": False, "cancelled": False, "error": f"图谱导出失败：{exc}"}
+
+    def export_interactive_graph(self, graph: Any) -> dict[str, Any]:
+        if self._window is None:
+            return {"ok": False, "cancelled": False, "error": "窗口尚未就绪"}
+        if not isinstance(graph, dict) or not isinstance(graph.get("nodes"), list) or not isinstance(graph.get("edges"), list):
+            return {"ok": False, "cancelled": False, "error": "关系图数据无效"}
+        try:
+            payload = json.dumps(graph, ensure_ascii=False, allow_nan=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+        except (TypeError, ValueError):
+            return {"ok": False, "cancelled": False, "error": "关系图数据无效"}
+        if len(payload.encode("utf-8")) > 10_000_000:
+            return {"ok": False, "cancelled": False, "error": "关系图数据过大"}
+        try:
+            template = resource_path("graph_export.html").read_text(encoding="utf-8")
+        except OSError as exc:
+            return {"ok": False, "cancelled": False, "error": f"缺少关系图模板：{exc}"}
+        content = template.replace("__GRAPH_DATA__", payload)
+        import webview
+        selected = self._window.create_file_dialog(
+            webview.FileDialog.SAVE,
+            directory=str(self._store.directory) if self._store else "",
+            save_filename=f"互动电影关系图-{datetime.now().strftime('%Y%m%d-%H%M%S')}.html",
+            file_types=("HTML 互动关系图 (*.html)",),
+        )
+        if not selected:
+            return {"ok": False, "cancelled": True, "error": ""}
+        destination = Path(selected[0]).with_suffix(".html")
+        try:
+            atomic_write(destination, content.encode("utf-8"))
+            return {"ok": True, "cancelled": False, "path": str(destination), "error": ""}
+        except OSError as exc:
+            return {"ok": False, "cancelled": False, "error": f"关系图导出失败：{exc}"}
 
     def open_data_directory(self) -> dict[str, Any]:
         if self._store is None:
@@ -1029,6 +1063,7 @@ def expose_desktop_api(window: Any, api: DesktopApi) -> None:
         api.export_backup,
         api.export_annual_report,
         api.export_graph_image,
+        api.export_interactive_graph,
         api.open_data_directory,
         api.exit_app,
     )
