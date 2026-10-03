@@ -6,6 +6,8 @@ import hashlib
 import hmac
 import json
 import os
+import shutil
+import secrets
 import tempfile
 import threading
 import time
@@ -19,6 +21,7 @@ from urllib.parse import urlparse
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from starlette.background import BackgroundTask
+from starlette.concurrency import run_in_threadpool
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -27,6 +30,8 @@ from app import (BACKUP_FORMAT, BACKUP_FORMAT_VERSION, DATA_FILE_NAME, DataValid
 from web.storage import ArchiveDatabase, ConflictError
 from web.backup import create_backup
 from web import MAX_ARCHIVE_IMAGE_PIXELS
+from web.images import validate_image_stream, validate_historical_image
+from web.request_limits import RequestBodyLimits
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -91,22 +96,97 @@ def create_app(data_dir: Path | None = None, *, secure_cookie: bool = True) -> F
     db = ArchiveDatabase(data_dir / "db" / "app.sqlite3")
     media_store = ReviewStore(data_dir)
     application = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    application.add_middleware(RequestBodyLimits)
     application.state.database = db
     pending_imports: dict[str, dict] = {}
+    import_guard = threading.Lock()
+    active_previews = 0
     image_processing = threading.BoundedSemaphore(1)
+    automatic_backup_max_files = int(os.environ.get("MOVIE_REVIEW_AUTO_BACKUP_MAX_FILES", "50"))
+    automatic_backup_max_bytes = int(os.environ.get("MOVIE_REVIEW_AUTO_BACKUP_MAX_BYTES", str(2 * 1024**3)))
+    automatic_backup_interval = int(os.environ.get("MOVIE_REVIEW_AUTO_BACKUP_INTERVAL", "10"))
+    if min(automatic_backup_max_files, automatic_backup_max_bytes, automatic_backup_interval) <= 0:
+        raise ValueError("自动备份限制必须是正整数")
 
     def backup_before_bulk(label: str) -> None:
-        backup_dir = data_dir / "backups"
+        # Called only after validation and under SQLite's reserved writer lock.
+        # A separate budget leaves all existing/manual backup files untouched.
+        backup_dir = data_dir / "backups" / "automatic-v1"
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        files = [path for path in backup_dir.iterdir() if path.is_file()]
+        backups = [path for path in files if path.suffix == ".zip"]
+        now = time.time()
+        if backups and now - max(path.stat().st_mtime for path in backups) < automatic_backup_interval:
+            raise HTTPException(429, "批量操作过于频繁，请稍后重试",
+                                headers={"Retry-After": str(automatic_backup_interval)})
+        used_bytes = sum(path.stat().st_size for path in files)
+        with db.connect() as connection:
+            references = connection.execute(
+                "SELECT a.reference,a.size FROM media_assets a WHERE a.reference IN "
+                "(SELECT reference FROM review_images UNION SELECT reference FROM user_uploads)"
+            ).fetchall()
+        database_bytes = db.path.stat().st_size
+        # Stored images plus an uncompressed SQLite snapshot and generous ZIP /
+        # manifest overhead form a conservative upper bound before writing.
+        estimated_bytes = database_bytes + 4096 + sum(
+            row["size"] + 1024 + 4 * len(row["reference"].encode("utf-8")) for row in references)
+        if (len(backups) >= automatic_backup_max_files or
+                used_bytes + estimated_bytes > automatic_backup_max_bytes or
+                shutil.disk_usage(data_dir).free < estimated_bytes + database_bytes + 100 * 1024**2):
+            raise HTTPException(507, "自动备份空间不足，请联系管理员归档备份后重试")
         destination = backup_dir / f"{label}-{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}-{uuid.uuid4().hex[:8]}.zip"
-        create_backup(data_dir, destination)
+        try:
+            create_backup(data_dir, destination)
+            if used_bytes + destination.stat().st_size > automatic_backup_max_bytes:
+                destination.unlink(missing_ok=True)
+                raise HTTPException(507, "自动备份空间不足，请联系管理员归档备份后重试")
+        except OSError as exc:
+            # Only the destination created by this failed operation is removed.
+            destination.unlink(missing_ok=True)
+            raise HTTPException(507, "备份写入失败，请联系管理员检查存储后重试") from exc
+
+    def validate_import_images(source: Path, reviews: list[dict]) -> None:
+        if not image_processing.acquire(blocking=False):
+            raise HTTPException(503, "图片处理繁忙，请重试")
+        try:
+            images = {review["image"]["path"]: review["image"]
+                      for review in reviews if review.get("image")}
+            with zipfile.ZipFile(source) as archive:
+                for reference, image in images.items():
+                    with archive.open(reference) as stream:
+                        validate_image_stream(stream, expected_mime=image["mime"])
+        finally:
+            image_processing.release()
 
     @application.middleware("http")
     async def private_headers(request: Request, call_next):
-        response = await call_next(request)
+        request.state.csp_nonce = secrets.token_urlsafe(24)
+        if (request.method in {"POST", "PUT", "PATCH", "DELETE"} and
+                request.url.path.startswith("/api/") and request.url.path != "/api/auth/login"):
+            try:
+                # Reject unauthorized writes before parsing potentially large files.
+                write_session(request)
+            except HTTPException as exc:
+                response = JSONResponse({"detail": exc.detail}, status_code=exc.status_code, headers=exc.headers)
+            else:
+                response = await call_next(request)
+        else:
+            response = await call_next(request)
         response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Frame-Options"] = "DENY"
+        # Existing UI buttons use inline event handlers. Restrict script elements
+        # by nonce while retaining those handlers; attribute escaping is still
+        # required, and CSP is an additional boundary rather than a substitute.
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            f"script-src 'self' 'nonce-{request.state.csp_nonce}'; "
+            "script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' blob: data:; font-src 'self' data:; connect-src 'self'; "
+            "object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+        )
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         return response
 
     @application.exception_handler(DataValidationError)
@@ -169,10 +249,11 @@ def create_app(data_dir: Path | None = None, *, secure_cookie: bool = True) -> F
         return {"ok": True}
 
     @application.get("/")
-    def index():
+    def index(request: Request):
         html = (ROOT / "index.html").read_text(encoding="utf-8")
         html = html.replace("</head>", '<link rel="stylesheet" href="/web/account.css">\n</head>', 1)
-        html = html.replace("<script>", '<script src="/web/client.js"></script>\n<script>', 1)
+        html = html.replace("<script>", '<script src="/web/client.js"></script>\n'
+                            f'<script nonce="{request.state.csp_nonce}">', 1)
         return HTMLResponse(html)
 
     @application.get("/web/client.js")
@@ -270,8 +351,8 @@ def create_app(data_dir: Path | None = None, *, secure_cookie: bool = True) -> F
 
     @application.delete("/api/reviews/{review_id}")
     def delete_review(review_id: str, revision: int, found=Depends(write_session)):
-        backup_before_bulk("pre-delete")
-        db.delete_review(review_id, revision, found["user_id"])
+        db.delete_review(review_id, revision, found["user_id"],
+                         before_change=lambda: backup_before_bulk("pre-delete"))
         return {"ok": True}
 
     @application.get("/api/archive/version")
@@ -282,8 +363,8 @@ def create_app(data_dir: Path | None = None, *, secure_cookie: bool = True) -> F
     def replace_archive(body: ReplaceBody, found=Depends(write_session)):
         for review in body.reviews:
             check_image(review, found["user_id"])
-        backup_before_bulk("pre-bulk")
-        return db.replace_archive(body.reviews, body.archiveRevision, found["user_id"])
+        return db.replace_archive(body.reviews, body.archiveRevision, found["user_id"],
+                                  before_change=lambda: backup_before_bulk("pre-bulk"))
 
     def image_path(filename: str, user_id: int) -> tuple[str, Path]:
         reference = "media/" + filename
@@ -312,17 +393,21 @@ def create_app(data_dir: Path | None = None, *, secure_cookie: bool = True) -> F
                 raise HTTPException(503, "图片处理繁忙，请重试")
             try:
                 if not thumb.is_file():
+                    validate_historical_image(path)
                     thumb.parent.mkdir(parents=True, exist_ok=True)
-                    with Image.open(path) as image:
-                        image.thumbnail((480, 480))
-                        rgb = image.convert("RGB")
-                        descriptor, temp_name = tempfile.mkstemp(dir=thumb.parent, suffix=".tmp")
-                        os.close(descriptor)
-                        try:
-                            rgb.save(temp_name, format="JPEG", quality=82)
-                            os.replace(temp_name, thumb)
-                        finally:
-                            Path(temp_name).unlink(missing_ok=True)
+                    try:
+                        with Image.open(path) as image:
+                            image.thumbnail((480, 480))
+                            rgb = image.convert("RGB")
+                            descriptor, temp_name = tempfile.mkstemp(dir=thumb.parent, suffix=".tmp")
+                            os.close(descriptor)
+                            try:
+                                rgb.save(temp_name, format="JPEG", quality=82)
+                                os.replace(temp_name, thumb)
+                            finally:
+                                Path(temp_name).unlink(missing_ok=True)
+                    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError) as exc:
+                        raise DataValidationError("剧照无法解码或格式无效") from exc
             finally:
                 image_processing.release()
         return FileResponse(thumb, media_type="image/jpeg")
@@ -342,19 +427,7 @@ def create_app(data_dir: Path | None = None, *, secure_cookie: bool = True) -> F
             raise HTTPException(503, "图片处理繁忙，请重试")
         try:
             stream.seek(0)
-            try:
-                with Image.open(stream) as decoded:
-                    if decoded.width * decoded.height > 40_000_000:
-                        raise DataValidationError("剧照像素过大")
-                    if decoded.format not in {"JPEG", "PNG", "WEBP"}:
-                        raise DataValidationError("剧照格式无效")
-                    detected_mime = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp"}[decoded.format]
-                    decoded.verify()
-            except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
-                raise DataValidationError("剧照无法解码或格式无效") from exc
-            if detected_mime != file.content_type and file.content_type not in (None, "application/octet-stream"):
-                raise DataValidationError("剧照声明类型与实际内容不一致")
-            stream.seek(0)
+            validate_image_stream(stream, expected_mime=file.content_type)
             image = media_store.import_image_stream(stream, size, file.filename)
         finally:
             image_processing.release()
@@ -407,21 +480,26 @@ def create_app(data_dir: Path | None = None, *, secure_cookie: bool = True) -> F
 
     @application.post("/api/imports/preview")
     async def preview_import(request: Request, file: UploadFile = File(...), found=Depends(write_session)):
-        for old_token, old in list(pending_imports.items()):
-            if old["expires"] < time.time():
-                old["source"].unlink(missing_ok=True)
-                pending_imports.pop(old_token, None)
-        if len(pending_imports) >= 20:
-            raise HTTPException(429, "待确认导入过多，请稍后再试")
+        nonlocal active_previews
         if not file.filename or Path(file.filename).suffix.lower() not in {".json", ".zip"}:
             raise DataValidationError("仅支持 JSON 或 ZIP 备份")
         suffix = Path(file.filename).suffix.lower()
-        imports_dir = data_dir / "imports"
-        imports_dir.mkdir(parents=True, exist_ok=True)
-        descriptor, temp_name = tempfile.mkstemp(dir=imports_dir, suffix=suffix)
+        with import_guard:
+            for old_token, old in list(pending_imports.items()):
+                if old["expires"] < time.time() and not old.get("confirming"):
+                    old["source"].unlink(missing_ok=True)
+                    pending_imports.pop(old_token, None)
+            if len(pending_imports) + active_previews >= 20:
+                raise HTTPException(429, "待确认导入过多，请稍后再试")
+            active_previews += 1
+        reserved = True
+        temp_name = None
         total = 0
         digest = hashlib.sha256()
         try:
+            imports_dir = data_dir / "imports"
+            imports_dir.mkdir(parents=True, exist_ok=True)
+            descriptor, temp_name = tempfile.mkstemp(dir=imports_dir, suffix=suffix)
             with os.fdopen(descriptor, "wb") as target:
                 while chunk := await file.read(1024 * 1024):
                     total += len(chunk)
@@ -433,9 +511,10 @@ def create_app(data_dir: Path | None = None, *, secure_cookie: bool = True) -> F
                 os.fsync(target.fileno())
             source = Path(temp_name)
             if suffix == ".zip":
-                plan = media_store.prepare_zip_import(source)
+                plan = await run_in_threadpool(media_store.prepare_zip_import, source)
                 with zipfile.ZipFile(source) as archive:
                     raw_reviews = json.loads(archive.read(DATA_FILE_NAME).decode("utf-8-sig"))
+                await run_in_threadpool(validate_import_images, source, plan["reviews"])
             else:
                 raw_reviews = json.loads(source.read_text(encoding="utf-8-sig"))
                 if any(item.get("image") for item in raw_reviews if isinstance(item, dict)):
@@ -445,27 +524,61 @@ def create_app(data_dir: Path | None = None, *, secure_cookie: bool = True) -> F
             if raw_reviews != plan["reviews"]:
                 raise DataValidationError("备份包含会被自动修整的字段，请先用迁移预检处理差异")
             token = uuid.uuid4().hex
-            pending_imports[token] = {"source": source, "sha256": digest.hexdigest(),
-                                      "plan": plan, "session": db._hash(request.cookies[COOKIE_NAME]),
-                                      "archiveRevision": db.list_reviews(found["user_id"])["archiveRevision"],
-                                      "userId": found["user_id"],
-                                      "expires": time.time() + 1800}
+            item = {"source": source, "sha256": digest.hexdigest(),
+                    "plan": plan, "session": db._hash(request.cookies[COOKIE_NAME]),
+                    "archiveRevision": db.list_reviews(found["user_id"])["archiveRevision"],
+                    "userId": found["user_id"], "expires": time.time() + 1800}
+            with import_guard:
+                pending_imports[token] = item
+                active_previews -= 1
+                reserved = False
             return {"ok": True, "recordCount": len(plan["reviews"]), "format": plan["kind"],
-                    "importToken": token, "archiveRevision": pending_imports[token]["archiveRevision"]}
+                    "importToken": token, "archiveRevision": item["archiveRevision"]}
         except (OSError, ValueError, zipfile.BadZipFile, UnicodeError) as exc:
-            Path(temp_name).unlink(missing_ok=True)
+            if temp_name:
+                Path(temp_name).unlink(missing_ok=True)
             raise DataValidationError(f"导入文件无效：{exc}") from exc
         except Exception:
-            Path(temp_name).unlink(missing_ok=True)
+            if temp_name:
+                Path(temp_name).unlink(missing_ok=True)
             raise
+        finally:
+            if reserved:
+                try:
+                    if temp_name:
+                        Path(temp_name).unlink(missing_ok=True)
+                finally:
+                    with import_guard:
+                        active_previews -= 1
 
     @application.post("/api/imports/confirm")
     async def confirm_import(request: Request, found=Depends(write_session)):
-        body = await request.json()
+        try:
+            body = await request.json()
+        except (ValueError, UnicodeError) as exc:
+            raise DataValidationError("导入确认数据无效") from exc
         token = body.get("importToken") if isinstance(body, dict) else None
-        item = pending_imports.get(token)
-        if not item or item["expires"] < time.time() or item["session"] != db._hash(request.cookies[COOKIE_NAME]) or item["userId"] != found["user_id"]:
+        if not isinstance(token, str):
             raise HTTPException(410, "导入预览已失效，请重新选择备份")
+        with import_guard:
+            item = pending_imports.get(token)
+            if not item or item["expires"] < time.time() or item["session"] != db._hash(request.cookies[COOKIE_NAME]) or item["userId"] != found["user_id"]:
+                raise HTTPException(410, "导入预览已失效，请重新选择备份")
+            if item.get("confirming"):
+                raise HTTPException(409, "这份备份正在导入，请等待完成")
+            item["confirming"] = True
+        try:
+            result = await run_in_threadpool(confirm_import_file, item, found["user_id"])
+        except BaseException:
+            with import_guard:
+                item["confirming"] = False
+            raise
+        with import_guard:
+            pending_imports.pop(token, None)
+        item["source"].unlink(missing_ok=True)
+        return result
+
+    def confirm_import_file(item: dict, user_id: int):
         source = item["source"]
         digest = hashlib.sha256()
         with source.open("rb") as stream:
@@ -474,6 +587,8 @@ def create_app(data_dir: Path | None = None, *, secure_cookie: bool = True) -> F
         if digest.hexdigest() != item["sha256"]:
             raise DataValidationError("备份文件在预览后发生变化")
         plan = item["plan"]
+        db.validate_archive_revision(item["archiveRevision"], user_id)
+        installed_images = []
         if plan["kind"] == "zip":
             fresh = media_store.prepare_zip_import(source)
             if fresh["reviews"] != plan["reviews"]:
@@ -485,12 +600,10 @@ def create_app(data_dir: Path | None = None, *, secure_cookie: bool = True) -> F
                         installed = media_store.import_image_stream(stream, image["size"], image["name"])
                     if installed != image:
                         raise DataValidationError("导入媒体与预览不一致")
-                    db.register_upload(found["user_id"], installed)
-        backup_before_bulk("pre-import")
-        result = db.replace_archive(plan["reviews"], item["archiveRevision"], found["user_id"])
-        pending_imports.pop(token, None)
-        source.unlink(missing_ok=True)
-        return result
+                    installed_images.append(installed)
+        return db.replace_archive(plan["reviews"], item["archiveRevision"], user_id,
+                                  before_change=lambda: backup_before_bulk("pre-import"),
+                                  uploaded_images=installed_images)
 
     return application
 

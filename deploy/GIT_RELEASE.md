@@ -21,11 +21,33 @@ py -3.12 -m venv .runtime-web\release-venv
 
 不提交个人 JSON、`feils/`、媒体、数据库、备份、运行环境、EXE、`.env` 或 SSH 私钥。生产操作记录与原上线方案留在本地，不进入公开仓库。凭据扫描只覆盖已知特征，新增配置仍需检查内容。
 
-GitHub Actions 在推送/PR 后运行 Windows 桌面测试及 Ubuntu Web 测试；正式上线前检查相应提交的 CI 成功。CI 不保存生产 SSH 凭据，也不自动部署服务器。当前流程以本地和服务器必需测试为执行门禁；服务器脚本不会查询 GitHub CI 状态。
+GitHub Actions 在推送/PR 后扫描源码中的私有文件与已知凭据特征，再运行 Windows 桌面测试及 Ubuntu Web 测试。Windows 还使用 Node.js 24 与 runner 中的 Chrome 执行 `tests/browser_security.mjs`，验证合成记录的文本/属性注入防护；缺少浏览器或测试失败会让 job 失败。官方 Actions 固定完整提交 SHA。正式上线前检查相应提交的 CI 成功。CI 不保存生产 SSH 凭据，也不自动部署服务器。当前流程以本地和服务器必需测试为执行门禁；服务器脚本不会查询 GitHub CI 状态。
 
 ## 服务器一次性接入
 
-适用于已安装网站的 Ubuntu 24.04 服务器，不用于空服务器首次安装。需 Git、Python 3.12、`flock`、现有应用账户、systemd 服务及 `/home/deploy/movie-review-stage/bin/uv`。以管理员身份在服务器执行，`COMMIT` 替换为刚推送并验证的完整 SHA：
+适用于已安装网站的 Ubuntu 24.04 服务器，不用于空服务器首次安装。需 Git、Python 3.12、`flock`、现有应用账户、systemd 服务，以及已安装到 `/opt/movie-review/tools/uv` 的可信 uv 工具。
+
+首次接入或从旧流程升级时，先独立核验 uv 来源、版本及 SHA-256，再以管理员身份复制到 root 控制的路径。`UV_SHA256` 必须替换为已核验的摘要；不能仅对部署账户可写的当前文件计算摘要并视为可信。下列安装步骤拒绝覆盖既有工具；需要升级时先审阅新制品并保存原工具、摘要及配置证据。root 执行工具前会检查工具、摘要和每级父目录均为 root 所有、没有组/其他用户写权限、没有符号链接，并核对摘要。
+
+```bash
+set -euo pipefail
+UV_SHA256='<已独立核验的64位小写SHA256>'
+test ! -L /opt/movie-review/tools
+install -d -o root -g root -m 0755 /opt/movie-review/tools
+test ! -e /opt/movie-review/tools/uv
+test ! -L /opt/movie-review/tools/uv
+test ! -e /opt/movie-review/tools/uv.sha256
+test ! -L /opt/movie-review/tools/uv.sha256
+install -o root -g root -m 0755 /home/deploy/movie-review-stage/bin/uv /opt/movie-review/tools/uv
+printf '%s  %s\n' "$UV_SHA256" /opt/movie-review/tools/uv | sha256sum --check --status
+printf '%s\n' "$UV_SHA256" > /opt/movie-review/tools/uv.sha256
+chown root:root /opt/movie-review/tools/uv.sha256
+chmod 0644 /opt/movie-review/tools/uv.sha256
+namei -l /opt/movie-review/tools/uv
+/opt/movie-review/tools/uv --version
+```
+
+安装过程中校验失败时停止，不运行残留工具；保留失败现场并核查来源。不要用符号链接将该工具指回 `/home/deploy`。历史 bootstrap 脚本仅作历史证据，新发布流程不会调用家目录中的 uv。复制成功后，以管理员身份运行以下接入流程，`COMMIT` 替换为刚推送并验证的完整 SHA：
 
 ```bash
 COMMIT=<完整40位提交SHA>
@@ -64,6 +86,7 @@ sudo movie-review-deploy <完整40位提交SHA>
 | 位置 | 用途 |
 | --- | --- |
 | `/opt/movie-review/repo.git` | 服务器只读拉取的 Git 对象 |
+| `/opt/movie-review/tools/uv`、`uv.sha256` | root 控制的部署工具及已核验摘要 |
 | `/opt/movie-review/releases/git-<完整SHA>/` | 每个提交独立的源码及生产环境 |
 | `/opt/movie-review/current` | 正在运行的版本指针 |
 | `/opt/movie-review/deployments/<完整SHA>/` | root 私有发布证据及隔离演练 |
@@ -71,7 +94,7 @@ sudo movie-review-deploy <完整40位提交SHA>
 | `/var/backups/movie-review/` | 服务器完整数据备份 |
 | `/etc/movie-review/app.env` | 服务器运行配置，留在 Git 外 |
 
-`git-release.json` 记录提交、远程及每个源文件的哈希。证据目录包含 `prepared.json`、`trial.json`、`deployment.json`、`verification.json`。脚本核验 `/readyz=200`、未登录私有 API `401`、实际返回的 Web 静态资源与提交一致，并检查网站、Nginx、sing-box 和备份/证书任务运行状态。
+`git-release.json` 记录提交、远程及每个源文件的哈希。证据目录包含 `prepared.json`、`trial.json`、`deployment.json`、`verification.json`，准备记录还包含已校验的部署工具 SHA-256。脚本核验 `/readyz=200`、未登录私有 API `401`、实际返回的 Web 静态资源与提交一致，并检查网站、Nginx、sing-box 和备份/证书任务运行状态。
 
 应用继续只监听 `127.0.0.1:8000`，当前 Nginx 入口为 80/8443。发布脚本不修改入口、证书、防火墙或原代理的 443。服务器验证后，另行验证公网 HTTPS、手机实机及需要的 Wi-Fi/移动数据路径。
 

@@ -14,7 +14,8 @@ const managedPassword = 'qa-created-long-password';
 const resetPassword = 'qa-reset-long-password';
 if (!username || !password) throw new Error('Set MOVIE_REVIEW_QA_USER and MOVIE_REVIEW_QA_PASSWORD');
 const port = Number(process.env.MOVIE_REVIEW_QA_CDP_PORT || '9237');
-const profile = path.resolve('.runtime-web/chrome-cdp-smoke-' + Date.now());
+const output = path.resolve(process.env.MOVIE_REVIEW_QA_OUTPUT_DIR || '.runtime-web/browser-qa-' + Date.now());
+const profile = path.join(output, 'chrome-profile');
 await mkdir(profile, {recursive: true});
 const chrome = spawn(chromePath, [
   '--headless=new', '--no-sandbox', '--disable-gpu', '--no-first-run', '--no-proxy-server',
@@ -49,7 +50,7 @@ function send(method, params = {}) {
 }
 async function evaluate(expression) {
   const result = await send('Runtime.evaluate', {expression, returnByValue: true, awaitPromise: true});
-  if (result.exceptionDetails) throw new Error(result.exceptionDetails.text);
+  if (result.result.exceptionDetails) throw new Error(result.result.exceptionDetails.text);
   return result.result.result.value;
 }
 async function until(expression, expected = true) {
@@ -64,7 +65,7 @@ async function screenshot(name) {
   await evaluate("window.__qaToastDisplay=document.querySelector('#toast')?.style.display;document.querySelector('#toast').style.display='none';new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve(true))))");
   try {
     const result = await send('Page.captureScreenshot', {format: 'png'});
-    await writeFile(path.resolve('.runtime-web/' + name + '.png'), Buffer.from(result.result.data, 'base64'));
+    await writeFile(path.join(output, name + '.png'), Buffer.from(result.result.data, 'base64'));
   } finally {
     await evaluate("document.querySelector('#toast').style.display=window.__qaToastDisplay||'';true");
   }
@@ -229,6 +230,21 @@ try {
     if (await evaluate("document.querySelector('.app-wrapper').inert||document.body.style.overflow==='hidden'")) throw new Error('Closing dialog did not restore page interaction');
     await send('Emulation.setDeviceMetricsOverride', {width: 390, height: 844, deviceScaleFactor: 1, mobile: true});
   }
+  const pngExport = await evaluate(`(async () => {
+    const canvas=document.createElement('canvas');canvas.width=2;canvas.height=2;
+    const oldCreate=URL.createObjectURL,oldClick=HTMLAnchorElement.prototype.click;
+    let exported;
+    URL.createObjectURL=blob=>{exported=blob;return oldCreate.call(URL,blob);};
+    HTMLAnchorElement.prototype.click=function(){};
+    try {
+      const response=await window.MovieReviewWeb.export_graph_image(canvas.toDataURL('image/png'),'电影海报墙');
+      const bytes=new Uint8Array(await exported.arrayBuffer());
+      let rejectsInvalid=false;
+      try{await window.MovieReviewWeb.export_graph_image('data:text/html;base64,PHNjcmlwdD4=','电影海报墙');}catch{rejectsInvalid=true;}
+      return response.ok&&exported.type==='image/png'&&bytes[0]===137&&bytes[1]===80&&rejectsInvalid;
+    } finally {URL.createObjectURL=oldCreate;HTMLAnchorElement.prototype.click=oldClick;}
+  })()`);
+  if (pngExport !== true) throw new Error('PNG export failed under browser security policy');
   await send('Page.reload', {ignoreCache: true});
   await pause(300);
   await until(`document.querySelector('#setupOverlay')?.classList.contains('hidden')&&reviews.some(review=>review.title===${JSON.stringify(title)})`);
@@ -258,7 +274,7 @@ try {
     if (await evaluate('reviews.length') !== 0) throw new Error('Archive changed after password update');
   }
   if (exceptions.length) throw new Error(`Browser errors: ${exceptions.join('; ')}`);
-  console.log(JSON.stringify({ok: true, loginWidth, appWidth, beijingDate, saved: true, retryDeduplicated: true, reload: true, logout: true, userManagement: checkUsers, profileEdit: checkUsers, searchAndFilters: checkUsers, discardConfirmation: checkUsers, keyboardAndFocus: checkUsers, directoryRetry: checkUsers, longDisplayNames: checkUsers, responsiveWidths: [320,360,390,768,1440], passwordChange: checkUsers}));
+  console.log(JSON.stringify({ok: true, loginWidth, appWidth, beijingDate, saved: true, retryDeduplicated: true, reload: true, logout: true, pngExport, userManagement: checkUsers, profileEdit: checkUsers, searchAndFilters: checkUsers, discardConfirmation: checkUsers, keyboardAndFocus: checkUsers, directoryRetry: checkUsers, longDisplayNames: checkUsers, responsiveWidths: [320,360,390,768,1440], passwordChange: checkUsers}));
 } finally {
   socket?.close();
   chrome.kill();

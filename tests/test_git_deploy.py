@@ -1,10 +1,12 @@
 """Deployment guards tested entirely against temporary files; never live data."""
 import io
 import json
+import stat
 import tarfile
 import tempfile
 import unittest
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
 
 from deploy import git_deploy
@@ -30,6 +32,93 @@ class GitDeploymentTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+
+    def tool_metadata(self, path, *, owner=0, mode=None):
+        if mode is None:
+            mode = stat.S_IFREG | 0o755 if path.name == "uv" else stat.S_IFDIR | 0o755
+        return SimpleNamespace(st_uid=owner, st_mode=mode)
+
+    def test_deployment_tool_checks_every_parent_without_following_links(self):
+        tool = PurePosixPath("/opt/movie-review/tools/uv")
+        with patch.object(git_deploy.os, "lstat", side_effect=self.tool_metadata) as metadata:
+            git_deploy.check_root_owned_path(tool, executable=True)
+        self.assertEqual(metadata.call_args_list,
+                         [call(PurePosixPath(path)) for path in
+                          ("/", "/opt", "/opt/movie-review", "/opt/movie-review/tools", str(tool))])
+
+    def test_deployment_tool_rejects_replaceable_parent_or_file(self):
+        tool = PurePosixPath("/opt/movie-review/tools/uv")
+        for target in (*tool.parents, tool):
+            for owner, permissions in ((1000, 0o755), (0, 0o775), (0, 0o757)):
+                def metadata(path):
+                    kind = stat.S_IFREG if path == tool else stat.S_IFDIR
+                    return self.tool_metadata(path, owner=owner if path == target else 0,
+                                              mode=kind | (permissions if path == target else 0o755))
+                with self.subTest(target=str(target), owner=owner, mode=permissions), \
+                     patch.object(git_deploy.os, "lstat", side_effect=metadata), \
+                     self.assertRaisesRegex(RuntimeError, "root-owned"):
+                    git_deploy.check_root_owned_path(tool, executable=True)
+
+    def test_deployment_tool_rejects_symlinks_including_parent(self):
+        tool = PurePosixPath("/opt/movie-review/tools/uv")
+        for target in (tool.parent, tool):
+            def metadata(path):
+                if path == target:
+                    return self.tool_metadata(path, mode=stat.S_IFLNK | 0o755)
+                return self.tool_metadata(path)
+            with self.subTest(target=str(target)), patch.object(git_deploy.os, "lstat", side_effect=metadata), \
+                 self.assertRaisesRegex(RuntimeError, "symlink"):
+                git_deploy.check_root_owned_path(tool, executable=True)
+
+    def test_deployment_tool_rejects_nonexecutable_special_and_missing_files(self):
+        tool = PurePosixPath("/opt/movie-review/tools/uv")
+        for mode in (stat.S_IFREG | 0o644, stat.S_IFIFO | 0o755, stat.S_IFDIR | 0o755):
+            def metadata(path):
+                return self.tool_metadata(path, mode=mode) if path == tool else self.tool_metadata(path)
+            with self.subTest(mode=mode), patch.object(git_deploy.os, "lstat", side_effect=metadata), \
+                 self.assertRaisesRegex(RuntimeError, "regular executable"):
+                git_deploy.check_root_owned_path(tool, executable=True)
+        with patch.object(git_deploy.os, "lstat", side_effect=FileNotFoundError), \
+             self.assertRaisesRegex(RuntimeError, "unavailable"):
+            git_deploy.check_root_owned_path(tool, executable=True)
+
+    def test_deployment_tool_digest_detects_tampering_and_unsafe_digest_file(self):
+        tool, approved = self.root / "uv", self.root / "uv.sha256"
+        tool.write_bytes(b"independently verified executable")
+        approved.write_text(git_deploy.sha256(tool) + "\n", encoding="ascii")
+        def metadata(path):
+            mode = stat.S_IFREG | 0o755 if path == tool else \
+                   stat.S_IFREG | 0o644 if path == approved else stat.S_IFDIR | 0o755
+            return self.tool_metadata(path, mode=mode)
+        with patch.object(git_deploy, "UV", tool), patch.object(git_deploy, "UV_HASH", approved), \
+             patch.object(git_deploy.os, "lstat", side_effect=metadata):
+            self.assertEqual(git_deploy.verify_deployment_tool(), approved.read_text().strip())
+            tool.write_bytes(b"replaced executable")
+            with self.assertRaisesRegex(RuntimeError, "SHA-256"):
+                git_deploy.verify_deployment_tool()
+            tool.write_bytes(b"independently verified executable")
+            approved.write_text("invalid digest\n")
+            with self.assertRaisesRegex(RuntimeError, "SHA-256"):
+                git_deploy.verify_deployment_tool()
+            def unsafe_digest(path):
+                result = metadata(path)
+                if path == approved:
+                    result.st_uid = 1000
+                return result
+            with patch.object(git_deploy.os, "lstat", side_effect=unsafe_digest), \
+                 self.assertRaisesRegex(RuntimeError, "root-owned"):
+                git_deploy.verify_deployment_tool()
+
+    def test_untrusted_tool_is_rejected_before_subprocess_or_prepare_mutation(self):
+        with patch.object(git_deploy, "verify_deployment_tool", side_effect=RuntimeError("untrusted tool")), \
+             patch.object(git_deploy.subprocess, "run") as process, \
+             patch.object(git_deploy, "snapshot") as database:
+            with self.assertRaisesRegex(RuntimeError, "untrusted tool"):
+                git_deploy.run([git_deploy.UV, "--version"])
+            with self.assertRaisesRegex(RuntimeError, "untrusted tool"):
+                git_deploy.Deployment("a" * 40).prepare()
+            process.assert_not_called()
+            database.assert_not_called()
 
     def test_requires_exact_commit_instead_of_moving_branch(self):
         for value in ("main", "abc1234", "A" * 40, "a" * 40 + ";false", "../current"):

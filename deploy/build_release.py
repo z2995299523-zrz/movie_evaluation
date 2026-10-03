@@ -12,11 +12,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FILES = [
     "app.py", "index.html", "graph_export.html", "README.md", "requirements-web.txt", "requirements-web.lock",
-    "web/__init__.py", "web/main.py", "web/storage.py", "web/schema.sql", "web/manage.py", "web/backup.py", "web/client.js", "web/account.css",
+    "web/__init__.py", "web/main.py", "web/storage.py", "web/schema.sql", "web/manage.py", "web/backup.py", "web/images.py", "web/request_limits.py", "web/client.js", "web/account.css",
     "deploy/Caddyfile.example", "deploy/movie-review.service", "deploy/movie-review-backup.service",
     "deploy/movie-review-backup.timer", "deploy/README.md", "deploy/build_release.py", "docs/DATABASE_MODEL.md",
     "tests/test_web.py", "tests/test_storage_migration.py", "tests/browser_smoke.mjs",
-    "tests/test_git_deploy.py", "deploy/GIT_RELEASE.md", "deploy/git_deploy.py",
+    "tests/test_git_deploy.py", "tests/test_security_auth.py", "tests/test_security_media.py", "tests/test_security_network.py", "tests/test_security_sql.py", "tests/browser_security.mjs", "deploy/GIT_RELEASE.md", "deploy/git_deploy.py",
     "deploy/movie-review-deploy.sh", "deploy/check_release.py", "deploy/audit_source.py",
     "deploy/publish.ps1", "deploy/deploy.ps1",
 ]

@@ -14,7 +14,7 @@ def run_checks(mode: str) -> dict:
     root = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(root))
     patterns = (["test_app.py"] if mode == "desktop" else
-                ["test_web.py", "test_storage_migration.py", "test_git_deploy.py"])
+                ["test_web.py", "test_storage_migration.py", "test_git_deploy.py", "test_security_*.py"])
     with tempfile.TemporaryDirectory(prefix="movie-review-qa-") as temporary:
         os.environ["MOVIE_REVIEW_DATA_DIR"] = temporary
         suite = unittest.TestSuite()

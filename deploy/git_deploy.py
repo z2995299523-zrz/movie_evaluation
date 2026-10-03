@@ -13,6 +13,7 @@ import os
 import re
 import secrets
 import sqlite3
+import stat
 import subprocess
 import sys
 import tarfile
@@ -27,12 +28,15 @@ REPO = ROOT / "repo.git"
 CURRENT = ROOT / "current"
 DATA = Path("/var/lib/movie-review")
 BACKUPS = Path("/var/backups/movie-review")
-UV = Path("/home/deploy/movie-review-stage/bin/uv")
+UV = ROOT / "tools/uv"
+UV_HASH = ROOT / "tools/uv.sha256"
 ORIGIN = "https://github.com/z2995299523-zrz/movie_evaluation.git"
 HTTP = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
 def run(args, *, cwd=None, env=None, binary=False):
+    if str(args[0]) == str(UV):
+        verify_deployment_tool()
     result = subprocess.run([str(arg) for arg in args], cwd=cwd, env=env,
                             capture_output=True, text=not binary, timeout=300)
     if result.returncode:
@@ -46,6 +50,35 @@ def sha256(path):
         while block := source.read(1024 * 1024):
             digest.update(block)
     return digest.hexdigest()
+
+
+def check_root_owned_path(path, *, executable=False):
+    """Reject tool replacement through writable files, parents, or symlinks."""
+    if not path.is_absolute() or ".." in path.parts:
+        raise RuntimeError("Deployment tool path must be absolute and normalized")
+    for entry in (*reversed(path.parents), path):
+        try:
+            metadata = os.lstat(entry)
+        except OSError as error:
+            raise RuntimeError("Deployment tool path is unavailable: " + str(entry)) from error
+        if stat.S_ISLNK(metadata.st_mode):
+            raise RuntimeError("Deployment tool path contains a symlink: " + str(entry))
+        if metadata.st_uid != 0 or metadata.st_mode & 0o022:
+            raise RuntimeError("Deployment tool path must be root-owned and not group/world writable: " + str(entry))
+        if entry != path and not stat.S_ISDIR(metadata.st_mode):
+            raise RuntimeError("Deployment tool parent is not a directory: " + str(entry))
+        if entry == path and (not stat.S_ISREG(metadata.st_mode) or
+                              (executable and not metadata.st_mode & stat.S_IXUSR)):
+            raise RuntimeError("Deployment tool must be a regular " + ("executable" if executable else "file"))
+
+
+def verify_deployment_tool():
+    check_root_owned_path(UV, executable=True)
+    check_root_owned_path(UV_HASH)
+    expected = UV_HASH.read_text(encoding="ascii").strip()
+    if not re.fullmatch(r"[0-9a-f]{64}", expected) or sha256(UV) != expected:
+        raise RuntimeError("Deployment tool SHA-256 does not match its approved root-owned digest")
+    return expected
 
 
 def same_schema(left, right):
@@ -148,6 +181,7 @@ class Deployment:
                 raise RuntimeError("Release source changed after preparation: " + name)
 
     def prepare(self):
+        tool_digest = verify_deployment_tool()
         if run(["git", "--git-dir", REPO, "remote", "get-url", "origin"]) != ORIGIN:
             raise RuntimeError("Source origin does not match the approved repository")
         run(["git", "--git-dir", REPO, "merge-base", "--is-ancestor", self.commit, "refs/remotes/origin/main"])
@@ -183,7 +217,8 @@ class Deployment:
         (self.release / "git-release.json").write_text(json.dumps({"commit": self.commit, "origin": ORIGIN, "files": manifest}, indent=2))
         os.umask(0o077)
         self.report("prepared.json", {"release": str(self.release), "oldRelease": str(old),
-                                     "files": len(manifest), "schemaUnchanged": True, "tests": checks})
+                                     "files": len(manifest), "schemaUnchanged": True, "tests": checks,
+                                     "deploymentToolSha256": tool_digest})
 
     def trial(self):
         from web.backup import create_backup, restore_backup, verify_backup

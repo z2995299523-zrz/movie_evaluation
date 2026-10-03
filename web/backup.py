@@ -13,6 +13,8 @@ from contextlib import closing
 from pathlib import Path
 
 from app import DataValidationError, ReviewStore
+from web.images import validate_image_stream
+from web import MAX_ARCHIVE_IMAGE_PIXELS
 
 
 def _sha256(path: Path) -> str:
@@ -89,13 +91,19 @@ def verify_backup(archive_path: Path) -> dict:
         if archive.getinfo("manifest.json").file_size > 1024 * 1024:
             raise DataValidationError("服务器备份清单过大")
         manifest = json.loads(archive.read("manifest.json"))
-        if manifest.get("format") != "movie-review-server-backup" or manifest.get("version") != 1:
+        if not isinstance(manifest, dict) or manifest.get("format") != "movie-review-server-backup" or manifest.get("version") != 1:
             raise DataValidationError("服务器备份格式不支持")
         db_digest = manifest.get("databaseSha256")
         if not isinstance(manifest.get("mediaSha256"), dict) or not isinstance(db_digest, str) or not re.fullmatch(r"[0-9a-f]{64}", db_digest):
             raise DataValidationError("服务器备份清单无效")
         if any(not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest) for digest in manifest["mediaSha256"].values()):
             raise DataValidationError("服务器备份媒体哈希无效")
+        media_store = ReviewStore(Path("."))
+        for reference in manifest["mediaSha256"]:
+            # Every manifest key must be a standard content-addressed media path.
+            media_store.resolve_image_path(reference)
+            if Path(reference).stem != manifest["mediaSha256"][reference]:
+                raise DataValidationError("服务器备份媒体名称与哈希不一致")
         expected = {"manifest.json", "db/app.sqlite3", *manifest["mediaSha256"].keys()}
         if names != expected:
             raise DataValidationError("服务器备份文件清单不一致")
@@ -108,6 +116,10 @@ def verify_backup(archive_path: Path) -> dict:
                     actual.update(block)
             if actual.hexdigest() != digest:
                 raise DataValidationError(f"备份哈希不一致：{name}")
+            if name != "db/app.sqlite3":
+                with archive.open(name) as stream:
+                    expected_mime = {".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}[Path(name).suffix]
+                    validate_image_stream(stream, max_pixels=MAX_ARCHIVE_IMAGE_PIXELS, expected_mime=expected_mime)
         with tempfile.TemporaryDirectory() as temporary:
             db_path = Path(temporary) / "check.sqlite3"
             with archive.open("db/app.sqlite3") as source, db_path.open("wb") as target:
@@ -134,15 +146,26 @@ def verify_backup(archive_path: Path) -> dict:
 
 def restore_backup(archive_path: Path, target: Path) -> dict:
     manifest = verify_backup(archive_path)
-    target = Path(target).resolve()
+    requested_target = Path(target).absolute()
+    for component in (requested_target, *requested_target.parents):
+        if component.is_symlink() or getattr(component, "is_junction", lambda: False)():
+            raise DataValidationError("恢复目标不能包含符号链接")
+    target = requested_target.resolve()
     if target.exists() and any(target.iterdir()):
         raise DataValidationError("恢复目标必须是空目录")
     target.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(archive_path) as archive:
         for name in ("db/app.sqlite3", *manifest["mediaSha256"].keys()):
             destination = target / name
+            if not destination.resolve().is_relative_to(target) or destination.is_symlink():
+                raise DataValidationError("恢复文件路径越过目标目录")
             destination.parent.mkdir(parents=True, exist_ok=True)
-            with archive.open(name) as source, destination.open("wb") as output:
+            for component in (destination.parent, *destination.parent.parents):
+                if component == target:
+                    break
+                if component.is_symlink() or getattr(component, "is_junction", lambda: False)():
+                    raise DataValidationError("恢复文件路径不能包含符号链接")
+            with archive.open(name) as source, destination.open("xb") as output:
                 while block := source.read(1024 * 1024):
                     output.write(block)
     with closing(sqlite3.connect(target / "db" / "app.sqlite3")) as db:

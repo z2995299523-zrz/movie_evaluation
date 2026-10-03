@@ -13,12 +13,10 @@ import time
 import uuid
 from pathlib import Path
 
-from PIL import Image
-
 from app import DATA_FILE_NAME, DataValidationError, ReviewStore, normalize_reviews
 from web.storage import ArchiveDatabase
 from web.backup import create_backup, restore_backup, verify_backup
-from web import MAX_ARCHIVE_IMAGE_PIXELS
+from web.images import validate_historical_image
 
 
 def preflight(source: Path) -> dict:
@@ -38,10 +36,7 @@ def preflight(source: Path) -> dict:
         image = review.get("image")
         if image and image["path"] not in media:
             path = store.verify_image(image)
-            with Image.open(path) as decoded:
-                if decoded.width * decoded.height > MAX_ARCHIVE_IMAGE_PIXELS:
-                    raise DataValidationError(f"剧照像素超出网页版上限：{image['name']}")
-                decoded.verify()
+            validate_historical_image(path, expected_mime=image["mime"])
             media[image["path"]] = {
                 "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
                 "size": path.stat().st_size,

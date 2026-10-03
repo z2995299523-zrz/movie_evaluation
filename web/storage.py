@@ -9,7 +9,7 @@ import sqlite3
 import time
 from contextlib import closing, contextmanager
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 
 from app import DataValidationError, MAX_REVIEWS, ReviewStore, normalize_reviews
 
@@ -357,10 +357,13 @@ class ArchiveDatabase:
     def register_upload(self, user_id, image):
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            self._register_asset(db, image)
-            db.execute("INSERT INTO user_uploads(user_id,reference,uploaded_at) VALUES(?,?,?) "
-                       "ON CONFLICT(user_id,reference) DO UPDATE SET uploaded_at=excluded.uploaded_at",
-                       (user_id, image["path"], int(time.time())))
+            self._register_upload(db, user_id, image)
+
+    def _register_upload(self, db, user_id, image):
+        self._register_asset(db, image)
+        db.execute("INSERT INTO user_uploads(user_id,reference,uploaded_at) VALUES(?,?,?) "
+                   "ON CONFLICT(user_id,reference) DO UPDATE SET uploaded_at=excluded.uploaded_at",
+                   (user_id, image["path"], int(time.time())))
 
     def can_access_image(self, user_id, reference):
         with self.connect() as db:
@@ -499,18 +502,33 @@ class ArchiveDatabase:
             self._bump(db, user_id)
         return {"review": review, "revision": revision + 1}
 
-    def delete_review(self, review_id, revision, user_id=1):
+    def delete_review(self, review_id, revision, user_id=1, *, before_change: Callable[[], None] | None = None):
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             old = self._find(db, review_id, user_id)
             if not old or old["deleted_at"] is not None or old["revision"] != revision:
                 raise ConflictError("其他设备已修改或删除这条影评")
             value = next(i["review"] for i in self.read_snapshot(db, user_id) if i["review"]["id"] == review_id)
+            if before_change is not None:
+                # No writes precede this callback. The reserved lock protects the
+                # validated state while another connection takes its backup.
+                before_change()
             vid = self._write_version(db, old["id"], value, revision + 1, "delete")
             db.execute("UPDATE reviews SET current_version_id=?,deleted_at=? WHERE id=?", (vid, int(time.time()), old["id"]))
             self._bump(db, user_id)
 
-    def replace_archive(self, values, archive_revision, user_id=1):
+    def validate_archive_revision(self, archive_revision, user_id):
+        with self.connect() as db:
+            self._require_archive_revision(db, archive_revision, user_id)
+
+    @staticmethod
+    def _require_archive_revision(db, archive_revision, user_id):
+        current = db.execute("SELECT revision FROM archive_state WHERE user_id=?", (user_id,)).fetchone()
+        if not current or current[0] != archive_revision:
+            raise ConflictError("档案已在其他设备改变，请刷新后重试批量操作")
+
+    def replace_archive(self, values, archive_revision, user_id=1, *,
+                        before_change: Callable[[], None] | None = None, uploaded_images=()):
         if not isinstance(values, list) or len(values) > MAX_REVIEWS:
             raise DataValidationError("影评数据格式无效或数量超出上限")
         reviews = [self.validate_review(value) for value in values]
@@ -518,9 +536,11 @@ class ArchiveDatabase:
             raise DataValidationError("存在重复的影评 ID")
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            current = db.execute("SELECT revision FROM archive_state WHERE user_id=?", (user_id,)).fetchone()
-            if not current or current[0] != archive_revision:
-                raise ConflictError("档案已在其他设备改变，请刷新后重试批量操作")
+            self._require_archive_revision(db, archive_revision, user_id)
+            if before_change is not None:
+                before_change()
+            for image in uploaded_images:
+                self._register_upload(db, user_id, image)
             incoming = {i["id"] for i in reviews}
             now = int(time.time())
             for old in self.read_snapshot(db, user_id):

@@ -306,7 +306,17 @@ window.MovieReviewWeb = (() => {
   }
 
   async function export_graph_image(dataUrl, title) {
-    const blob = await (await fetch(dataUrl)).blob();
+    const prefix = 'data:image/png;base64,';
+    if (typeof dataUrl !== 'string' || !dataUrl.startsWith(prefix) || dataUrl.length > 70_000_000 ||
+        !['电影知识图谱', '电影海报墙'].includes(title)) throw new Error('图谱图片数据无效或过大');
+    const encoded = dataUrl.slice(prefix.length);
+    if (!encoded || encoded.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded)) throw new Error('图谱图片编码无效');
+    let binary;
+    try { binary = atob(encoded); } catch (_) { throw new Error('图谱图片编码无效'); }
+    const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+    const signature = [137, 80, 78, 71, 13, 10, 26, 10];
+    if (signature.some((byte, index) => bytes[index] !== byte)) throw new Error('图谱图片不是有效 PNG');
+    const blob = new Blob([bytes], {type: 'image/png'});
     download(blob, `${title}.png`);
     return {ok: true};
   }
