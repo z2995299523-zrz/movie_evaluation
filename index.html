@@ -265,7 +265,7 @@ body {
 .card-rating-chip {
   position: absolute; top: 13px; right: 13px; z-index: 2;
   display: inline-flex; align-items: center; gap: 3px; padding: 5px 9px;
-  background: rgba(13,11,12,.7); backdrop-filter: blur(10px); color: var(--gold);
+  background: rgba(13,11,12,.84); color: var(--gold);
   border: 1px solid rgba(255,255,255,.16); border-radius: 99px; font-size: .78rem; font-weight: 700;
 }
 .card-rating-chip .star-empty { color: rgba(255,255,255,.35); }
@@ -579,7 +579,7 @@ body.gallery-open { overflow: hidden; }
 .gallery-card.rating-2 { border-color: rgba(148,163,184,.24); }
 .gallery-card.rating-low { border-color: rgba(148,163,184,.16); }
 .gallery-card:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
-.gallery-card-image { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(1.015); transition: opacity .24s ease, transform .35s ease; }
+.gallery-card-image { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .24s ease, transform .35s ease; }
 .gallery-card.image-ready .gallery-card-image { opacity: .92; }
 .gallery-card:hover .gallery-card-image, .gallery-card.is-focused .gallery-card-image { transform: scale(1.045); }
 .gallery-card-shade { position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(5,5,8,.06), rgba(5,5,8,.12) 40%, rgba(5,5,8,.92) 100%); }
@@ -587,7 +587,7 @@ body.gallery-open { overflow: hidden; }
 .gallery-card-loading { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.62); font-size: .75rem; background: rgba(8,8,12,.32); }
 .gallery-card.image-ready .gallery-card-loading { opacity: 0; pointer-events: none; transition: opacity .2s ease; }
 .gallery-card.image-unavailable .gallery-card-loading { background: rgba(127,29,29,.28); color: #fecaca; }
-.gallery-card-rating { position: absolute; top: 7px; right: 7px; padding: 3px 5px; border-radius: 99px; background: rgba(13,11,12,.68); border: 1px solid rgba(255,255,255,.13); backdrop-filter: blur(8px); color: var(--gold); font-size: .57rem; letter-spacing: -1px; z-index: 3; }
+.gallery-card-rating { position: absolute; top: 7px; right: 7px; padding: 3px 5px; border-radius: 99px; background: rgba(13,11,12,.84); border: 1px solid rgba(255,255,255,.13); color: var(--gold); font-size: .57rem; letter-spacing: -1px; z-index: 3; }
 .gallery-card-content { position: absolute; left: 9px; right: 9px; bottom: 8px; z-index: 3; }
 .gallery-card-title { color: #fff; font-size: .82rem; line-height: 1.25; font-weight: 720; text-shadow: 0 2px 12px rgba(0,0,0,.82); word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .gallery-card-meta { color: rgba(255,255,255,.7); font-size: .62rem; margin-top: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -613,11 +613,16 @@ body.gallery-open { overflow: hidden; }
 .relation-movie .gallery-card-title { font-size: .7rem; }
 .relation-movie .gallery-card-meta { font-size: .54rem; }
 .gallery-wall.knowledge-graph-mode { display: block; max-width: none; height: 100%; min-height: 560px; }
-.knowledge-graph-shell { position: relative; width: 100%; height: 100%; min-height: 560px; overflow: hidden; border: 1px solid rgba(255,255,255,.08); border-radius: 14px; background: radial-gradient(circle at 42% 48%,rgba(164,71,82,.12),transparent 46%),#0d0b0c; }
+.knowledge-graph-shell { position: relative; width: 100%; height: 100%; min-height: 560px; overflow: hidden; border: 1px solid rgba(255,255,255,.08); border-radius: 14px; background: radial-gradient(rgba(255,255,255,.05) 1px,transparent 1.5px) 0 0/24px 24px,radial-gradient(circle at 42% 48%,rgba(164,71,82,.14),transparent 46%),#0d0b0c; }
 .knowledge-graph-canvas { display: block; width: 100%; height: 100%; min-height: 560px; cursor: grab; touch-action: none; }
 .knowledge-graph-canvas.dragging { cursor: grabbing; }
+.knowledge-graph-tools { position: absolute; left: 14px; bottom: 14px; z-index: 2; display: flex; gap: 6px; }
+.knowledge-graph-tools button { min-width: 38px; min-height: 36px; padding: 6px 11px; border: 1px solid rgba(255,255,255,.16); border-radius: 9px; background: rgba(23,19,21,.92); color: var(--text2); font-size: .8rem; cursor: pointer; }
+.knowledge-graph-tools button:hover, .knowledge-graph-tools button:focus-visible { border-color: var(--gold); color: var(--text); outline: none; }
+/* Hover effects would restyle cards on every scrolled frame. */
+.gallery-wall.is-scrolling .gallery-card { pointer-events: none; }
 .knowledge-graph-help { position: absolute; left: 14px; top: 12px; z-index: 2; padding: 7px 10px; border-radius: 8px; background: rgba(13,11,12,.8); color: var(--text3); font-size: .75rem; pointer-events: none; }
-.knowledge-graph-panel { position: absolute; top: 12px; right: 12px; bottom: 12px; z-index: 3; width: 270px; padding: 14px; overflow-y: auto; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; background: rgba(23,19,21,.94); backdrop-filter: blur(14px); }
+.knowledge-graph-panel { position: absolute; top: 12px; right: 12px; bottom: 12px; z-index: 3; width: 270px; padding: 14px; overflow-y: auto; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; background: rgba(23,19,21,.97); }
 .knowledge-graph-panel h3 { color: white; font-size: 1rem; line-height: 1.35; }
 .knowledge-graph-panel p { color: var(--text3); font-size: .75rem; line-height: 1.55; margin-top: 6px; }
 .knowledge-graph-panel h4 { margin-top: 14px; color: var(--text2); font-size: .76rem; }
@@ -628,6 +633,7 @@ body.gallery-open { overflow: hidden; }
 .knowledge-graph-placeholder { color: var(--text3); font-size: .75rem; line-height: 1.65; }
 @media (max-width: 820px) { .knowledge-graph-panel { width: 220px; } }
 @media (max-width: 600px) { .knowledge-graph-panel { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 36%; } }
+@media (max-width: 600px) { .knowledge-graph-tools { left: 8px; top: 46px; bottom: auto; } }
 
 @media (max-width: 820px) {
   .gallery-header { padding: 18px 20px 14px; }
@@ -1127,7 +1133,14 @@ let lightboxPanX = 0;
 let lightboxPanY = 0;
 let lightboxPointer = null;
 const cardImageCache = new Map();
-const MAX_CARD_IMAGE_CACHE = 24;
+// Posters are cached as small thumbnails, so the cache can cover a whole wall
+// without reloading images while it is scrolled.
+const MAX_CARD_IMAGE_CACHE = 600;
+const CARD_IMAGE_PARALLEL = window.MOVIE_REVIEW_WEB ? 6 : 2;
+const cardImageLoading = new Set();
+const cardImageWaiters = new Map();
+const cardImageRetried = new Set();
+const GRAPH_RING_COLORS = {5: '#d6b06a', 4: '#c15b66', 3: '#6fa7a1'};
 const cardImageQueued = new Set();
 const cardImageNodes = new Map();
 const galleryImageNodes = new Map();
@@ -1212,7 +1225,28 @@ async function loadImageObjectUrl(image, onProgress, isCurrent, thumbnail = fals
     onProgress(Math.min(100, Math.round((offset / info.size) * 100)));
   }
   if (!isCurrent()) return '';
-  return URL.createObjectURL(new Blob(parts, { type: info.mime }));
+  const original = new Blob(parts, { type: info.mime });
+  return URL.createObjectURL(thumbnail ? await downscaleImageBlob(original) : original);
+}
+
+// Card, wall and graph posters are small: reduce a desktop original once instead of
+// keeping and repainting the full-size picture.
+async function downscaleImageBlob(blob, maxSide = 480) {
+  try {
+    const bitmap = await createImageBitmap(blob);
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    if (scale === 1) { bitmap.close(); return blob; }
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const reduced = await new Promise(resolve => canvas.toBlob(resolve, blob.type === 'image/jpeg' ? 'image/jpeg' : 'image/webp', 0.82));
+    canvas.width = canvas.height = 0;
+    return reduced || blob;
+  } catch (_) {
+    return blob; // The original still goes through the normal image error handling.
+  }
 }
 
 function formatFileSize(bytes) {
@@ -1293,18 +1327,18 @@ function applyCardImage(path, url) {
   if (nodes) {
     nodes.forEach(node => {
       if (!node.isConnected || node.dataset.cardImagePath !== path) return;
-      node.src = url;
+      if (node.src !== url) node.src = url;
       const visual = node.closest('.card-visual');
-      if (visual) visual.classList.add('image-ready');
+      if (visual) { visual.classList.remove('image-unavailable'); visual.classList.add('image-ready'); }
     });
   }
   const galleryNodes = galleryImageNodes.get(path);
   if (galleryNodes) {
     galleryNodes.forEach(node => {
       if (!node.isConnected || node.dataset.galleryImagePath !== path) return;
-      node.src = url;
+      if (node.src !== url) node.src = url;
       const card = node.closest('.gallery-card');
-      if (card) card.classList.add('image-ready');
+      if (card) { card.classList.remove('image-unavailable'); card.classList.add('image-ready'); }
     });
   }
 }
@@ -1332,37 +1366,64 @@ function markCardImageUnavailable(path) {
   }
 }
 
-function requestCardImage(path) {
+function requestCardImage(path, onReady) {
   if (cardImageCache.has(path)) {
-    applyCardImage(path, touchCachedImage(path));
+    const url = touchCachedImage(path);
+    applyCardImage(path, url);
+    if (onReady) onReady(url);
     return;
   }
-  if (!cardImagesByPath.has(path) || cardImageQueued.has(path)) return;
+  if (!cardImagesByPath.has(path)) return;
+  if (onReady) {
+    if (!cardImageWaiters.has(path)) cardImageWaiters.set(path, []);
+    cardImageWaiters.get(path).push(onReady);
+  }
+  if (cardImageQueued.has(path) || cardImageLoading.has(path)) return;
   cardImageQueued.add(path);
   cardImageQueue.push(path);
   drainCardImageQueue();
 }
 
+function notifyCardImageWaiters(path, url) {
+  const waiters = cardImageWaiters.get(path);
+  cardImageWaiters.delete(path);
+  if (waiters && url) waiters.forEach(notify => notify(url));
+}
+
 function drainCardImageQueue() {
-  while (cardImageInFlight < 2 && cardImageQueue.length) {
+  while (cardImageInFlight < CARD_IMAGE_PARALLEL && cardImageQueue.length) {
     const path = cardImageQueue.shift();
     cardImageQueued.delete(path);
     const image = cardImagesByPath.get(path);
-    if (!image || cardImageCache.has(path)) continue;
+    if (!image) { notifyCardImageWaiters(path, ''); continue; }
+    if (cardImageCache.has(path)) { notifyCardImageWaiters(path, cardImageCache.get(path)); continue; }
     cardImageInFlight++;
+    cardImageLoading.add(path);
     loadImageObjectUrl(image, () => {}, () => cardImagesByPath.has(path), true)
       .then(url => {
-        if (!url) return;
+        if (!url) { notifyCardImageWaiters(path, ''); return; }
         if (!cardImagesByPath.has(path)) {
           URL.revokeObjectURL(url);
+          notifyCardImageWaiters(path, '');
           return;
         }
         rememberCardImage(path, url);
         applyCardImage(path, url);
+        notifyCardImageWaiters(path, url);
       })
-      .catch(() => markCardImageUnavailable(path))
+      .catch(() => {
+        // One later retry covers a busy thumbnail generator; waiters stay registered for it.
+        if (!cardImageRetried.has(path)) {
+          cardImageRetried.add(path);
+          setTimeout(() => { if (cardImagesByPath.has(path) && !cardImageCache.has(path)) requestCardImage(path); }, 1500);
+          return;
+        }
+        markCardImageUnavailable(path);
+        notifyCardImageWaiters(path, '');
+      })
       .finally(() => {
         cardImageInFlight--;
+        cardImageLoading.delete(path);
         drainCardImageQueue();
       });
   }
@@ -1649,7 +1710,7 @@ async function exportKnowledgeGraph() {
     dimension:getRelationDimensionName(),
     summary:document.getElementById('gallerySummary').textContent,
     nodes:state.nodes.map(node=>({
-      id:node.id,kind:node.kind,label:node.label,x:node.targetX,y:node.targetY,
+      id:node.id,kind:node.kind,label:node.label,x:Math.round(node.x),y:Math.round(node.y),
       ...(node.review ? {rating:node.review.rating,date:node.review.date,director:node.review.director||'',categories:node.review.categories||[],tags:node.review.tags||[]} : {})
     })),
     edges:state.edges.map(edge=>({source:edge.source,target:edge.target}))
@@ -2581,81 +2642,325 @@ function getRelationLabels(review) {
 function renderRelationGraph(items) {
   const wall=document.getElementById('galleryWall');
   if (knowledgeGraphFrame) cancelAnimationFrame(knowledgeGraphFrame);
+  knowledgeGraphFrame=null;
   wall.className='gallery-wall knowledge-graph-mode';
-  wall.innerHTML='<div class="knowledge-graph-shell"><canvas class="knowledge-graph-canvas" id="knowledgeGraphCanvas" tabindex="0" aria-label="电影知识图谱"></canvas><div class="knowledge-graph-help">拖拽移动 · 滚轮或双指缩放 · 点击节点查看关系</div><aside class="knowledge-graph-panel" id="knowledgeGraphPanel"><div class="knowledge-graph-placeholder">点击电影节点，可以查看它连接了哪些关系，以及通过共同关系关联了哪些电影。</div></aside></div>';
+  wall.innerHTML='<div class="knowledge-graph-shell"><canvas class="knowledge-graph-canvas" id="knowledgeGraphCanvas" tabindex="0" aria-label="电影知识图谱"></canvas><div class="knowledge-graph-help">拖动节点或画布 · 滚轮或双指缩放 · 点击聚焦 · 双击打开影评</div><div class="knowledge-graph-tools" role="toolbar" aria-label="图谱视图"><button type="button" data-graph-action="in" aria-label="放大">＋</button><button type="button" data-graph-action="out" aria-label="缩小">−</button><button type="button" data-graph-action="fit">适应屏幕</button></div><aside class="knowledge-graph-panel" id="knowledgeGraphPanel"><div class="knowledge-graph-placeholder">点击电影节点，可以查看它连接了哪些关系，以及通过共同关系关联了哪些电影。</div></aside></div>';
   document.getElementById('gallerySummary').textContent=`${getGalleryFilterSummary(items)} · ${getRelationDimensionName()}知识图谱`;
-  const canvas=document.getElementById('knowledgeGraphCanvas');
-  const shell=canvas.parentElement;
-  const width=Math.max(shell.clientWidth,280), height=Math.max(shell.clientHeight,560), compact=width<=600, graphWidth=width-(width>760?290:0);
+  const canvas=document.getElementById('knowledgeGraphCanvas'), shell=canvas.parentElement;
+  const width=Math.max(shell.clientWidth,280), height=Math.max(shell.clientHeight,560), compact=width<=600;
+  // The info panel covers the right side on wide screens and the lower part on phones.
+  const view={w:width-(width>760?290:0),h:compact?height*.62:height};
   const labels=[...new Set(items.flatMap(getRelationLabels))].sort((a,b)=>a.localeCompare(b,'zh-CN'));
   const nodes=[], nodeMap=new Map(), edges=[];
-  // Narrow screens draw at their real width; the info panel covers the lower third there.
-  const center={x:graphWidth*(compact?.5:.48),y:height*(compact?.36:.5)}, radius=compact?Math.max(84,Math.min(graphWidth*.3,height*.22)):Math.max(120,Math.min(graphWidth,height)*.36);
+  // Relations start on an ellipse shaped like the screen; the physics relaxes them from there.
+  const center={x:view.w/2,y:view.h/2}, ringX=Math.max(70,view.w*.34), ringY=Math.max(70,view.h*.3);
   labels.forEach((label,index)=>{
     const angle=(Math.PI*2*index/Math.max(labels.length,1))-Math.PI/2;
-    const node={id:`relation:${label}`,kind:'relation',label,x:center.x,y:center.y,targetX:center.x+Math.cos(angle)*radius,targetY:center.y+Math.sin(angle)*radius,size:18};
+    const node={id:`relation:${label}`,kind:'relation',label,degree:0,x:center.x+Math.cos(angle)*ringX,y:center.y+Math.sin(angle)*ringY,vx:0,vy:0,size:14};
     nodes.push(node);nodeMap.set(node.id,node);
   });
   const stableHash=value=>[...value].reduce((hash,char)=>(hash*31+char.charCodeAt(0))>>>0,2166136261);
   items.forEach(review=>{
     const relations=getRelationLabels(review), hubs=relations.map(label=>nodeMap.get(`relation:${label}`)).filter(Boolean);
-    const baseX=hubs.reduce((sum,node)=>sum+node.targetX,0)/Math.max(hubs.length,1), baseY=hubs.reduce((sum,node)=>sum+node.targetY,0)/Math.max(hubs.length,1);
-    const hash=stableHash(review.id), angle=(hash%628)/100, distance=compact?18+(hash%36):28+(hash%72);
-    const node={id:`movie:${review.id}`,kind:'movie',label:review.title,review,x:center.x,y:center.y,targetX:baseX+Math.cos(angle)*distance,targetY:baseY+Math.sin(angle)*distance,size:6};
+    const baseX=hubs.reduce((sum,node)=>sum+node.x,0)/Math.max(hubs.length,1), baseY=hubs.reduce((sum,node)=>sum+node.y,0)/Math.max(hubs.length,1);
+    const hash=stableHash(review.id), angle=(hash%628)/100, distance=20+(hash%40);
+    const node={id:`movie:${review.id}`,kind:'movie',label:review.title,review,x:baseX+Math.cos(angle)*distance,y:baseY+Math.sin(angle)*distance,vx:0,vy:0,
+      size:review.image?(compact?13:16):(compact?6:8),phase:(hash%1000)/1000};
     nodes.push(node);nodeMap.set(node.id,node);
     relations.forEach(label=>edges.push({source:node.id,target:`relation:${label}`,label}));
+    hubs.forEach(hub=>{hub.degree++;});
   });
-  knowledgeGraphState={canvas,width,height,nodes,nodeMap,edges,panX:0,panY:0,zoom:1,selectedId:null,hoverId:null,activeNodes:null,drag:null,progress:0};
+  // A relation that connects more films is drawn larger.
+  nodes.forEach(node=>{if(node.kind==='relation')node.size=(compact?11:14)+Math.min(compact?10:16,Math.sqrt(node.degree)*(compact?2.6:3.6));});
+  edges.forEach(edge=>{edge.a=nodeMap.get(edge.source);edge.b=nodeMap.get(edge.target);edge.bend=((stableHash(edge.source+edge.target)%200)/100-1)*.16;});
+  knowledgeGraphState={canvas,width,height,view,compact,nodes,nodeMap,edges,panX:0,panY:0,zoom:1,selectedId:null,hoverId:null,hoverNodes:null,
+    activeNodes:null,drag:null,alpha:1,ticks:0,camera:null,userMoved:false,posters:new Map(),still:graphPrefersStillness()};
   setupKnowledgeGraphEvents();
-  const started=performance.now();
-  const animate=now=>{ if(!knowledgeGraphState||knowledgeGraphState.canvas!==canvas)return; knowledgeGraphState.progress=Math.min(1,(now-started)/850); drawKnowledgeGraph(); if(knowledgeGraphState.progress<1) knowledgeGraphFrame=requestAnimationFrame(animate); };
-  knowledgeGraphFrame=requestAnimationFrame(animate);
+  loadKnowledgeGraphPosters();
+  if (knowledgeGraphState.still) settleKnowledgeGraph();
+  else { fitKnowledgeGraph(false); requestKnowledgeGraphFrame(); }
 }
 
-function knowledgeGraphPosition(node) {
-  const state=knowledgeGraphState, eased=1-Math.pow(1-state.progress,3);
-  return {x:node.x+(node.targetX-node.x)*eased,y:node.y+(node.targetY-node.y)*eased};
+function graphPrefersStillness() {
+  return Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+
+/* One step of the layout physics: films are pulled toward their relations,
+   every node pushes the others away, and nothing is allowed to overlap. */
+function tickKnowledgeGraph() {
+  const s=knowledgeGraphState, nodes=s.nodes, count=nodes.length, alpha=s.alpha;
+  const cx=s.view.w/2, cy=s.view.h/2, gap=s.compact?7:12, spread=s.compact?.5:1;
+  // Gravity is weaker along the longer side so the layout uses the shape of the screen.
+  const gx=.009*Math.min(1,s.view.h/s.view.w), gy=.009*Math.min(1,s.view.w/s.view.h);
+  // Very large archives sample node pairs so one frame stays cheap.
+  const stride=count>600?Math.ceil(count/600):1;
+  for(let i=0;i<count;i++){
+    const a=nodes[i];
+    for(let j=i+1+((s.ticks+i)%stride);j<count;j+=stride){
+      const b=nodes[j];
+      let dx=b.x-a.x, dy=b.y-a.y, d2=dx*dx+dy*dy;
+      if(d2<.01){dx=((i+j)%2?1:-1)*.5;dy=.5;d2=.5;}
+      const d=Math.sqrt(d2), reach=a.size+b.size+gap;
+      const charge=(a.kind==='relation'?(b.kind==='relation'?7000:1700):(b.kind==='relation'?1700:520))*spread;
+      let push=charge*alpha*stride/d2;
+      if(d<reach)push+=(reach-d)*.45;
+      const px=dx/d*push, py=dy/d*push;
+      if(!a.fixed){a.vx-=px;a.vy-=py;}
+      if(!b.fixed){b.vx+=px;b.vy+=py;}
+    }
+  }
+  for(const edge of s.edges){
+    const film=edge.a, hub=edge.b, dx=hub.x-film.x, dy=hub.y-film.y, d=Math.sqrt(dx*dx+dy*dy)||1;
+    const rest=hub.size+film.size+(s.compact?16:30)+Math.sqrt(hub.degree)*(s.compact?6:10);
+    const pull=(d-rest)/d*.07*alpha;
+    if(!film.fixed){film.vx+=dx*pull*.85;film.vy+=dy*pull*.85;}
+    if(!hub.fixed){hub.vx-=dx*pull*.15;hub.vy-=dy*pull*.15;}
+  }
+  for(const node of nodes){
+    if(node.fixed){node.vx=0;node.vy=0;continue;}
+    node.vx=(node.vx+(cx-node.x)*gx*alpha)*.78;
+    node.vy=(node.vy+(cy-node.y)*gy*alpha)*.78;
+    node.x+=node.vx;node.y+=node.vy;
+  }
+  s.ticks++;
+  s.alpha+=((s.drag&&s.drag.node&&s.drag.moved?.3:0)-s.alpha)*.022;
+}
+
+/* Finish the layout at once: used when motion is reduced, before exporting and in tests. */
+function settleKnowledgeGraph() {
+  const s=knowledgeGraphState;if(!s)return;
+  for(let guard=0;guard<600&&s.alpha>.006;guard++)tickKnowledgeGraph();
+  // Remaining contacts are resolved without the attracting forces.
+  for(let pass=0;pass<80;pass++){
+    let moved=false;
+    for(let i=0;i<s.nodes.length;i++)for(let j=i+1;j<s.nodes.length;j++){
+      const a=s.nodes[i], b=s.nodes[j], dx=b.x-a.x, dy=b.y-a.y, d=Math.sqrt(dx*dx+dy*dy)||.01, reach=a.size+b.size+1;
+      if(d>=reach)continue;
+      const shift=(reach-d)/2+.05, ux=dx/d, uy=dy/d;
+      a.x-=ux*shift;a.y-=uy*shift;b.x+=ux*shift;b.y+=uy*shift;moved=true;
+    }
+    if(!moved)break;
+  }
+  s.alpha=0;
+  if(s.camera){s.zoom=s.camera.zoom;s.panX=s.camera.panX;s.panY=s.camera.panY;s.camera=null;}
+  if(!s.userMoved)fitKnowledgeGraph(false);
+  drawKnowledgeGraph();
+}
+
+function fitKnowledgeGraph(animate=true) {
+  const s=knowledgeGraphState;if(!s||!s.nodes.length)return;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  for(const node of s.nodes){
+    minX=Math.min(minX,node.x-node.size);maxX=Math.max(maxX,node.x+node.size);
+    minY=Math.min(minY,node.y-node.size);maxY=Math.max(maxY,node.y+node.size+(node.kind==='relation'?20:0));
+  }
+  const pad=s.compact?22:44, zoom=Math.max(.25,Math.min(s.compact?1.05:1.15,Math.min((s.view.w-pad*2)/Math.max(maxX-minX,1),(s.view.h-pad*2)/Math.max(maxY-minY,1))));
+  const target={zoom,panX:s.view.w/2-(minX+maxX)/2*zoom,panY:s.view.h/2-(minY+maxY)/2*zoom};
+  if(animate)s.camera=target;
+  else{s.zoom=target.zoom;s.panX=target.panX;s.panY=target.panY;s.camera=null;}
+  requestKnowledgeGraphFrame();
+}
+
+function zoomKnowledgeGraph(factor,x,y) {
+  const s=knowledgeGraphState;if(!s)return;
+  const base=s.camera||s, next=Math.max(.25,Math.min(4,base.zoom*factor)), ratio=next/base.zoom;
+  s.camera={zoom:next,panX:x-(x-base.panX)*ratio,panY:y-(y-base.panY)*ratio};
+  s.userMoved=true;
+  requestKnowledgeGraphFrame();
+}
+
+function requestKnowledgeGraphFrame() {
+  if(knowledgeGraphFrame||!knowledgeGraphState)return;
+  knowledgeGraphFrame=requestAnimationFrame(stepKnowledgeGraph);
+}
+
+function stepKnowledgeGraph() {
+  knowledgeGraphFrame=null;
+  const s=knowledgeGraphState;if(!s)return;
+  let busy=false;
+  if(s.alpha>.006||(s.drag&&s.drag.node&&s.drag.moved)){
+    tickKnowledgeGraph();busy=true;
+    if(!s.userMoved)fitKnowledgeGraph(true);
+  }
+  if(s.camera){
+    s.zoom+=(s.camera.zoom-s.zoom)*.2;s.panX+=(s.camera.panX-s.panX)*.2;s.panY+=(s.camera.panY-s.panY)*.2;
+    if(Math.abs(s.camera.zoom-s.zoom)<.002&&Math.abs(s.camera.panX-s.panX)<.5&&Math.abs(s.camera.panY-s.panY)<.5){s.zoom=s.camera.zoom;s.panX=s.camera.panX;s.panY=s.camera.panY;s.camera=null;}
+    busy=true;
+  }
+  drawKnowledgeGraph();
+  // A focused node keeps the light moving along its links.
+  if(busy||((s.activeNodes||s.hoverNodes)&&!s.still))requestKnowledgeGraphFrame();
 }
 
 function drawKnowledgeGraph() {
-  const state=knowledgeGraphState;if(!state)return;const {canvas,width,height}=state,dpr=Math.min(devicePixelRatio||1,1.5);
+  const state=knowledgeGraphState;if(!state)return;const {canvas,width,height}=state,dpr=Math.min(devicePixelRatio||1,2);
   if(canvas.width!==Math.round(width*dpr)||canvas.height!==Math.round(height*dpr)){canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);}
-  const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);ctx.save();ctx.translate(state.panX,state.panY);ctx.scale(state.zoom,state.zoom);
-  state.edges.forEach(edge=>{const a=state.nodeMap.get(edge.source),b=state.nodeMap.get(edge.target),pa=knowledgeGraphPosition(a),pb=knowledgeGraphPosition(b),active=!state.activeNodes||state.activeNodes.has(a.id)&&state.activeNodes.has(b.id);ctx.beginPath();ctx.moveTo(pa.x,pa.y);ctx.lineTo(pb.x,pb.y);ctx.strokeStyle=active?'rgba(214,176,106,.68)':'rgba(177,165,166,.10)';ctx.lineWidth=active?1.5:.55;ctx.stroke();});
-  const selectedNode=state.selectedId&&state.nodeMap.get(state.selectedId);
-  state.nodes.forEach(node=>{
-    const p=knowledgeGraphPosition(node),active=!state.activeNodes||state.activeNodes.has(node.id),hover=node.id===state.hoverId||node.id===state.selectedId;
-    const showConnectedMovieName=selectedNode&&selectedNode.kind==='relation'&&node.kind==='movie'&&active;
-    ctx.globalAlpha=active?1:.18;ctx.beginPath();ctx.arc(p.x,p.y,hover?node.size+3:node.size,0,Math.PI*2);ctx.fillStyle=node.kind==='relation'?'#d6b06a':hover?'#f0c674':'#6fa7a1';ctx.fill();
-    if(node.kind==='relation'||hover||showConnectedMovieName||state.zoom>1.55){
-      const text=node.label.length>16?node.label.slice(0,15)+'…':node.label;
-      ctx.font=node.kind==='relation'?'700 12px sans-serif':'11px sans-serif';ctx.textAlign='center';
-      if(showConnectedMovieName&&!hover){const metrics=ctx.measureText(text),y=p.y+node.size+15;ctx.fillStyle='rgba(13,11,12,.88)';ctx.fillRect(p.x-metrics.width/2-3,y-11,metrics.width+6,15);}
-      ctx.fillStyle='#f3ede5';ctx.fillText(text,p.x,p.y+node.size+15);
+  const ctx=canvas.getContext('2d'), zoom=state.zoom, focus=state.activeNodes||state.hoverNodes, time=performance.now();
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);ctx.save();ctx.translate(state.panX,state.panY);ctx.scale(zoom,zoom);
+  const thin=1/Math.sqrt(zoom);
+  for(const edge of state.edges){
+    const a=edge.a,b=edge.b,lit=Boolean(focus)&&focus.has(a.id)&&focus.has(b.id);
+    const mx=(a.x+b.x)/2+(b.y-a.y)*edge.bend,my=(a.y+b.y)/2-(b.x-a.x)*edge.bend;
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.quadraticCurveTo(mx,my,b.x,b.y);
+    ctx.strokeStyle=lit?'rgba(214,176,106,.85)':focus?'rgba(177,165,166,.06)':'rgba(214,176,106,.22)';
+    ctx.lineWidth=(lit?1.8:1)*thin;ctx.stroke();
+    if(lit&&!state.still){
+      const t=(time/1700+a.phase)%1,u=1-t;
+      ctx.beginPath();ctx.arc(u*u*a.x+2*u*t*mx+t*t*b.x,u*u*a.y+2*u*t*my+t*t*b.y,2.4*thin,0,Math.PI*2);ctx.fillStyle='#f0c674';ctx.fill();
     }
-  });ctx.globalAlpha=1;ctx.restore();
+  }
+  for(const node of state.nodes){
+    const active=!focus||focus.has(node.id),hover=node.id===state.hoverId||node.id===state.selectedId,r=node.size*(hover?1.14:1);
+    ctx.globalAlpha=active?1:.16;
+    if(node.kind==='relation'){
+      const halo=ctx.createRadialGradient(node.x,node.y,r*.6,node.x,node.y,r*2.1);
+      halo.addColorStop(0,'rgba(214,176,106,.26)');halo.addColorStop(1,'rgba(214,176,106,0)');
+      ctx.beginPath();ctx.arc(node.x,node.y,r*2.1,0,Math.PI*2);ctx.fillStyle=halo;ctx.fill();
+      const body=ctx.createRadialGradient(node.x-r*.35,node.y-r*.4,r*.1,node.x,node.y,r);
+      body.addColorStop(0,'#f6dea6');body.addColorStop(.55,'#d6b06a');body.addColorStop(1,'#8f6c34');
+      ctx.beginPath();ctx.arc(node.x,node.y,r,0,Math.PI*2);ctx.fillStyle=body;ctx.fill();
+      ctx.lineWidth=(hover?2.4:1.2)*thin;ctx.strokeStyle=hover?'#fff':'rgba(255,244,214,.55)';ctx.stroke();
+    }else{
+      const ringColor=GRAPH_RING_COLORS[node.review.rating]||'#8a7f82',poster=state.posters.get(node.id);
+      ctx.beginPath();ctx.arc(node.x,node.y,r,0,Math.PI*2);
+      if(poster){ctx.fillStyle='#151113';ctx.fill();ctx.drawImage(poster,node.x-r,node.y-r,r*2,r*2);}
+      else{
+        ctx.fillStyle='#211a1d';ctx.fill();
+        ctx.fillStyle=ringColor;ctx.font=`700 ${Math.max(7,r*1.05)}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(Array.from(node.label)[0]||'',node.x,node.y+r*.06);
+      }
+      ctx.beginPath();ctx.arc(node.x,node.y,r,0,Math.PI*2);
+      ctx.lineWidth=(hover?3:2.2)*thin;ctx.strokeStyle=hover?'#fff':ringColor;ctx.stroke();
+    }
+  }
+  ctx.globalAlpha=1;ctx.restore();
+  // Names are drawn in screen space so they stay sharp and the same size at any zoom.
+  const selectedNode=state.selectedId&&state.nodeMap.get(state.selectedId),placed=[];
+  const writeName=(node,strong)=>{
+    const text=node.label.length>16?node.label.slice(0,15)+'…':node.label;
+    ctx.font=node.kind==='relation'?'700 12px sans-serif':'11px sans-serif';
+    const w=ctx.measureText(text).width+10,x=node.x*zoom+state.panX,radius=node.size*zoom;
+    if(node.kind==='relation'&&w-4<=radius*2){
+      ctx.fillStyle='#2a1c0a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,x,node.y*zoom+state.panY+1);return;
+    }
+    const y=node.y*zoom+state.panY+radius+7,box={l:x-w/2,t:y,r:x+w/2,b:y+17};
+    if(!strong&&placed.some(other=>box.l<other.r&&box.r>other.l&&box.t<other.b&&box.b>other.t))return;
+    placed.push(box);
+    ctx.fillStyle='rgba(13,11,12,.78)';ctx.beginPath();ctx.rect(box.l,box.t,w,17);ctx.fill();
+    ctx.fillStyle=node.kind==='relation'?'#f0d9a6':'#f3ede5';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,x,y+9);
+  };
+  const named=node=>!focus||focus.has(node.id);
+  state.nodes.filter(node=>node.id===state.hoverId||node.id===state.selectedId).forEach(node=>writeName(node,true));
+  [...state.nodes].filter(node=>node.kind==='relation'&&named(node)&&node.id!==state.hoverId&&node.id!==state.selectedId).sort((a,b)=>b.degree-a.degree).forEach(node=>writeName(node,false));
+  for(const node of state.nodes){
+    if(node.kind!=='movie'||node.id===state.hoverId||node.id===state.selectedId||!named(node))continue;
+    const showConnectedMovieName=Boolean(focus)&&(!selectedNode||selectedNode.kind==='relation'||focus.size<=14);
+    if(showConnectedMovieName||zoom>=1.6)writeName(node,false);
+  }
 }
 
-function knowledgeGraphHit(x,y) {const s=knowledgeGraphState;if(!s)return null;const wx=(x-s.panX)/s.zoom,wy=(y-s.panY)/s.zoom;let hit=null,best=Infinity;s.nodes.forEach(node=>{const p=knowledgeGraphPosition(node),d=Math.hypot(wx-p.x,wy-p.y),r=Math.max(node.size+5,10);if(d<r&&d<best){hit=node;best=d;}});return hit;}
+function knowledgeGraphHit(x,y) {
+  const s=knowledgeGraphState;if(!s)return null;
+  const wx=(x-s.panX)/s.zoom,wy=(y-s.panY)/s.zoom;let hit=null,best=Infinity;
+  s.nodes.forEach(node=>{const d=Math.hypot(wx-node.x,wy-node.y),r=Math.max(node.size+4,10/s.zoom);if(d<r&&d<best){hit=node;best=d;}});
+  return hit;
+}
+
+function knowledgeGraphNeighbours(id) {
+  const s=knowledgeGraphState,near=new Set([id]);
+  s.edges.forEach(edge=>{if(edge.source===id)near.add(edge.target);else if(edge.target===id)near.add(edge.source);});
+  return near;
+}
+
+function loadKnowledgeGraphPosters() {
+  const s=knowledgeGraphState;
+  s.nodes.forEach(node=>{
+    if(node.kind!=='movie'||!node.review.image)return;
+    requestCardImage(node.review.image.path,url=>{
+      if(knowledgeGraphState!==s)return;
+      const image=new Image();
+      image.onload=()=>{
+        if(knowledgeGraphState!==s)return;
+        // A round sprite is prepared once so each frame only copies pixels.
+        const side=96,sprite=document.createElement('canvas'),context=sprite.getContext('2d');
+        sprite.width=sprite.height=side;
+        const scale=Math.max(side/image.naturalWidth,side/image.naturalHeight),w=image.naturalWidth*scale,h=image.naturalHeight*scale;
+        context.beginPath();context.arc(side/2,side/2,side/2,0,Math.PI*2);context.clip();
+        context.drawImage(image,(side-w)/2,(side-h)*.3,w,h);
+        s.posters.set(node.id,sprite);
+        requestKnowledgeGraphFrame();
+      };
+      image.src=url;
+    });
+  });
+}
 
 function setupKnowledgeGraphEvents() {
   const s=knowledgeGraphState,c=s.canvas;
   const pointers=new Map();let pinch=null;
   const local=e=>{const r=c.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};};
-  c.onpointerdown=e=>{if(e.pointerType==='mouse'&&e.button!==0)return;const p=local(e);pointers.set(e.pointerId,p);c.setPointerCapture(e.pointerId);if(pointers.size===1){s.drag={x:p.x,y:p.y,panX:s.panX,panY:s.panY,moved:false};c.classList.add('dragging');}else if(pointers.size===2){const[a,b]=[...pointers.values()];pinch={distance:Math.hypot(a.x-b.x,a.y-b.y),zoom:s.zoom};s.drag=null;}};
-  c.onpointermove=e=>{const p=local(e);if(pointers.has(e.pointerId))pointers.set(e.pointerId,p);if(pinch&&pointers.size===2){const[a,b]=[...pointers.values()],center={x:(a.x+b.x)/2,y:(a.y+b.y)/2},next=Math.max(.45,Math.min(2.6,pinch.zoom*Math.hypot(a.x-b.x,a.y-b.y)/Math.max(pinch.distance,1))),ratio=next/s.zoom;s.panX=center.x-(center.x-s.panX)*ratio;s.panY=center.y-(center.y-s.panY)*ratio;s.zoom=next;drawKnowledgeGraph();return;}if(s.drag&&pointers.has(e.pointerId)){const dx=p.x-s.drag.x,dy=p.y-s.drag.y;s.drag.moved=s.drag.moved||Math.hypot(dx,dy)>3;s.panX=s.drag.panX+dx;s.panY=s.drag.panY+dy;drawKnowledgeGraph();return;}const hit=knowledgeGraphHit(p.x,p.y);s.hoverId=hit&&hit.id;c.style.cursor=hit?'pointer':'grab';drawKnowledgeGraph();};
-  c.onpointerup=e=>{const p=local(e),wasPinch=Boolean(pinch),moved=s.drag&&s.drag.moved;pointers.delete(e.pointerId);if(pointers.size<2)pinch=null;s.drag=null;c.classList.remove('dragging');if(pointers.size===1){const remaining=[...pointers.values()][0];s.drag={x:remaining.x,y:remaining.y,panX:s.panX,panY:s.panY,moved:true};}if(!wasPinch&&!moved&&pointers.size===0){const hit=knowledgeGraphHit(p.x,p.y);selectKnowledgeGraphNode(hit&&hit.id);}};
-  c.onpointercancel=e=>{pointers.delete(e.pointerId);pinch=null;s.drag=null;c.classList.remove('dragging');};
-  c.onwheel=e=>{e.preventDefault();const old=s.zoom,next=Math.max(.45,Math.min(2.6,old*(e.deltaY<0?1.12:.89)));s.panX=e.offsetX-(e.offsetX-s.panX)*(next/old);s.panY=e.offsetY-(e.offsetY-s.panY)*(next/old);s.zoom=next;drawKnowledgeGraph();};
+  const capture=e=>{try{c.setPointerCapture(e.pointerId);}catch(_){/* Synthetic or already released pointer. */}};
+  const release=()=>{if(s.drag&&s.drag.node)s.drag.node.fixed=false;s.drag=null;c.classList.remove('dragging');};
+  c.onpointerdown=e=>{
+    if(e.pointerType==='mouse'&&e.button!==0)return;
+    const p=local(e);pointers.set(e.pointerId,p);capture(e);
+    if(pointers.size===2){const[a,b]=[...pointers.values()];release();pinch={distance:Math.hypot(a.x-b.x,a.y-b.y),zoom:s.zoom};return;}
+    const hit=knowledgeGraphHit(p.x,p.y);
+    s.drag={x:p.x,y:p.y,panX:s.panX,panY:s.panY,moved:false,node:hit,startX:hit?hit.x:0,startY:hit?hit.y:0};
+    c.classList.add('dragging');
+  };
+  c.onpointermove=e=>{
+    const p=local(e);if(pointers.has(e.pointerId))pointers.set(e.pointerId,p);
+    if(pinch&&pointers.size===2){
+      const[a,b]=[...pointers.values()],mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2},next=Math.max(.25,Math.min(4,pinch.zoom*Math.hypot(a.x-b.x,a.y-b.y)/Math.max(pinch.distance,1))),ratio=next/s.zoom;
+      s.camera=null;s.panX=mid.x-(mid.x-s.panX)*ratio;s.panY=mid.y-(mid.y-s.panY)*ratio;s.zoom=next;s.userMoved=true;requestKnowledgeGraphFrame();return;
+    }
+    if(s.drag&&pointers.has(e.pointerId)){
+      const dx=p.x-s.drag.x,dy=p.y-s.drag.y;
+      if(!s.drag.moved&&Math.hypot(dx,dy)>4){s.drag.moved=true;s.userMoved=true;s.camera=null;if(s.drag.node)s.drag.node.fixed=true;}
+      if(!s.drag.moved)return;
+      if(s.drag.node){s.drag.node.x=s.drag.startX+dx/s.zoom;s.drag.node.y=s.drag.startY+dy/s.zoom;s.alpha=Math.max(s.alpha,.3);}
+      else{s.panX=s.drag.panX+dx;s.panY=s.drag.panY+dy;}
+      requestKnowledgeGraphFrame();return;
+    }
+    const hit=knowledgeGraphHit(p.x,p.y),id=hit?hit.id:null;
+    if(id===s.hoverId)return;
+    s.hoverId=id;s.hoverNodes=id?knowledgeGraphNeighbours(id):null;c.style.cursor=hit?'pointer':'grab';requestKnowledgeGraphFrame();
+  };
+  c.onpointerup=e=>{
+    const p=local(e),wasPinch=Boolean(pinch),drag=s.drag;pointers.delete(e.pointerId);if(pointers.size<2)pinch=null;
+    release();
+    if(wasPinch||!drag||pointers.size)return;
+    if(!drag.moved){const hit=knowledgeGraphHit(p.x,p.y);selectKnowledgeGraphNode(hit&&hit.id);}
+    else requestKnowledgeGraphFrame();
+  };
+  c.onpointercancel=e=>{pointers.delete(e.pointerId);pinch=null;release();};
+  c.onpointerleave=()=>{if(s.hoverId&&!s.drag){s.hoverId=null;s.hoverNodes=null;requestKnowledgeGraphFrame();}};
+  c.ondblclick=e=>{const p=local(e),hit=knowledgeGraphHit(p.x,p.y);if(hit&&hit.kind==='movie')openGalleryDetail(hit.review.id);};
+  c.onwheel=e=>{e.preventDefault();const p=local(e);zoomKnowledgeGraph(e.deltaY<0?1.14:.88,p.x,p.y);};
+  c.onkeydown=e=>{
+    if(e.key==='+'||e.key==='='){e.preventDefault();zoomKnowledgeGraph(1.25,s.view.w/2,s.view.h/2);}
+    else if(e.key==='-'||e.key==='_'){e.preventDefault();zoomKnowledgeGraph(.8,s.view.w/2,s.view.h/2);}
+    else if(e.key==='0'){e.preventDefault();s.userMoved=false;fitKnowledgeGraph();}
+    else if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
+      e.preventDefault();const index=s.nodes.findIndex(node=>node.id===s.selectedId),step=e.key==='ArrowRight'?1:-1;
+      selectKnowledgeGraphNode(s.nodes[(index+step+s.nodes.length)%s.nodes.length].id);
+    }else if(e.key==='Enter'){const node=s.selectedId&&s.nodeMap.get(s.selectedId);if(node&&node.kind==='movie'){e.preventDefault();openGalleryDetail(node.review.id);}}
+  };
+  c.parentElement.querySelector('.knowledge-graph-tools').onclick=e=>{
+    const button=e.target.closest('[data-graph-action]');if(!button)return;
+    if(button.dataset.graphAction==='fit'){s.userMoved=false;fitKnowledgeGraph();}
+    else zoomKnowledgeGraph(button.dataset.graphAction==='in'?1.3:1/1.3,s.view.w/2,s.view.h/2);
+  };
 }
 
 function selectKnowledgeGraphNode(id) {
-  const s=knowledgeGraphState;if(!s)return;s.selectedId=id;s.activeNodes=null;const panel=document.getElementById('knowledgeGraphPanel');if(!id){panel.innerHTML='<div class="knowledge-graph-placeholder">点击电影节点，可以查看它连接了哪些关系，以及通过共同关系关联了哪些电影。</div>';drawKnowledgeGraph();return;}
+  const s=knowledgeGraphState;if(!s)return;s.selectedId=id;s.activeNodes=null;const panel=document.getElementById('knowledgeGraphPanel');if(!id){panel.innerHTML='<div class="knowledge-graph-placeholder">点击电影节点，可以查看它连接了哪些关系，以及通过共同关系关联了哪些电影。</div>';requestKnowledgeGraphFrame();return;}
   const node=s.nodeMap.get(id),active=new Set([id]);let relationLabels=[],related=[];
   if(node.kind==='movie'){relationLabels=getRelationLabels(node.review);relationLabels.forEach(label=>active.add(`relation:${label}`));related=s.nodes.filter(other=>other.kind==='movie'&&other.id!==id).map(other=>({node:other,shared:getRelationLabels(other.review).filter(value=>relationLabels.includes(value))})).filter(item=>item.shared.length).sort((a,b)=>b.shared.length-a.shared.length||b.node.review.rating-a.node.review.rating);related.forEach(item=>active.add(item.node.id));}
   else {relationLabels=[node.label];related=s.nodes.filter(other=>other.kind==='movie'&&getRelationLabels(other.review).includes(node.label)).map(other=>({node:other,shared:[node.label]}));related.forEach(item=>active.add(item.node.id));}
   s.activeNodes=active;
-  panel.innerHTML=`<h3>${escapeHtml(node.label)}</h3><p>${node.kind==='movie'?`通过${getRelationDimensionName()}与 ${related.length} 部电影相关`:`关联 ${related.length} 部电影`}</p><h4>关系</h4><div class="knowledge-graph-pills">${relationLabels.map(value=>`<span class="knowledge-graph-pill">${escapeHtml(value)}</span>`).join('')}</div>${node.kind==='movie'?`<button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="openGalleryDetail('${escapeHtml(node.review.id)}')">查看影评详情</button>`:''}<h4>相关电影</h4><div class="knowledge-graph-related">${related.slice(0,30).map(item=>`<button type="button" onclick="selectKnowledgeGraphNode('movie:${escapeHtml(item.node.review.id)}')">${escapeHtml(item.node.label)} · ${escapeHtml(item.shared.join('、'))}</button>`).join('')||'<p>暂无相关电影</p>'}</div>`;drawKnowledgeGraph();
+  panel.innerHTML=`<h3>${escapeHtml(node.label)}</h3><p>${node.kind==='movie'?`通过${getRelationDimensionName()}与 ${related.length} 部电影相关`:`关联 ${related.length} 部电影`}</p><h4>关系</h4><div class="knowledge-graph-pills">${relationLabels.map(value=>`<span class="knowledge-graph-pill">${escapeHtml(value)}</span>`).join('')}</div>${node.kind==='movie'?`<button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="openGalleryDetail('${escapeHtml(node.review.id)}')">查看影评详情</button>`:''}<h4>相关电影</h4><div class="knowledge-graph-related">${related.slice(0,30).map(item=>`<button type="button" onclick="selectKnowledgeGraphNode('movie:${escapeHtml(item.node.review.id)}')">${escapeHtml(item.node.label)} · ${escapeHtml(item.shared.join('、'))}</button>`).join('')||'<p>暂无相关电影</p>'}</div>`;requestKnowledgeGraphFrame();
 }
 
 function openGallery() {
@@ -2666,6 +2971,7 @@ function openGallery() {
   if (document.getElementById('modalOverlay').classList.contains('active')) closeModal();
   cardImageQueue = [];
   cardImageQueued.clear();
+  cardImageWaiters.clear();
   renderGallery(getVisibleReviews());
   document.getElementById('galleryOverlay').classList.add('active');
   document.body.classList.add('gallery-open');
@@ -2684,6 +2990,7 @@ function closeGallery() {
   knowledgeGraphState = null;
   cardImageQueue = [];
   cardImageQueued.clear();
+  cardImageWaiters.clear();
   galleryImageNodes.clear();
   document.getElementById('galleryWall').replaceChildren();
   requestAnimationFrame(hydrateCardImages);
@@ -3069,6 +3376,14 @@ document.getElementById('lightboxImage').addEventListener('load',renderLightboxZ
 window.addEventListener('resize',()=>{
   if(document.getElementById('lightboxOverlay').classList.contains('active'))renderLightboxZoom();
 });
+
+let galleryScrollTimer = null;
+document.getElementById('galleryStage').addEventListener('scroll', () => {
+  const wall = document.getElementById('galleryWall');
+  wall.classList.add('is-scrolling');
+  clearTimeout(galleryScrollTimer);
+  galleryScrollTimer = setTimeout(() => wall.classList.remove('is-scrolling'), 160);
+}, {passive: true});
 
 document.getElementById('galleryWall').addEventListener('pointerover', event => {
   const card = event.target.closest('.gallery-card');

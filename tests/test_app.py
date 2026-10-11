@@ -612,10 +612,10 @@ class FrontendImageDropTests(unittest.TestCase):
 
     def test_homepage_card_images_are_lazy_loaded_and_cached(self):
         self.assertIn("const cardImageCache = new Map()", self.html)
-        self.assertIn("const MAX_CARD_IMAGE_CACHE = 24", self.html)
+        self.assertIn("const MAX_CARD_IMAGE_CACHE = 600", self.html)
         self.assertIn("IntersectionObserver", self.html)
         self.assertIn("rootMargin: '280px 0px'", self.html)
-        self.assertIn("while (cardImageInFlight < 2", self.html)
+        self.assertIn("while (cardImageInFlight < CARD_IMAGE_PARALLEL", self.html)
         self.assertIn("URL.revokeObjectURL(url)", self.html)
 
     def test_curation_wall_uses_current_filtered_reviews_and_rating_weights(self):
@@ -711,8 +711,8 @@ class FrontendImageDropTests(unittest.TestCase):
         self.assertIn("--accent: #a44752", self.html)
         self.assertIn("--gold: #d6b06a", self.html)
         self.assertIn("--graph-movie: #6fa7a1", self.html)
-        self.assertIn("node.kind==='relation'?'#d6b06a'", self.html)
-        self.assertIn("hover?'#f0c674':'#6fa7a1'", self.html)
+        self.assertIn("GRAPH_RING_COLORS = {5: '#d6b06a', 4: '#c15b66', 3: '#6fa7a1'}", self.html)
+        self.assertIn("ctx.fillStyle='#f0c674'", self.html)
         for old_color in ("#6366f1", "#818cf8", "#a78bfa", "#67e8f9", "#fbbf24"):
             self.assertNotIn(old_color, self.html.lower())
 

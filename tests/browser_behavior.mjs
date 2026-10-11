@@ -17,6 +17,11 @@ const sample = () => [
     rewatches: [{watchedAt: '2022-03-05T19:00', feeling: '第二遍', rating: 3, createdAt: 1700000003000}]}
 ];
 const phone = {width: 375, height: 812, mobile: true};
+const hex = index => index.toString(16).padStart(64, 'a');
+const posterArchive = count => Array.from({length: count}, (_, index) => ({id: 'p' + index, title: '海报电影 ' + (index + 1), director: '导演' + index % 7,
+  date: `20${10 + index % 15}-0${index % 9 + 1}-1${index % 9}`, rating: index % 5 + 1, tags: ['标签' + index % 4], comment: '合成记录',
+  categories: index % 3 ? ['分类' + index % 6] : ['分类' + index % 6, '分类' + (index + 2) % 6], createdAt: 1700000000000 + index, updatedAt: 1700000000000 + index,
+  ...(index % 6 === 5 ? {} : {image: {path: `media/${hex(index)}.jpg`, name: `p${index}.jpg`, mime: 'image/jpeg', size: 1000}})}));
 const browser = await launchBrowser('browser-behavior');
 const {page, loadApp} = browser;
 const results = [];
@@ -114,15 +119,16 @@ try {
     const gallery = await page(async () => {
       openGallery();
       await new Promise(resolve => setTimeout(resolve, 500));
-      knowledgeGraphState.progress = 1; drawKnowledgeGraph();
+      settleKnowledgeGraph();
       const canvas = document.getElementById('knowledgeGraphCanvas'), bounds = canvas.getBoundingClientRect();
-      const node = knowledgeGraphState.nodes.find(item => item.kind === 'relation'), position = knowledgeGraphPosition(node);
-      const hit = knowledgeGraphHit(position.x * knowledgeGraphState.zoom + knowledgeGraphState.panX, position.y * knowledgeGraphState.zoom + knowledgeGraphState.panY);
+      const node = knowledgeGraphState.nodes.find(item => item.kind === 'relation');
+      const position = {x: node.x * knowledgeGraphState.zoom + knowledgeGraphState.panX, y: node.y * knowledgeGraphState.zoom + knowledgeGraphState.panY};
+      const hit = knowledgeGraphHit(position.x, position.y);
       const result = {headerHeight: Math.round(document.querySelector('.gallery-header').getBoundingClientRect().height),
         titleWidth: Math.round(document.getElementById('galleryTitle').getBoundingClientRect().width),
         exportRight: Math.round(document.getElementById('galleryExportButton').getBoundingClientRect().right),
         viewport: document.documentElement.clientWidth, logicalWidth: knowledgeGraphState.width, cssWidth: Math.round(bounds.width),
-        nodeInsideCanvas: position.x >= 0 && position.x <= bounds.width, hitsOwnNode: hit?.id === node.id,
+        nodeInsideCanvas: position.x >= 0 && position.x <= bounds.width && position.y >= 0 && position.y <= bounds.height, hitsOwnNode: hit?.id === node.id,
         pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth};
       closeGallery();
       return result;
@@ -228,6 +234,134 @@ try {
     });
     assert.deepEqual(flow, {deleteAsks: true, keptAfterCancel: true, deletedAfterAccept: true, importAsks: true,
       importApplied: true, nativeDialogs: 0});
+  });
+
+  await check('scrolling the poster wall back and forth does not reload posters', async () => {
+    await loadApp({reviews: posterArchive(60), stills: true, ...phone});
+    const wall = await page(async () => {
+      const stage = document.getElementById('galleryStage');
+      const idle = async () => { for (let waited = 0; waited < 20000; waited += 100) { await new Promise(resolve => setTimeout(resolve, 100)); if (cardImageInFlight === 0 && cardImageQueue.length === 0) return; } };
+      const sweep = async () => { const max = stage.scrollHeight - stage.clientHeight;
+        for (const direction of [1, -1]) for (let step = 0; step <= 30; step++) { stage.scrollTop = direction > 0 ? max * step / 30 : max * (1 - step / 30); await new Promise(resolve => requestAnimationFrame(resolve)); await idle(); } };
+      openGallery(); setGalleryMode('wall'); await idle();
+      await sweep();
+      const loadedOnce = window.__qa.imageReads;
+      await sweep(); await sweep();
+      const images = [...document.querySelectorAll('.gallery-card-image')];
+      return {posters: images.length, readsForFirstPass: loadedOnce, extraReads: window.__qa.imageReads - loadedOnce,
+        widest: Math.max(...images.map(image => image.naturalWidth)), ready: document.querySelectorAll('.gallery-card.image-ready').length};
+    });
+    assert.equal(wall.posters, 50, JSON.stringify(wall));
+    assert.deepEqual({readsForFirstPass: wall.readsForFirstPass, extraReads: wall.extraReads, ready: wall.ready}, {readsForFirstPass: 50, extraReads: 0, ready: 50}, JSON.stringify(wall));
+    assert.ok(wall.widest > 0 && wall.widest <= 480, JSON.stringify(wall));
+  });
+
+  await check('poster wall avoids per-card blur and pauses hover effects while scrolling', async () => {
+    await loadApp({reviews: posterArchive(24), stills: true});
+    const effects = await page(async () => {
+      openGallery(); setGalleryMode('wall');
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const stage = document.getElementById('galleryStage'), wallElement = document.getElementById('galleryWall'), card = document.querySelector('.gallery-card');
+      const result = {wallChip: getComputedStyle(document.querySelector('.gallery-card-rating')).backdropFilter,
+        homeChip: getComputedStyle(document.querySelector('.card-rating-chip')).backdropFilter};
+      stage.scrollTop = 40; stage.dispatchEvent(new Event('scroll'));
+      result.pausedWhileScrolling = wallElement.classList.contains('is-scrolling') && getComputedStyle(card).pointerEvents === 'none';
+      await new Promise(resolve => setTimeout(resolve, 450));
+      result.restoredAfterwards = !wallElement.classList.contains('is-scrolling') && getComputedStyle(card).pointerEvents !== 'none';
+      return result;
+    });
+    assert.deepEqual(effects, {wallChip: 'none', homeChip: 'none', pausedWhileScrolling: true, restoredAfterwards: true});
+  });
+
+  await check('a poster that fails to load once is retried', async () => {
+    await loadApp({reviews: posterArchive(4), stills: true});
+    const retry = await page(async () => {
+      const original = window.pywebview.api.get_review_image_info, failed = new Set();
+      for (let waited = 0; waited < 10000 && (cardImageInFlight || cardImageQueue.length); waited += 50) await new Promise(resolve => setTimeout(resolve, 50));
+      window.pywebview.api.get_review_image_info = async reference => {
+        if (!failed.has(reference)) { failed.add(reference); return {ok: false, error: '图片处理繁忙，请重试'}; }
+        return original(reference);
+      };
+      // Start from a quiet, empty cache so every poster goes through the failing first read.
+      for (let waited = 0; waited < 10000 && (cardImageInFlight || cardImageQueue.length); waited += 50) await new Promise(resolve => setTimeout(resolve, 50));
+      cardImageCache.clear(); renderAll();
+      openGallery(); setGalleryMode('wall');
+      await new Promise(resolve => setTimeout(resolve, 3500));
+      return {failedOnce: failed.size, ready: document.querySelectorAll('.gallery-card.image-ready').length,
+        unavailable: document.querySelectorAll('.gallery-card.image-unavailable').length};
+    });
+    assert.deepEqual(retry, {failedOnce: 4, ready: 4, unavailable: 0});
+  });
+
+  await check('relation graph settles into a force layout without overlapping nodes', async () => {
+    await loadApp({reviews: posterArchive(36), stills: true, width: 1440, height: 900});
+    const layout = await page(async () => {
+      openGallery();
+      await new Promise(resolve => setTimeout(resolve, 200));
+      settleKnowledgeGraph();
+      const state = knowledgeGraphState, nodes = state.nodes, screen = node => ({x: node.x * state.zoom + state.panX, y: node.y * state.zoom + state.panY});
+      let overlaps = 0;
+      for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++)
+        if (Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y) < nodes[i].size + nodes[j].size - 1) overlaps++;
+      const linked = new Set(state.edges.map(edge => edge.source + '>' + edge.target)), hubs = nodes.filter(node => node.kind === 'relation'), movies = nodes.filter(node => node.kind === 'movie');
+      const distances = {linked: [], unlinked: []};
+      for (const movie of movies) for (const hub of hubs) distances[linked.has(movie.id + '>' + hub.id) ? 'linked' : 'unlinked'].push(Math.hypot(movie.x - hub.x, movie.y - hub.y));
+      const mean = values => values.reduce((sum, value) => sum + value, 0) / values.length;
+      const outside = nodes.filter(node => { const point = screen(node); return point.x < 0 || point.y < 0 || point.x > state.view.w || point.y > state.view.h; }).length;
+      const biggestHub = [...hubs].sort((a, b) => b.degree - a.degree)[0], smallestHub = [...hubs].sort((a, b) => a.degree - b.degree)[0];
+      return {hubs: hubs.length, movies: movies.length, overlaps, outside, settled: state.alpha < 0.01,
+        linkedCloser: mean(distances.linked) < mean(distances.unlinked) * 0.7, hubSizeFollowsDegree: biggestHub.degree === smallestHub.degree || biggestHub.size > smallestHub.size};
+    });
+    assert.deepEqual(layout, {hubs: 6, movies: 36, overlaps: 0, outside: 0, settled: true, linkedCloser: true, hubSizeFollowsDegree: true});
+  });
+
+  await check('relation graph responds to hover, click, drag, double click and view tools', async () => {
+    await loadApp({reviews: posterArchive(18), stills: true, width: 1440, height: 900});
+    const interaction = await page(async () => {
+      const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+      openGallery(); await wait(200); settleKnowledgeGraph();
+      const state = knowledgeGraphState, canvas = state.canvas, box = canvas.getBoundingClientRect();
+      const client = node => ({clientX: box.left + node.x * state.zoom + state.panX, clientY: box.top + node.y * state.zoom + state.panY});
+      const fire = (type, point, extra = {}) => canvas.dispatchEvent(new PointerEvent(type, {bubbles: true, cancelable: true, pointerId: 7, pointerType: 'mouse', button: 0, ...point, ...extra}));
+      const hub = state.nodes.find(node => node.kind === 'relation'), movie = state.nodes.find(node => node.kind === 'movie');
+      const result = {};
+      fire('pointermove', client(hub));
+      result.hoverFocusesNeighbours = state.hoverId === hub.id && state.hoverNodes.has(hub.id) && state.hoverNodes.size === hub.degree + 1;
+      fire('pointerdown', client(movie)); fire('pointerup', client(movie));
+      result.clickSelects = state.selectedId === movie.id && document.getElementById('knowledgeGraphPanel').textContent.includes(movie.label);
+      const start = client(movie), before = {x: movie.x, y: movie.y};
+      fire('pointerdown', start); fire('pointermove', {clientX: start.clientX + 30, clientY: start.clientY + 20}); fire('pointermove', {clientX: start.clientX + 60, clientY: start.clientY + 40});
+      result.dragMovesNode = Math.abs(movie.x - before.x - 60 / state.zoom) < 1 && Math.abs(movie.y - before.y - 40 / state.zoom) < 1;
+      fire('pointerup', {clientX: start.clientX + 60, clientY: start.clientY + 40});
+      const zoomBefore = state.zoom;
+      document.querySelector('[data-graph-action="in"]').click(); settleKnowledgeGraph();
+      result.zoomButtonZooms = knowledgeGraphState.zoom > zoomBefore;
+      document.querySelector('[data-graph-action="fit"]').click(); settleKnowledgeGraph();
+      result.fitShowsEverything = state.nodes.every(node => { const x = node.x * state.zoom + state.panX, y = node.y * state.zoom + state.panY; return x >= 0 && y >= 0 && x <= state.view.w && y <= state.view.h; });
+      let exported = null;
+      window.pywebview.api.export_interactive_graph = async graph => { exported = graph; return {ok: true, cancelled: false, error: ''}; };
+      await exportKnowledgeGraph();
+      const exportedIds = new Set((exported?.nodes || []).map(node => node.id));
+      result.exportCarriesLayout = !!exported && exported.nodes.length === state.nodes.length && exported.nodes.every(node => Number.isFinite(node.x) && Number.isFinite(node.y)) &&
+        exported.edges.length === state.edges.length && exported.edges.every(edge => exportedIds.has(edge.source) && exportedIds.has(edge.target));
+      canvas.dispatchEvent(new MouseEvent('dblclick', {bubbles: true, ...client(movie)})); await wait(80);
+      result.doubleClickOpensDetail = document.getElementById('detailOverlay').classList.contains('active') && document.getElementById('detailTitle').textContent === movie.label;
+      return result;
+    });
+    assert.deepEqual(interaction, {hoverFocusesNeighbours: true, clickSelects: true, dragMovesNode: true, zoomButtonZooms: true,
+      fitShowsEverything: true, exportCarriesLayout: true, doubleClickOpensDetail: true});
+  });
+
+  await check('relation graph draws movie nodes from cached poster thumbnails', async () => {
+    await loadApp({reviews: posterArchive(18), stills: true, width: 1440, height: 900});
+    const posters = await page(async () => {
+      openGallery();
+      for (let waited = 0; waited < 20000; waited += 100) { await new Promise(resolve => setTimeout(resolve, 100)); if (knowledgeGraphState.posters.size >= 15) break; }
+      const reads = window.__qa.imageReads;
+      setRelationDimension('director'); await new Promise(resolve => setTimeout(resolve, 600));
+      return {sprites: knowledgeGraphState.posters.size, reads, readsAfterSwitchingDimension: window.__qa.imageReads - reads};
+    });
+    assert.deepEqual(posters, {sprites: 15, reads: 15, readsAfterSwitchingDimension: 0});
   });
 
   await check('cards show the film categories', async () => {

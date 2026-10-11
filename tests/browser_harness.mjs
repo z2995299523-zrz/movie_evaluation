@@ -12,18 +12,36 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 // Runs before the page scripts: an in-memory desktop bridge and a native-dialog probe.
 function installBridge(seed) {
   const clone = value => JSON.parse(JSON.stringify(value));
-  const qa = window.__qa = {store: seed.reviews, importReviews: seed.importReviews, saves: 0, nativeConfirms: 0};
+  const qa = window.__qa = {store: seed.reviews, importReviews: seed.importReviews, saves: 0, nativeConfirms: 0, imageReads: 0};
   window.confirm = () => { qa.nativeConfirms++; return true; };
   const state = (message = '') => ({ok: true, needsSetup: false, reviews: clone(qa.store),
     dataDirectory: 'C:\\qa', dataFile: 'C:\\qa\\movie-reviews.json', message, error: ''});
   const noImage = async () => ({ok: false, error: '测试环境没有剧照'});
+  // Optional synthetic stills: one generated JPEG per reference, served like a desktop original.
+  const stills = new Map();
+  const still = reference => {
+    if (!stills.has(reference)) {
+      const canvas = document.createElement('canvas'), context = canvas.getContext('2d');
+      canvas.width = 900; canvas.height = 1350;
+      const hue = [...reference].reduce((sum, character) => (sum * 31 + character.charCodeAt(0)) % 360, 7);
+      const paint = context.createLinearGradient(0, 0, 900, 1350);
+      paint.addColorStop(0, `hsl(${hue} 55% 42%)`); paint.addColorStop(1, `hsl(${(hue + 70) % 360} 45% 12%)`);
+      context.fillStyle = paint; context.fillRect(0, 0, 900, 1350);
+      context.strokeStyle = 'rgba(255,240,200,.8)'; context.lineWidth = 10; context.beginPath(); context.arc(450, 520, 260, 0, Math.PI * 2); context.stroke();
+      const data = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+      stills.set(reference, {data, size: atob(data).length});
+    }
+    return stills.get(reference);
+  };
+  const imageInfo = async reference => { qa.imageReads++; const {size} = still(reference); return {ok: true, path: reference, size, mime: 'image/jpeg', chunkSize: 64 * 1024 * 1024, error: ''}; };
+  const imageChunk = async reference => { const {data, size} = still(reference); return {ok: true, path: reference, offset: 0, nextOffset: size, size, data, done: true, error: ''}; };
   window.pywebview = {api: {
     get_state: async () => state(),
     choose_data_directory: async () => state(),
     save_reviews: async reviews => { qa.store = clone(reviews); qa.saves++; return state('数据已保存'); },
     select_review_image: async () => ({ok: false, cancelled: true, error: ''}),
-    get_review_image_info: noImage,
-    get_review_image_chunk: noImage,
+    get_review_image_info: seed.stills ? imageInfo : noImage,
+    get_review_image_chunk: seed.stills ? imageChunk : noImage,
     select_import_file: async () => ({ok: true, cancelled: false, reviews: clone(qa.importReviews),
       importToken: 'qa-import', format: 'json', error: ''}),
     apply_import: async () => { qa.store = clone(qa.importReviews); return state(); },
@@ -96,9 +114,9 @@ export async function launchBrowser(label) {
   }
 
   // Load index.html in a fresh page with the given records and viewport.
-  async function loadApp({reviews = [], importReviews = [], width = 1280, height = 800, mobile = false} = {}) {
+  async function loadApp({reviews = [], importReviews = [], stills = false, width = 1280, height = 800, mobile = false} = {}) {
     if (bridgeScript) await send('Page.removeScriptToEvaluateOnNewDocument', {identifier: bridgeScript});
-    const source = `(${installBridge.toString()})(${JSON.stringify({reviews, importReviews})})`;
+    const source = `(${installBridge.toString()})(${JSON.stringify({reviews, importReviews, stills})})`;
     bridgeScript = (await send('Page.addScriptToEvaluateOnNewDocument', {source})).identifier;
     await send('Emulation.setDeviceMetricsOverride', {width, height, deviceScaleFactor: 1, mobile});
     const loaded = new Promise(resolve => loadWaiters.push(resolve));
