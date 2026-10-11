@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>我的影评记录</title>
+<meta name="theme-color" content="#0d0b0c">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23171315'/%3E%3Cpath d='M14 27h36v21a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4z' fill='%23a44752'/%3E%3Cpath d='M13 18l34-8 2 8-34 8z' fill='%23d6b06a'/%3E%3C/svg%3E">
 <style>
 /* ===== Reset & Base ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -15,7 +17,7 @@
   --border: #35292d;
   --text: #f3ede5;
   --text2: #b1a5a6;
-  --text3: #786d70;
+  --text3: #958a8c;
   --accent: #a44752;
   --accent-light: #c15b66;
   --gold: #d6b06a;
@@ -61,7 +63,7 @@ body {
   background-clip: text;
 }
 .brand-block { display: flex; flex-direction: column; gap: 2px; }
-.brand-kicker { color: var(--text3); font-size: .73rem; letter-spacing: .13em; text-transform: uppercase; }
+.brand-kicker { color: var(--text3); font-size: .75rem; letter-spacing: .13em; text-transform: uppercase; }
 .header-actions { display: flex; gap: 8px; align-items: center; }
 
 /* ===== Storage Status Bar ===== */
@@ -123,16 +125,16 @@ body {
 @keyframes memoryReveal { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 .memory-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .memory-heading h2 { font-size: 1rem; color: var(--gold); }
-.memory-heading span { color: var(--text3); font-size: .72rem; }
+.memory-heading span { color: var(--text3); font-size: .75rem; }
 .memory-list { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 9px; margin-top: 11px; }
 .memory-card { padding: 11px; border: 1px solid var(--border); border-radius: 10px; background: rgba(23,19,21,.82); }
-.memory-card-kicker { color: var(--accent-light); font-size: .68rem; }
+.memory-card-kicker { color: #e7a7ad; font-size: .75rem; }
 .memory-card-title { margin-top: 2px; color: var(--text); font-size: .9rem; font-weight: 700; }
-.memory-card-meta { color: var(--text3); font-size: .7rem; margin-top: 3px; }
+.memory-card-meta { color: var(--text3); font-size: .75rem; margin-top: 3px; }
 .memory-card-note { color: var(--text2); font-size: .76rem; line-height: 1.5; margin-top: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .memory-card-actions { display: flex; gap: 6px; margin-top: 9px; }
-.taste-overlay { position: fixed; inset: 0; z-index: 2450; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(13,11,12,.88); opacity: 0; visibility: hidden; transition: .24s ease; }
-.taste-overlay.active { opacity: 1; visibility: visible; }
+.taste-overlay { position: fixed; inset: 0; z-index: 2450; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(13,11,12,.88); opacity: 0; visibility: hidden; transition: opacity .24s ease, visibility 0s linear .24s; }
+.taste-overlay.active { opacity: 1; visibility: visible; transition: opacity .24s ease, visibility 0s; }
 .taste-panel { width: min(1080px,96vw); max-height: 92vh; overflow-y: auto; padding: 24px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: 0 24px 80px rgba(0,0,0,.55); }
 .taste-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
 .taste-header h2 { color: var(--gold); font-size: 1.45rem; }
@@ -140,21 +142,21 @@ body {
 .taste-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 10px; margin-top: 18px; }
 .taste-metric { padding: 13px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface2); }
 .taste-metric strong { display: block; color: var(--gold); font-size: 1.25rem; }
-.taste-metric span { color: var(--text3); font-size: .72rem; }
+.taste-metric span { color: var(--text3); font-size: .75rem; }
 .taste-section { margin-top: 20px; padding-top: 17px; border-top: 1px solid var(--border); }
 .taste-section h3 { font-size: .95rem; color: var(--text); }
-.taste-section-note { color: var(--text3); font-size: .7rem; margin-top: 3px; }
+.taste-section-note { color: var(--text3); font-size: .75rem; margin-top: 3px; }
 .taste-bars { display: grid; gap: 8px; margin-top: 10px; }
-.taste-bar-row { display: grid; grid-template-columns: minmax(75px,130px) 1fr auto; gap: 8px; align-items: center; font-size: .73rem; }
+.taste-bar-row { display: grid; grid-template-columns: minmax(75px,130px) 1fr auto; gap: 8px; align-items: center; font-size: .75rem; }
 .taste-bar-label { color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .taste-bar-track { height: 8px; border-radius: 8px; background: rgba(255,255,255,.05); overflow: hidden; }
-.taste-bar-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg,var(--accent),var(--gold)); }
+.taste-bar-fill { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,var(--accent),var(--gold)); }
 .taste-bar-value { color: var(--text3); white-space: nowrap; }
 .taste-representatives { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
 .taste-representatives button { padding: 7px 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface2); color: var(--text2); cursor: pointer; }
 .taste-empty { padding: 50px 20px; color: var(--text3); text-align: center; }
-.tool-overlay { position: fixed; inset: 0; z-index: 2460; display: flex; align-items: center; justify-content: center; padding: 22px; background: rgba(13,11,12,.9); opacity: 0; visibility: hidden; transition: .22s ease; }
-.tool-overlay.active { opacity: 1; visibility: visible; }
+.tool-overlay { position: fixed; inset: 0; z-index: 2460; display: flex; align-items: center; justify-content: center; padding: 22px; background: rgba(13,11,12,.9); opacity: 0; visibility: hidden; transition: opacity .22s ease, visibility 0s linear .22s; }
+.tool-overlay.active { opacity: 1; visibility: visible; transition: opacity .22s ease, visibility 0s; }
 .tool-panel { width: min(980px,96vw); max-height: 92vh; overflow-y: auto; padding: 22px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); }
 .tool-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .tool-header h2 { color: var(--gold); font-size: 1.25rem; }
@@ -162,7 +164,7 @@ body {
 .report-grid,.health-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 9px; margin-top: 15px; }
 .report-card,.health-card { padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); }
 .report-card strong,.health-card strong { display: block; color: var(--gold); font-size: 1.15rem; }
-.report-card span,.health-card span { color: var(--text3); font-size: .7rem; }
+.report-card span,.health-card span { color: var(--text3); font-size: .75rem; }
 .health-list { display: grid; gap: 7px; margin-top: 14px; }
 .health-item { display: flex; justify-content: space-between; gap: 10px; padding: 9px; border: 1px solid var(--border); border-radius: 8px; color: var(--text2); font-size: .75rem; }
 .merge-box { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
@@ -188,7 +190,7 @@ body {
   color: var(--text3); font-size: .9rem; pointer-events: none;
 }
 .filter-select {
-  padding: 10px 14px;
+  padding: 10px 14px; max-width: min(100%, 240px); text-overflow: ellipsis;
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); color: var(--text);
   font-size: .9rem; outline: none; cursor: pointer;
@@ -210,6 +212,9 @@ body {
 .btn-sm { padding: 6px 12px; font-size: .8rem; border-radius: 8px; }
 .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
 .btn-danger:hover { background: var(--danger); color: #fff; }
+.btn:focus-visible, .filter-select:focus-visible, .modal-close:focus-visible, .star-selector .star:focus-visible,
+.detail-nav:focus-visible, .gallery-view-toggle button:focus-visible, .taste-representatives button:focus-visible,
+.lightbox-close:focus-visible, .knowledge-graph-related button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
 /* ===== Movie Grid ===== */
 .movie-grid {
@@ -297,6 +302,7 @@ body {
   background: var(--surface2); color: var(--text2);
   border: 1px solid var(--border);
 }
+.tag-category { background: rgba(164,71,82,.18); color: #e7a7ad; border-color: transparent; }
 
 .card-comment {
   font-size: .85rem; color: var(--text2);
@@ -305,6 +311,9 @@ body {
 }
 .card-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); }
 .card-actions .btn { cursor: pointer; }
+/* Deleting is rare: keep it reachable but visually quieter than the everyday actions. */
+.card-actions .btn-danger { margin-left: auto; border-color: var(--border); color: var(--text2); }
+.card-actions .btn-danger:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
 .watch-count { color: var(--accent-light); font-size: .78rem; font-weight: 600; white-space: nowrap; }
 
 /* ===== Modal ===== */
@@ -313,10 +322,13 @@ body {
   background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
   display: flex; align-items: center; justify-content: center;
   z-index: 1000; padding: 20px;
-  opacity: 0; visibility: hidden; transition: .25s ease;
+  /* Closing fades out before hiding; opening is visible, and so focusable, at once. */
+  opacity: 0; visibility: hidden; transition: opacity .25s ease, visibility 0s linear .25s;
 }
-.modal-overlay.active { opacity: 1; visibility: visible; }
+.modal-overlay.active { opacity: 1; visibility: visible; transition: opacity .25s ease, visibility 0s; }
 body.gallery-open .modal-overlay { z-index: 2600; }
+.modal-overlay.confirm-overlay, body.gallery-open .modal-overlay.confirm-overlay { z-index: 3800; }
+body.overlay-open { overflow: hidden; }
 
 .modal {
   background: var(--surface);
@@ -327,6 +339,23 @@ body.gallery-open .modal-overlay { z-index: 2600; }
   box-shadow: 0 20px 60px rgba(0,0,0,.5);
 }
 .modal h2 { font-size: 1.3rem; margin-bottom: 20px; }
+.modal[data-dialog-focus]:focus { outline: none; }
+/* The title bar and the action bar stay in view while a long form scrolls. */
+.modal-head {
+  position: sticky; top: -28px; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: -28px -28px 18px; padding: 20px 28px 14px; background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.modal-head h2 { margin: 0; }
+.modal-close {
+  flex-shrink: 0; width: 36px; height: 36px; border: 1px solid var(--border); border-radius: 50%;
+  background: transparent; color: var(--text2); font-size: 1.25rem; line-height: 1; cursor: pointer; transition: var(--transition);
+}
+.modal-close:hover { background: var(--surface2); color: var(--text); }
+.form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.confirm-modal { max-width: 420px; }
+.confirm-modal h2 { font-size: 1.15rem; margin-bottom: 10px; overflow-wrap: anywhere; }
+.confirm-message { color: var(--text2); font-size: .9rem; line-height: 1.7; white-space: pre-line; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
 
 .form-group { margin-bottom: 16px; }
 .form-label {
@@ -342,11 +371,18 @@ body.gallery-open .modal-overlay { z-index: 2600; }
 .form-input:focus, .form-textarea:focus, .form-select:focus { border-color: var(--accent); }
 .form-textarea { resize: vertical; min-height: 80px; }
 
-.star-selector { display: flex; gap: 6px; font-size: 1.6rem; cursor: pointer; }
-.star-selector .star { transition: .15s ease; }
-.star-selector .star:hover { transform: scale(1.2); }
+.star-selector { display: flex; gap: 4px; }
+.star-selector .star {
+  width: 36px; height: 40px; padding: 0; border: 0; border-radius: 8px; background: transparent;
+  color: var(--text3); font-size: 1.6rem; line-height: 1; cursor: pointer; transition: .15s ease;
+}
+.star-selector .star.is-on { color: var(--star); }
+.star-selector .star:hover { transform: scale(1.15); }
 
-.form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+.form-actions {
+  position: sticky; bottom: -28px; z-index: 4; display: flex; gap: 10px; justify-content: flex-end;
+  margin: 24px -28px -28px; padding: 14px 28px 20px; background: var(--surface); border-top: 1px solid var(--border);
+}
 .edit-watch-history {
   display: none; margin: 2px 0 18px; padding: 14px;
   border: 1px solid var(--border); border-radius: 10px; background: rgba(164,71,82,.055);
@@ -359,9 +395,9 @@ body.gallery-open .modal-overlay { z-index: 2600; }
 .category-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .category-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 16px; background: rgba(164,71,82,.18); color: #e7a7ad; font-size: .76rem; }
 .category-chip button { border: 0; background: transparent; color: inherit; cursor: pointer; padding: 0 2px; }
-.category-primary { font-size: .62rem; color: var(--gold); }
+.category-primary { font-size: .75rem; color: var(--gold); }
 .category-add-row { display: flex; gap: 7px; }
-.category-help { color: var(--text3); font-size: .72rem; margin-top: 6px; line-height: 1.45; }
+.category-help { color: var(--text3); font-size: .75rem; margin-top: 6px; line-height: 1.45; }
 .personal-fields { margin-bottom: 16px; padding: 11px; border: 1px solid var(--border); border-radius: 10px; background: rgba(214,176,106,.025); }
 .personal-fields summary { color: var(--gold); cursor: pointer; font-size: .84rem; }
 .personal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 11px; }
@@ -372,7 +408,7 @@ body.gallery-open .modal-overlay { z-index: 2600; }
 .personal-detail h3 { color: var(--gold); font-size: .95rem; }
 .personal-detail-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 8px; margin-top: 9px; }
 .personal-detail-item { padding: 9px; border-radius: 8px; background: var(--surface2); }
-.personal-detail-item strong { display: block; color: var(--text3); font-size: .65rem; }
+.personal-detail-item strong { display: block; color: var(--text3); font-size: .75rem; }
 .personal-detail-item span { color: var(--text2); font-size: .76rem; white-space: pre-wrap; }
 
 /* ===== Review Image Picker ===== */
@@ -419,14 +455,15 @@ body.gallery-open .modal-overlay { z-index: 2600; }
 /* ===== Review Detail ===== */
 .detail-overlay { z-index: 1100; }
 body.gallery-open .detail-overlay { z-index: 2700; }
-.detail-modal { max-width: 780px; padding: 0; overflow: hidden; }
+.detail-modal { position: relative; max-width: 780px; padding: 0; overflow: hidden; }
+.detail-close { position: absolute; top: 12px; right: 12px; z-index: 5; background: rgba(13,11,12,.72); backdrop-filter: blur(8px); }
 .detail-nav { position: absolute; top: 50%; z-index: 4; width: 112px; min-height: 64px; padding: 9px; border: 1px solid rgba(214,176,106,.34); border-radius: 12px; background: rgba(23,19,21,.9); color: var(--text2); cursor: pointer; transform: translateY(-50%); backdrop-filter: blur(12px); }
 .detail-nav:hover:not(:disabled) { border-color: var(--gold); color: var(--text); }
 .detail-nav:disabled { opacity: .24; cursor: default; }
 .detail-nav-prev { left: 18px; }
 .detail-nav-next { right: 18px; }
 .detail-nav strong { display: block; color: var(--gold); font-size: .75rem; }
-.detail-nav span { display: block; margin-top: 3px; font-size: .68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.detail-nav span { display: block; margin-top: 3px; font-size: .75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .detail-scroll { max-height: 90vh; overflow-y: auto; }
 .detail-image-section {
   min-height: 180px; max-height: 440px; background: #08080b;
@@ -474,9 +511,9 @@ body.gallery-open .detail-overlay { z-index: 2700; }
 /* ===== Fullscreen Image Lightbox ===== */
 .lightbox-overlay {
   position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center;
-  padding: 24px; overflow: hidden; background: rgba(0,0,0,.94); opacity: 0; visibility: hidden; transition: .2s ease;
+  padding: 24px; overflow: hidden; background: rgba(0,0,0,.94); opacity: 0; visibility: hidden; transition: opacity .2s ease, visibility 0s linear .2s;
 }
-.lightbox-overlay.active { opacity: 1; visibility: visible; }
+.lightbox-overlay.active { opacity: 1; visibility: visible; transition: opacity .2s ease, visibility 0s; }
 body.gallery-open .lightbox-overlay { z-index: 2800; }
 .lightbox-stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
 .lightbox-stage img { display: block; max-width: 96vw; max-height: 92vh; object-fit: contain; user-select: none; -webkit-user-drag: none; cursor: zoom-in; transform-origin: center; }
@@ -486,7 +523,7 @@ body.gallery-open .lightbox-overlay { z-index: 2800; }
 .lightbox-controls button { min-width: 38px; min-height: 38px; padding: 6px 10px; border: 1px solid rgba(255,255,255,.18); border-radius: 8px; background: #211a1d; color: #fff; cursor: pointer; }
 .lightbox-controls button:disabled { opacity: .38; cursor: default; }
 .lightbox-controls output { min-width: 52px; color: #f3ede5; font-size: .82rem; text-align: center; }
-.lightbox-hint { position: absolute; left: 50%; bottom: 82px; z-index: 2; color: #c9c0bf; font-size: .72rem; transform: translateX(-50%); pointer-events: none; white-space: nowrap; }
+.lightbox-hint { position: absolute; left: 50%; bottom: 82px; z-index: 2; color: #c9c0bf; font-size: .75rem; transform: translateX(-50%); pointer-events: none; white-space: nowrap; }
 .lightbox-close {
   position: absolute; top: 18px; right: 22px; width: 42px; height: 42px; border-radius: 50%;
   border: 1px solid rgba(255,255,255,.25); background: rgba(0,0,0,.5); color: #fff;
@@ -503,15 +540,15 @@ body.gallery-open { overflow: hidden; }
     radial-gradient(circle at 12% 8%, rgba(164,71,82,.18), transparent 30%),
     radial-gradient(circle at 88% 76%, rgba(214,176,106,.11), transparent 34%),
     #0d0b0c;
-  opacity: 0; visibility: hidden; transition: opacity .28s ease, visibility .28s ease;
+  opacity: 0; visibility: hidden; transition: opacity .28s ease, visibility 0s linear .28s;
 }
-.gallery-overlay.active { opacity: 1; visibility: visible; }
+.gallery-overlay.active { opacity: 1; visibility: visible; transition: opacity .28s ease, visibility 0s; }
 .gallery-header {
   display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;
   padding: 24px 32px 18px; border-bottom: 1px solid rgba(255,255,255,.08);
   background: rgba(13,11,12,.78); backdrop-filter: blur(18px); z-index: 3;
 }
-.gallery-kicker { color: var(--accent-light); font-size: .7rem; letter-spacing: .16em; font-weight: 700; }
+.gallery-kicker { color: var(--accent-light); font-size: .75rem; letter-spacing: .16em; font-weight: 700; }
 .gallery-header h2 { margin-top: 2px; font-size: 1.55rem; }
 .gallery-summary { color: var(--text3); font-size: .82rem; margin-top: 3px; }
 .gallery-header-actions { display: flex; align-items: center; gap: 14px; padding-right: 52px; min-height: 42px; }
@@ -547,7 +584,7 @@ body.gallery-open { overflow: hidden; }
 .gallery-card:hover .gallery-card-image, .gallery-card.is-focused .gallery-card-image { transform: scale(1.045); }
 .gallery-card-shade { position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(5,5,8,.06), rgba(5,5,8,.12) 40%, rgba(5,5,8,.92) 100%); }
 .gallery-card-no-image-mark { position: absolute; top: 10px; left: 11px; color: rgba(255,255,255,.18); font-size: 1.55rem; }
-.gallery-card-loading { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.62); font-size: .65rem; background: rgba(8,8,12,.32); }
+.gallery-card-loading { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.62); font-size: .75rem; background: rgba(8,8,12,.32); }
 .gallery-card.image-ready .gallery-card-loading { opacity: 0; pointer-events: none; transition: opacity .2s ease; }
 .gallery-card.image-unavailable .gallery-card-loading { background: rgba(127,29,29,.28); color: #fecaca; }
 .gallery-card-rating { position: absolute; top: 7px; right: 7px; padding: 3px 5px; border-radius: 99px; background: rgba(13,11,12,.68); border: 1px solid rgba(255,255,255,.13); backdrop-filter: blur(8px); color: var(--gold); font-size: .57rem; letter-spacing: -1px; z-index: 3; }
@@ -567,7 +604,7 @@ body.gallery-open { overflow: hidden; }
 .relation-cluster.is-visible::before { transform: scaleX(1); }
 .relation-hub { position: absolute; left: 18px; top: 50%; width: 132px; transform: translateY(-50%); padding: 14px 10px; border: 1px solid rgba(214,176,106,.4); border-radius: 14px; background: radial-gradient(circle at 30% 20%,rgba(164,71,82,.34),rgba(23,19,21,.96)); text-align: center; box-shadow: 0 0 28px rgba(164,71,82,.14); }
 .relation-hub strong { display: block; color: white; font-size: 1rem; }
-.relation-hub span { display: block; margin-top: 5px; color: var(--text3); font-size: .68rem; line-height: 1.45; }
+.relation-hub span { display: block; margin-top: 5px; color: var(--text3); font-size: .75rem; line-height: 1.45; }
 .relation-movies { display: grid; grid-template-columns: repeat(auto-fill,minmax(92px,1fr)); gap: 8px; }
 .relation-movie { position: relative; aspect-ratio: 2/3; overflow: hidden; border: 1px solid rgba(255,255,255,.1); border-radius: 9px; background: #211a1d; cursor: pointer; opacity: 0; transform: translateX(-18px) scale(.96); transition: opacity .4s ease, transform .4s ease, border-color .2s ease; }
 .relation-cluster.is-visible .relation-movie { opacity: 1; transform: none; transition-delay: var(--node-delay); }
@@ -579,16 +616,16 @@ body.gallery-open { overflow: hidden; }
 .knowledge-graph-shell { position: relative; width: 100%; height: 100%; min-height: 560px; overflow: hidden; border: 1px solid rgba(255,255,255,.08); border-radius: 14px; background: radial-gradient(circle at 42% 48%,rgba(164,71,82,.12),transparent 46%),#0d0b0c; }
 .knowledge-graph-canvas { display: block; width: 100%; height: 100%; min-height: 560px; cursor: grab; touch-action: none; }
 .knowledge-graph-canvas.dragging { cursor: grabbing; }
-.knowledge-graph-help { position: absolute; left: 14px; top: 12px; z-index: 2; padding: 7px 10px; border-radius: 8px; background: rgba(13,11,12,.8); color: var(--text3); font-size: .68rem; pointer-events: none; }
+.knowledge-graph-help { position: absolute; left: 14px; top: 12px; z-index: 2; padding: 7px 10px; border-radius: 8px; background: rgba(13,11,12,.8); color: var(--text3); font-size: .75rem; pointer-events: none; }
 .knowledge-graph-panel { position: absolute; top: 12px; right: 12px; bottom: 12px; z-index: 3; width: 270px; padding: 14px; overflow-y: auto; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; background: rgba(23,19,21,.94); backdrop-filter: blur(14px); }
 .knowledge-graph-panel h3 { color: white; font-size: 1rem; line-height: 1.35; }
-.knowledge-graph-panel p { color: var(--text3); font-size: .72rem; line-height: 1.55; margin-top: 6px; }
+.knowledge-graph-panel p { color: var(--text3); font-size: .75rem; line-height: 1.55; margin-top: 6px; }
 .knowledge-graph-panel h4 { margin-top: 14px; color: var(--text2); font-size: .76rem; }
 .knowledge-graph-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
-.knowledge-graph-pill { padding: 4px 7px; border-radius: 12px; background: rgba(164,71,82,.18); color: #e7a7ad; font-size: .68rem; }
+.knowledge-graph-pill { padding: 4px 7px; border-radius: 12px; background: rgba(164,71,82,.18); color: #e7a7ad; font-size: .75rem; }
 .knowledge-graph-related { display: grid; gap: 5px; margin-top: 7px; }
-.knowledge-graph-related button { width: 100%; padding: 6px 7px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface2); color: var(--text2); text-align: left; cursor: pointer; font-size: .7rem; }
-.knowledge-graph-placeholder { color: var(--text3); font-size: .74rem; line-height: 1.65; }
+.knowledge-graph-related button { width: 100%; padding: 6px 7px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface2); color: var(--text2); text-align: left; cursor: pointer; font-size: .75rem; }
+.knowledge-graph-placeholder { color: var(--text3); font-size: .75rem; line-height: 1.65; }
 @media (max-width: 820px) { .knowledge-graph-panel { width: 220px; } }
 @media (max-width: 600px) { .knowledge-graph-panel { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 36%; } }
 
@@ -606,6 +643,16 @@ body.gallery-open { overflow: hidden; }
   .gallery-wall { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
   .gallery-card-title { font-size: .74rem; }
   .gallery-card-meta { font-size: .56rem; }
+}
+/* Phone header: title first, then the controls on their own wrapping rows. */
+@media (max-width: 600px) {
+  .gallery-header { flex-direction: column; align-items: stretch; gap: 10px; padding: 14px 14px 12px; }
+  .gallery-header > div:first-child { padding-right: 52px; }
+  .gallery-header h2 { font-size: 1.3rem; }
+  .gallery-summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gallery-header-actions { flex-wrap: wrap; padding-right: 0; gap: 8px; min-height: 0; }
+  .gallery-header .lightbox-close { top: 12px; right: 12px; }
+  .relation-dimension-select { min-width: 0; max-width: 150px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .gallery-overlay, .gallery-card, .gallery-card-image { transition: none !important; }
@@ -663,7 +710,7 @@ body.gallery-open { overflow: hidden; }
   font-size: .9rem; font-weight: 500;
   z-index: 4000; opacity: 0; visibility: hidden;
   transition: .3s ease;
-  white-space: nowrap;
+  max-width: calc(100vw - 32px); text-align: center;
 }
 .toast.show { opacity: 1; visibility: visible; }
 .toast-success { background: var(--success); color: #fff; }
@@ -677,9 +724,25 @@ body.gallery-open { overflow: hidden; }
   .header-actions .btn { flex: 1 1 auto; justify-content: center; }
   .movie-grid { grid-template-columns: 1fr; }
   .movie-card.has-image .card-visual { min-height: 226px; }
-  .toolbar { flex-direction: column; }
-  .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  .toolbar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .search-box { grid-column: 1 / -1; min-width: 0; }
+  .filter-select { width: 100%; max-width: none; min-width: 0; padding: 10px 8px; }
+  /* 16px inputs stop iOS Safari from zooming the page on focus. */
+  .form-input, .form-textarea, .form-select, .filter-select, .search-box input, .relation-dimension-select { font-size: 16px; }
+  .btn { min-height: 44px; }
+  .btn-sm { min-height: 40px; }
+  .stats-bar { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
+  .stat-card { padding: 10px 4px; }
+  .stat-value { font-size: 1.1rem; white-space: nowrap; }
+  .stat-label { font-size: .75rem; }
+  .memory-spotlight { padding: 14px; }
+  .memory-list { display: flex; overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: 4px; }
+  .memory-card { flex: 1 0 84%; scroll-snap-align: start; }
   .modal { padding: 20px; }
+  .modal-head { top: -20px; margin: -20px -20px 16px; padding: 14px 20px 12px; }
+  .form-actions { bottom: -20px; margin: 20px -20px -20px; padding: 12px 20px 16px; }
+  .form-row-2, .personal-grid { grid-template-columns: 1fr; }
+  .form-row-2 { gap: 0; }
   .detail-modal { padding: 0; }
   .detail-content { padding: 20px; }
   .detail-heading { flex-direction: column; gap: 8px; }
@@ -765,26 +828,29 @@ body.gallery-open { overflow: hidden; }
 
 <!-- Add/Edit Modal -->
 <div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <h2 id="modalTitle">写新影评</h2>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1" data-dialog-focus>
+    <div class="modal-head">
+      <h2 id="modalTitle">写新影评</h2>
+      <button type="button" class="modal-close" onclick="requestCloseModal()" aria-label="关闭影评编辑">×</button>
+    </div>
     <form id="movieForm" onsubmit="handleSubmit(event)">
       <input type="hidden" id="editId">
       <div class="form-group">
-        <label class="form-label">电影名称 *</label>
+        <label class="form-label" for="movieTitle">电影名称 *</label>
         <input type="text" class="form-input" id="movieTitle" placeholder="输入电影名称" required>
       </div>
       <div class="form-group">
-        <label class="form-label">导演</label>
+        <label class="form-label" for="movieDirector">导演</label>
         <input type="text" class="form-input" id="movieDirector" placeholder="输入导演姓名（可选）">
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+      <div class="form-row-2">
         <div class="form-group">
-          <label class="form-label">观影日期 *</label>
+          <label class="form-label" for="movieDate">观影日期 *</label>
           <input type="date" class="form-input" id="movieDate" required>
         </div>
         <div class="form-group">
-          <label class="form-label">评分</label>
-          <div class="star-selector" id="starSelector"></div>
+          <label class="form-label" id="movieRatingLabel">评分</label>
+          <div class="star-selector" id="starSelector" role="group" aria-labelledby="movieRatingLabel"></div>
           <input type="hidden" id="movieRating" value="0">
         </div>
       </div>
@@ -797,7 +863,7 @@ body.gallery-open { overflow: hidden; }
         <p class="edit-watch-history-note">这里同时展示所有观影记录；如需调整或删除某次重看，请在影评详情中操作。</p>
       </section>
       <div class="form-group">
-        <label class="form-label">电影分类</label>
+        <label class="form-label" for="categoryInput">电影分类</label>
         <div class="category-picker">
           <div class="category-chips" id="categoryChips"></div>
           <div class="category-add-row">
@@ -809,12 +875,12 @@ body.gallery-open { overflow: hidden; }
         <datalist id="categoryOptions"></datalist>
       </div>
       <div class="form-group">
-        <label class="form-label">补充标签</label>
+        <label class="form-label" for="movieTags">补充标签</label>
         <input type="text" class="form-input" id="movieTags"
                placeholder="主题、导演、系列等，用逗号分隔，如：时间, 诺兰">
       </div>
       <div class="form-group">
-        <label class="form-label">主剧照 <span style="color:var(--text3);font-weight:400;">（可选，最大 50 MB）</span></label>
+        <label class="form-label" for="selectImageButton">主剧照 <span style="color:var(--text3);font-weight:400;">（可选，最大 50 MB）</span></label>
         <div class="image-picker" id="imagePicker" role="group" aria-label="主剧照上传区域">
           <div class="image-drop-feedback" id="imageDropFeedback" aria-live="polite">
             <span id="imageDropIcon">↓</span><span id="imageDropText">释放以上传剧照</span>
@@ -843,12 +909,26 @@ body.gallery-open { overflow: hidden; }
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">我的评论</label>
+        <label class="form-label" for="movieComment">我的评论</label>
         <textarea class="form-textarea" id="movieComment"
                   placeholder="写下你的观影感受、评价和分析..." rows="4"></textarea>
       </div>
+      <details class="personal-fields">
+        <summary>电影与我的关系（可选）</summary>
+        <div class="personal-grid">
+          <div class="form-group"><label class="form-label" for="contextLocation">在哪里看</label><input class="form-input" id="contextLocation" maxlength="200"></div>
+          <div class="form-group"><label class="form-label" for="contextCompanions">和谁一起看</label><input class="form-input" id="contextCompanions" maxlength="300"></div>
+          <div class="form-group"><label class="form-label" for="contextMood">当时心情</label><input class="form-input" id="contextMood" maxlength="200"></div>
+          <div class="form-group"><label class="form-label" for="contextLifeStage">人生阶段</label><input class="form-input" id="contextLifeStage" maxlength="300"></div>
+          <div class="form-group personal-wide"><label class="form-label" for="contextImpact">对我的影响</label><textarea class="form-textarea" id="contextImpact" maxlength="5000"></textarea></div>
+          <div class="form-group personal-wide"><label class="form-label" for="contextFavoriteScene">最难忘的场景</label><textarea class="form-textarea" id="contextFavoriteScene" maxlength="5000"></textarea></div>
+          <div class="form-group personal-wide"><label class="form-label" for="contextFavoriteQuote">最喜欢的台词</label><textarea class="form-textarea" id="contextFavoriteQuote" maxlength="2000"></textarea></div>
+          <div class="form-group"><label class="form-label" for="contextRecommendTo">推荐给谁</label><input class="form-input" id="contextRecommendTo" maxlength="500"></div>
+          <div class="form-group"><label class="form-label" for="contextWatchAgain">还愿意再看吗</label><select class="form-select" id="contextWatchAgain"><option value="">未设置</option><option value="yes">愿意</option><option value="no">暂时不想</option></select></div>
+        </div>
+      </details>
       <div class="form-actions">
-        <button type="button" class="btn btn-ghost" onclick="closeModal()">取消</button>
+        <button type="button" class="btn btn-ghost" onclick="requestCloseModal()">取消</button>
         <button type="submit" class="btn btn-primary" id="saveReviewButton">保存影评</button>
       </div>
     </form>
@@ -857,39 +937,28 @@ body.gallery-open { overflow: hidden; }
 
 <!-- Repeat viewing note -->
 <div class="modal-overlay" id="rewatchOverlay">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rewatchModalTitle">
-    <h2 id="rewatchModalTitle">记录重看</h2>
-    <p id="rewatchMovieTitle" style="color:var(--text3);font-size:.88rem;margin:-10px 0 20px;"></p>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rewatchModalTitle" tabindex="-1" data-dialog-focus>
+    <div class="modal-head">
+      <h2 id="rewatchModalTitle">记录重看</h2>
+      <button type="button" class="modal-close" onclick="requestCloseRewatchModal()" aria-label="关闭重看记录">×</button>
+    </div>
+    <p id="rewatchMovieTitle" style="color:var(--text3);font-size:.88rem;margin:0 0 20px;"></p>
     <form id="rewatchForm" onsubmit="handleRewatchSubmit(event)">
       <div class="form-group">
-        <label class="form-label">重看时间 *</label>
+        <label class="form-label" for="rewatchWatchedAt">重看时间 *</label>
         <input type="datetime-local" class="form-input" id="rewatchWatchedAt" required>
       </div>
-      <details class="personal-fields">
-        <summary>电影与我的关系（可选）</summary>
-        <div class="personal-grid">
-          <div class="form-group"><label class="form-label">在哪里看</label><input class="form-input" id="contextLocation"></div>
-          <div class="form-group"><label class="form-label">和谁一起看</label><input class="form-input" id="contextCompanions"></div>
-          <div class="form-group"><label class="form-label">当时心情</label><input class="form-input" id="contextMood"></div>
-          <div class="form-group"><label class="form-label">人生阶段</label><input class="form-input" id="contextLifeStage"></div>
-          <div class="form-group personal-wide"><label class="form-label">对我的影响</label><textarea class="form-textarea" id="contextImpact"></textarea></div>
-          <div class="form-group personal-wide"><label class="form-label">最难忘的场景</label><textarea class="form-textarea" id="contextFavoriteScene"></textarea></div>
-          <div class="form-group personal-wide"><label class="form-label">最喜欢的台词</label><textarea class="form-textarea" id="contextFavoriteQuote"></textarea></div>
-          <div class="form-group"><label class="form-label">推荐给谁</label><input class="form-input" id="contextRecommendTo"></div>
-          <div class="form-group"><label class="form-label">还愿意再看吗</label><select class="form-select" id="contextWatchAgain"><option value="">未设置</option><option value="yes">愿意</option><option value="no">暂时不想</option></select></div>
-        </div>
-      </details>
       <div class="form-group">
-        <label class="form-label">本次评分</label>
-        <div class="star-selector" id="rewatchStarSelector"></div>
+        <label class="form-label" id="rewatchRatingLabel">本次评分</label>
+        <div class="star-selector" id="rewatchStarSelector" role="group" aria-labelledby="rewatchRatingLabel"></div>
         <input type="hidden" id="rewatchRating" value="0">
       </div>
       <div class="form-group">
-        <label class="form-label">这次重看的感受</label>
+        <label class="form-label" for="rewatchFeeling">这次重看的感受</label>
         <textarea class="form-textarea" id="rewatchFeeling" placeholder="这次重看有什么新的感受？（可选）" rows="5"></textarea>
       </div>
       <div class="form-actions">
-        <button type="button" class="btn btn-ghost" onclick="closeRewatchModal()">取消</button>
+        <button type="button" class="btn btn-ghost" onclick="requestCloseRewatchModal()">取消</button>
         <button type="submit" class="btn btn-primary" id="saveRewatchButton">保存重看记录</button>
       </div>
     </form>
@@ -899,7 +968,8 @@ body.gallery-open { overflow: hidden; }
 <!-- Read-only review detail -->
 <div class="modal-overlay detail-overlay" id="detailOverlay">
   <button type="button" class="detail-nav detail-nav-prev" id="detailPrevious" onclick="navigateDetail(-1)" aria-label="上一个影评"><strong>← 上一个</strong><span id="detailPreviousTitle"></span></button>
-  <div class="modal detail-modal" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+  <div class="modal detail-modal" role="dialog" aria-modal="true" aria-labelledby="detailTitle" tabindex="-1" data-dialog-focus>
+    <button type="button" class="modal-close detail-close" onclick="closeDetail()" aria-label="关闭影评详情">×</button>
     <div class="detail-scroll">
       <div class="detail-image-section" id="detailImageSection">
         <div class="image-load-state" id="detailImageState"></div>
@@ -1009,8 +1079,20 @@ body.gallery-open { overflow: hidden; }
   </div>
 </div>
 
+<!-- In-app confirmation -->
+<div class="modal-overlay confirm-overlay" id="confirmOverlay">
+  <div class="modal confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
+    <h2 id="confirmTitle">请确认</h2>
+    <p class="confirm-message" id="confirmMessage"></p>
+    <div class="confirm-actions">
+      <button type="button" class="btn btn-ghost" data-confirm-cancel data-dialog-focus>取消</button>
+      <button type="button" class="btn btn-primary" data-confirm-accept>确定</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 /* ========================================================================
@@ -1035,6 +1117,9 @@ let rewatchReviewId = null;
 let rewatchEditIndex = null;
 let rewatchMutationBusy = false;
 let selectedCategories = [];
+let modalBaseline = '';
+let rewatchBaseline = '';
+let confirmResolver = null;
 let detailImageUrl = '';
 let detailImageLoadToken = 0;
 let lightboxZoom = 1;
@@ -1549,7 +1634,7 @@ function buildArchiveHealth(){const issues={missingImage:[],missingCategory:[],m
 function openArchiveHealth(){renderArchiveHealth();document.getElementById('healthOverlay').classList.add('active');}
 function closeArchiveHealth(){document.getElementById('healthOverlay').classList.remove('active');}
 function renderArchiveHealth(){const data=buildArchiveHealth(),root=document.getElementById('healthContent'),defs=[['缺少剧照','missingImage'],['缺少正式分类','missingCategory'],['缺少导演','missingDirector'],['缺少评分','missingRating'],['缺少评论','missingComment'],['缺少私人关系','missingPersonal'],['重看早于初看','dateOrder'],['疑似重复电影','duplicates']],problemCount=defs.reduce((sum,[,key])=>sum+data.issues[key].length,0),score=Math.max(0,Math.round(100-problemCount/Math.max(reviews.length,1)*12));root.innerHTML=`<div class="health-grid"><div class="health-card"><strong>${score}</strong><span>档案健康度 / 100</span></div><div class="health-card"><strong>${reviews.length}</strong><span>电影总数</span></div><div class="health-card"><strong>${problemCount}</strong><span>问题命中数</span></div><div class="health-card"><strong>${data.aliases.length}</strong><span>疑似分类别名组</span></div></div><div class="health-list">${defs.map(([label,key])=>`<div class="health-item"><span>${label}</span><span>${data.issues[key].length} 部</span></div>`).join('')}${data.aliases.map(values=>`<div class="health-item"><span>疑似同义分类：${escapeHtml(values.join(' / '))}</span><span>建议合并</span></div>`).join('')}</div>`;const source=document.getElementById('mergeSource');source.replaceChildren(new Option('选择来源分类',''),...data.categories.map(value=>new Option(value,value)));document.getElementById('mergeImpact').textContent='';}
-async function mergeCategory(){const source=document.getElementById('mergeSource').value,target=document.getElementById('mergeTarget').value.trim();if(!source||!target||source===target){showToast('请选择不同的来源分类和目标分类','error');return;}const affected=reviews.filter(review=>(review.categories||[]).includes(source));document.getElementById('mergeImpact').textContent=`将影响 ${affected.length} 部电影：${affected.slice(0,8).map(item=>item.title).join('、')}${affected.length>8?'…':''}`;if(!affected.length||!confirm(`把“${source}”统一合并为“${target}”吗？将修改 ${affected.length} 部电影，保存前会自动备份。`))return;const next=reviews.map(review=>{if(!(review.categories||[]).includes(source))return review;return{...review,categories:[...new Set(review.categories.map(value=>value===source?target:value))],updatedAt:Date.now()};});try{await persistReviews(next);renderAll();renderArchiveHealth();showToast(`已将“${source}”合并为“${target}”`);}catch(error){showToast(error.message||'合并失败','error');}}
+async function mergeCategory(){const source=document.getElementById('mergeSource').value,target=document.getElementById('mergeTarget').value.trim();if(!source||!target||source===target){showToast('请选择不同的来源分类和目标分类','error');return;}const affected=reviews.filter(review=>(review.categories||[]).includes(source));document.getElementById('mergeImpact').textContent=`将影响 ${affected.length} 部电影：${affected.slice(0,8).map(item=>item.title).join('、')}${affected.length>8?'…':''}`;if(!affected.length||!await confirmDialog({title:'合并分类？',message:`把“${source}”统一合并为“${target}”，将修改 ${affected.length} 部电影，保存前会自动备份。`,confirmLabel:'合并'}))return;const next=reviews.map(review=>{if(!(review.categories||[]).includes(source))return review;return{...review,categories:[...new Set(review.categories.map(value=>value===source?target:value))],updatedAt:Date.now()};});try{await persistReviews(next);renderAll();renderArchiveHealth();showToast(`已将“${source}”合并为“${target}”`);}catch(error){showToast(error.message||'合并失败','error');}}
 
 async function exportGallery() {
   if (!getVisibleReviews().length) { showToast('当前筛选没有可导出的电影','error'); return; }
@@ -1633,11 +1718,12 @@ async function exportPosterWall() {
 }
 
 function updateStats() {
-  const reviewCount = reviews.length;
   const watchTotal = reviews.reduce((sum, review) => sum + getWatchCount(review), 0);
-  const avgRating = reviewCount > 0
-    ? (reviews.reduce((s, r) => s + r.rating, 0) / reviewCount).toFixed(1)
-    : '0.0';
+  // A rating of 0 means "not rated yet"; it must not drag the average down.
+  const ratedReviews = reviews.filter(review => review.rating > 0);
+  const avgRating = ratedReviews.length
+    ? (ratedReviews.reduce((sum, review) => sum + review.rating, 0) / ratedReviews.length).toFixed(1)
+    : '—';
   const today = archiveNowParts(),thisMonth = today.month,thisYear = today.year;
   const monthCount = reviews.reduce((sum, review) => sum + getWatchMoments(review).filter(value => {
     if (!window.MOVIE_REVIEW_WEB) {const d=new Date(value);return d.getMonth() === thisMonth-1 && d.getFullYear() === thisYear;}
@@ -1669,36 +1755,33 @@ function updateTagFilter() {
 }
 
 /* ===== Star Selector ===== */
-function initStarSelector(initialRating = 0) {
-  const container = document.getElementById('starSelector');
-  container.innerHTML = '';
-  document.getElementById('movieRating').value = initialRating;
+function buildStarSelector(containerId, inputId, initialRating = 0) {
+  const container = document.getElementById(containerId), input = document.getElementById(inputId);
+  const stars = () => container.querySelectorAll('.star');
+  const paint = count => stars().forEach((star, index) => star.classList.toggle('is-on', index < count));
+  const commit = value => {
+    input.value = value;
+    stars().forEach((star, index) => star.setAttribute('aria-pressed', String(index < value)));
+    paint(value);
+  };
+  container.replaceChildren();
   for (let i = 1; i <= 5; i++) {
-    const star = document.createElement('span');
+    const star = document.createElement('button');
+    star.type = 'button';
     star.className = 'star';
-    star.textContent = i <= initialRating ? '⭐' : '☆';
-    star.style.opacity = i <= initialRating ? '1' : '0.3';
-    star.onclick = () => setStarRating(i);
-    star.onmouseenter = () => hoverStars(i);
+    star.textContent = '★';
+    star.setAttribute('aria-label', `${i} 星`);
+    // Choosing the current rating again clears it back to "not rated".
+    star.onclick = () => commit((parseInt(input.value) || 0) === i ? 0 : i);
+    star.onmouseenter = () => paint(i);
     container.appendChild(star);
   }
-  container.onmouseleave = () => {
-    const cur = parseInt(document.getElementById('movieRating').value) || 0;
-    hoverStars(cur);
-  };
+  container.onmouseleave = () => paint(parseInt(input.value) || 0);
+  commit(initialRating);
 }
 
-function setStarRating(val) {
-  document.getElementById('movieRating').value = val;
-  hoverStars(val);
-}
-
-function hoverStars(count) {
-  const stars = document.querySelectorAll('#starSelector .star');
-  stars.forEach((s, i) => {
-    s.textContent = i < count ? '⭐' : '☆';
-    s.style.opacity = i < count ? '1' : '0.3';
-  });
+function initStarSelector(initialRating = 0) {
+  buildStarSelector('starSelector', 'movieRating', initialRating);
 }
 
 /* ===== Review Image Form ===== */
@@ -1844,13 +1927,7 @@ function removeReviewImage() {
 }
 
 function initRewatchStarSelector(initialRating = 0) {
-  const container = document.getElementById('rewatchStarSelector');
-  container.replaceChildren();
-  document.getElementById('rewatchRating').value = initialRating;
-  const paint = count => container.querySelectorAll('.star').forEach((star,index)=>{star.textContent=index<count?'⭐':'☆';star.style.opacity=index<count?'1':'.3';});
-  for(let i=1;i<=5;i++){const star=document.createElement('span');star.className='star';star.onclick=()=>{document.getElementById('rewatchRating').value=i;paint(i);};star.onmouseenter=()=>paint(i);container.append(star);}
-  container.onmouseleave=()=>paint(parseInt(document.getElementById('rewatchRating').value)||0);
-  paint(initialRating);
+  buildStarSelector('rewatchStarSelector', 'rewatchRating', initialRating);
 }
 
 /* ===== Modal ===== */
@@ -1932,7 +2009,23 @@ function openModal(editId = null) {
     initStarSelector(0);
     setFormImage(null);
   }
+  const editedReview = editId === null ? null : reviews.find(r => r.id === editId);
+  document.querySelector('#movieForm .personal-fields').open = Boolean(editedReview && editedReview.personalContext);
+  modalBaseline = reviewFormSnapshot();
   overlay.classList.add('active');
+}
+
+function reviewFormSnapshot() {
+  const values = [...document.getElementById('movieForm').elements]
+    .filter(field => field.id && field.tagName !== 'BUTTON').map(field => field.value);
+  return JSON.stringify([values, selectedCategories, formImage ? formImage.path : null]);
+}
+
+async function requestCloseModal() {
+  const dirty = reviewFormSnapshot() !== modalBaseline;
+  if (dirty && !await confirmDialog({title: '放弃未保存的修改？', message: '这篇影评的修改还没有保存，关闭后无法找回。',
+    confirmLabel: '放弃修改', cancelLabel: '继续编辑', danger: true})) return;
+  closeModal();
 }
 
 function closeModal() {
@@ -1946,7 +2039,7 @@ function closeModal() {
 }
 
 document.getElementById('modalOverlay').addEventListener('click', (e) => {
-  if (e.target === e.currentTarget) closeModal();
+  if (e.target === e.currentTarget) requestCloseModal();
 });
 
 document.getElementById('movieDate').addEventListener('input', event => {
@@ -2050,7 +2143,20 @@ function openRewatchModal(id = detailReviewId, editIndex = null) {
     initRewatchStarSelector(review.rating);
     saveButton.textContent = '保存重看记录';
   }
+  rewatchBaseline = rewatchFormSnapshot();
   document.getElementById('rewatchOverlay').classList.add('active');
+}
+
+function rewatchFormSnapshot() {
+  return JSON.stringify(['rewatchWatchedAt', 'rewatchFeeling', 'rewatchRating'].map(id => document.getElementById(id).value));
+}
+
+async function requestCloseRewatchModal() {
+  if (rewatchMutationBusy) return;
+  const dirty = rewatchFormSnapshot() !== rewatchBaseline;
+  if (dirty && !await confirmDialog({title: '放弃未保存的修改？', message: '这次重看的记录还没有保存，关闭后无法找回。',
+    confirmLabel: '放弃修改', cancelLabel: '继续编辑', danger: true})) return;
+  closeRewatchModal();
 }
 
 function closeRewatchModal(force = false) {
@@ -2121,7 +2227,8 @@ async function deleteRewatch(reviewId, rewatchIndex) {
   }
   const watchedNumber = rewatchIndex + 2;
   const nextWatchCount = getWatchCount(review) - 1;
-  if (!confirm(`确定删除第 ${watchedNumber} 次观看记录吗？删除后该电影将显示已看 ${nextWatchCount} 次，保存前会自动保留备份。`)) return;
+  if (!await confirmDialog({title: `删除第 ${watchedNumber} 次观看记录？`,
+    message: `删除后该电影将显示已看 ${nextWatchCount} 次。`, confirmLabel: '删除', danger: true})) return;
 
   const nextEntries = currentEntries.filter((_, index) => index !== rewatchIndex);
   const savedReviews = reviews.map(item => {
@@ -2147,7 +2254,11 @@ async function deleteRewatch(reviewId, rewatchIndex) {
 
 /* ===== Delete (async for file save) ===== */
 async function deleteReview(id) {
-  if (!confirm('确定要删除这条影评吗？删除前会自动保留备份，剧照文件会保留以便恢复。')) return false;
+  const target = reviews.find(r => r.id === id);
+  const message = window.MOVIE_REVIEW_WEB
+    ? '删除后不会再出现在档案里；历史版本和剧照文件仍保留在服务器上。'
+    : '删除前会自动保留备份，剧照文件会保留以便恢复。';
+  if (!await confirmDialog({title: `删除《${target ? target.title : '这条影评'}》？`, message, confirmLabel: '删除', danger: true})) return false;
   try {
     await persistReviews(reviews.filter(r => r.id !== id));
     renderAll();
@@ -2255,7 +2366,7 @@ function renderRatingEvolution(review) {
   section.classList.add('visible');
   const ns='http://www.w3.org/2000/svg',left=46,right=610,top=22,bottom=150,maxIndex=Math.max(all.length-1,1);
   const x=number=>left+(number-1)/maxIndex*(right-left),y=rating=>bottom-(rating-1)/4*(bottom-top);
-  for(let score=1;score<=5;score++){const line=document.createElementNS(ns,'line');line.setAttribute('x1',left);line.setAttribute('x2',right);line.setAttribute('y1',y(score));line.setAttribute('y2',y(score));line.setAttribute('stroke','rgba(177,165,166,.16)');svg.append(line);const label=document.createElementNS(ns,'text');label.setAttribute('x','22');label.setAttribute('y',String(y(score)+4));label.setAttribute('fill','#786d70');label.setAttribute('font-size','11');label.textContent=`${score}星`;svg.append(label);}
+  for(let score=1;score<=5;score++){const line=document.createElementNS(ns,'line');line.setAttribute('x1',left);line.setAttribute('x2',right);line.setAttribute('y1',y(score));line.setAttribute('y2',y(score));line.setAttribute('stroke','rgba(177,165,166,.16)');svg.append(line);const label=document.createElementNS(ns,'text');label.setAttribute('x','22');label.setAttribute('y',String(y(score)+4));label.setAttribute('fill','#958a8c');label.setAttribute('font-size','11');label.textContent=`${score}星`;svg.append(label);}
   const polyline=document.createElementNS(ns,'polyline');polyline.setAttribute('points',rated.map(point=>`${x(point.number)},${y(point.rating)}`).join(' '));polyline.setAttribute('fill','none');polyline.setAttribute('stroke','#d6b06a');polyline.setAttribute('stroke-width','3');polyline.setAttribute('stroke-linecap','round');polyline.setAttribute('stroke-linejoin','round');svg.append(polyline);
   rated.forEach(point=>{const circle=document.createElementNS(ns,'circle');circle.setAttribute('cx',x(point.number));circle.setAttribute('cy',y(point.rating));circle.setAttribute('r','6');circle.setAttribute('fill','#a44752');circle.setAttribute('stroke','#f3ede5');circle.setAttribute('stroke-width','2');svg.append(circle);const label=document.createElementNS(ns,'text');label.setAttribute('x',x(point.number));label.setAttribute('y','174');label.setAttribute('fill','#b1a5a6');label.setAttribute('font-size','11');label.setAttribute('text-anchor','middle');label.textContent=`第${point.number}次`;svg.append(label);});
   const delta=rated[rated.length-1].rating-rated[0].rating;
@@ -2475,10 +2586,11 @@ function renderRelationGraph(items) {
   document.getElementById('gallerySummary').textContent=`${getGalleryFilterSummary(items)} · ${getRelationDimensionName()}知识图谱`;
   const canvas=document.getElementById('knowledgeGraphCanvas');
   const shell=canvas.parentElement;
-  const width=Math.max(shell.clientWidth,720), height=Math.max(shell.clientHeight,560), graphWidth=width-(width>760?290:0);
+  const width=Math.max(shell.clientWidth,280), height=Math.max(shell.clientHeight,560), compact=width<=600, graphWidth=width-(width>760?290:0);
   const labels=[...new Set(items.flatMap(getRelationLabels))].sort((a,b)=>a.localeCompare(b,'zh-CN'));
   const nodes=[], nodeMap=new Map(), edges=[];
-  const center={x:graphWidth*.48,y:height*.5}, radius=Math.max(120,Math.min(graphWidth,height)*.36);
+  // Narrow screens draw at their real width; the info panel covers the lower third there.
+  const center={x:graphWidth*(compact?.5:.48),y:height*(compact?.36:.5)}, radius=compact?Math.max(84,Math.min(graphWidth*.3,height*.22)):Math.max(120,Math.min(graphWidth,height)*.36);
   labels.forEach((label,index)=>{
     const angle=(Math.PI*2*index/Math.max(labels.length,1))-Math.PI/2;
     const node={id:`relation:${label}`,kind:'relation',label,x:center.x,y:center.y,targetX:center.x+Math.cos(angle)*radius,targetY:center.y+Math.sin(angle)*radius,size:18};
@@ -2488,7 +2600,7 @@ function renderRelationGraph(items) {
   items.forEach(review=>{
     const relations=getRelationLabels(review), hubs=relations.map(label=>nodeMap.get(`relation:${label}`)).filter(Boolean);
     const baseX=hubs.reduce((sum,node)=>sum+node.targetX,0)/Math.max(hubs.length,1), baseY=hubs.reduce((sum,node)=>sum+node.targetY,0)/Math.max(hubs.length,1);
-    const hash=stableHash(review.id), angle=(hash%628)/100, distance=28+(hash%72);
+    const hash=stableHash(review.id), angle=(hash%628)/100, distance=compact?18+(hash%36):28+(hash%72);
     const node={id:`movie:${review.id}`,kind:'movie',label:review.title,review,x:center.x,y:center.y,targetX:baseX+Math.cos(angle)*distance,targetY:baseY+Math.sin(angle)*distance,size:6};
     nodes.push(node);nodeMap.set(node.id,node);
     relations.forEach(label=>edges.push({source:node.id,target:`relation:${label}`,label}));
@@ -2683,7 +2795,9 @@ async function handleImport() {
       return;
     }
     const formatName = selected.format === 'zip' ? '完整 ZIP 备份' : 'JSON 数据';
-    if (!confirm(`即将从${formatName}导入 ${selected.recordCount ?? selected.reviews.length} 条影评，当前数据会先自动备份，然后被替换。是否继续？`)) return;
+    if (!await confirmDialog({title: '导入并替换当前档案？',
+      message: `即将从${formatName}导入 ${selected.recordCount ?? selected.reviews.length} 条影评。当前数据会先自动备份，然后被替换。`,
+      confirmLabel: '导入并替换'})) return;
     const result = await desktopMethod('apply_import')(selected.importToken);
     applyDesktopState(result);
     if (!result.ok) throw new Error(result.error || '导入失败');
@@ -2758,15 +2872,15 @@ function renderGrid(items) {
           <div class="card-image-loading">正在加载剧照</div>
           <div class="card-image-overlay"></div>
         ` : `<div class="card-fallback-mark">✦</div>`}
-        <div class="card-rating-chip">${renderStars(r.rating)}</div>
+        <div class="card-rating-chip" role="img" aria-label="${r.rating ? `评分 ${r.rating} 星` : '未评分'}">${renderStars(r.rating)}</div>
         <div class="card-visual-copy">
           <div class="card-visual-title">${escapeHtml(r.title)}</div>
           <div class="card-visual-meta">${r.director ? `🎬 ${escapeHtml(r.director)} · ` : ''}📅 ${formatDate(r.date)} · 已看 ${getWatchCount(r)} 次</div>
         </div>
       </div>
       <div class="card-body">
-        ${r.tags && r.tags.length ? `
-          <div class="card-tags">${r.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
+        ${(r.categories && r.categories.length) || (r.tags && r.tags.length) ? `
+          <div class="card-tags">${(r.categories || []).map(c => `<span class="tag tag-category">${escapeHtml(c)}</span>`).join('')}${(r.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
         ` : ''}
         ${r.comment ? `
           <div class="card-comment">${escapeHtml(r.comment)}</div>
@@ -2807,10 +2921,32 @@ function renderAll() {
 let toastTimer;
 function showToast(msg, type = 'success') {
   const toast = document.getElementById('toast');
+  // Errors are announced at once and stay long enough to read a full sentence.
+  toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
   toast.textContent = msg;
   toast.className = `toast toast-${type} show`;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { toast.className = `toast toast-${type}`; }, 2000);
+  toastTimer = setTimeout(() => { toast.className = `toast toast-${type}`; }, type === 'error' ? 6000 : 2400);
+}
+
+/* ===== In-app confirmation ===== */
+function confirmDialog({title = '请确认', message = '', confirmLabel = '确定', cancelLabel = '取消', danger = false} = {}) {
+  const overlay = document.getElementById('confirmOverlay'), accept = overlay.querySelector('[data-confirm-accept]');
+  if (confirmResolver) confirmResolver(false);
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMessage').textContent = message;
+  accept.textContent = confirmLabel;
+  accept.className = `btn ${danger ? 'btn-danger' : 'btn-primary'}`;
+  overlay.querySelector('[data-confirm-cancel]').textContent = cancelLabel;
+  overlay.classList.add('active');
+  return new Promise(resolve => { confirmResolver = resolve; });
+}
+
+function settleConfirm(accepted) {
+  const resolve = confirmResolver;
+  confirmResolver = null;
+  document.getElementById('confirmOverlay').classList.remove('active');
+  if (resolve) resolve(accepted);
 }
 
 /* ===== Helpers ===== */
@@ -2868,7 +3004,7 @@ document.getElementById('detailOverlay').addEventListener('click', event => {
 });
 
 document.getElementById('rewatchOverlay').addEventListener('click', event => {
-  if (event.target === event.currentTarget) closeRewatchModal();
+  if (event.target === event.currentTarget) requestCloseRewatchModal();
 });
 document.getElementById('tasteOverlay').addEventListener('click', event => {
   if (event.target === event.currentTarget) closeTasteProfile();
@@ -2976,17 +3112,78 @@ document.addEventListener('keydown', event => {
     if(event.key==='0'){event.preventDefault();resetLightboxZoom();return;}
   }
   const detailActive=document.getElementById('detailOverlay').classList.contains('active');
-  const blockingOverlay=document.getElementById('lightboxOverlay').classList.contains('active')||document.getElementById('rewatchOverlay').classList.contains('active')||document.getElementById('modalOverlay').classList.contains('active');
+  const blockingOverlay=document.getElementById('confirmOverlay').classList.contains('active')||document.getElementById('lightboxOverlay').classList.contains('active')||document.getElementById('rewatchOverlay').classList.contains('active')||document.getElementById('modalOverlay').classList.contains('active');
   if(detailActive&&!blockingOverlay&&!['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName)&&(event.key==='ArrowLeft'||event.key==='ArrowRight')){event.preventDefault();navigateDetail(event.key==='ArrowLeft'?-1:1);return;}
   if (event.key !== 'Escape') return;
-  if (document.getElementById('lightboxOverlay').classList.contains('active')) closeLightbox();
-  else if (document.getElementById('rewatchOverlay').classList.contains('active')) closeRewatchModal();
+  if (document.getElementById('confirmOverlay').classList.contains('active')) settleConfirm(false);
+  else if (document.getElementById('lightboxOverlay').classList.contains('active')) closeLightbox();
+  else if (document.getElementById('rewatchOverlay').classList.contains('active')) requestCloseRewatchModal();
   else if (document.getElementById('tasteOverlay').classList.contains('active')) closeTasteProfile();
   else if (document.getElementById('annualOverlay').classList.contains('active')) closeAnnualReport();
   else if (document.getElementById('healthOverlay').classList.contains('active')) closeArchiveHealth();
-  else if (document.getElementById('modalOverlay').classList.contains('active')) closeModal();
+  else if (document.getElementById('modalOverlay').classList.contains('active')) requestCloseModal();
   else if (document.getElementById('detailOverlay').classList.contains('active')) closeDetail();
   else if (document.getElementById('galleryOverlay').classList.contains('active')) closeGallery();
+});
+
+document.querySelector('#confirmOverlay [data-confirm-accept]').addEventListener('click', () => settleConfirm(true));
+document.querySelector('#confirmOverlay [data-confirm-cancel]').addEventListener('click', () => settleConfirm(false));
+document.getElementById('confirmOverlay').addEventListener('click', event => {
+  if (event.target === event.currentTarget) settleConfirm(false);
+});
+
+/* ===== Dialog focus and background scroll ===== */
+// Every overlay toggles the same "active" class, so one observer gives all of
+// them the same behaviour: focus moves in, Tab stays in, the page behind stops
+// scrolling, and focus returns to where it came from.
+const DIALOG_OVERLAY_IDS = ['modalOverlay', 'rewatchOverlay', 'detailOverlay', 'lightboxOverlay', 'galleryOverlay',
+  'annualOverlay', 'healthOverlay', 'tasteOverlay', 'confirmOverlay'];
+const dialogReturnFocus = new Map();
+
+function dialogFocusables(overlay) {
+  return [...overlay.querySelectorAll('button, input, select, textarea, summary, a[href], [tabindex]:not([tabindex="-1"])')]
+    .filter(item => !item.disabled && item.type !== 'hidden' && item.getClientRects().length);
+}
+
+function topDialogOverlay() {
+  return DIALOG_OVERLAY_IDS.map(id => document.getElementById(id)).filter(overlay => overlay.classList.contains('active'))
+    .sort((a, b) => Number(getComputedStyle(b).zIndex) - Number(getComputedStyle(a).zIndex))[0] || null;
+}
+
+function syncDialogState(overlay) {
+  const active = overlay.classList.contains('active');
+  document.body.classList.toggle('overlay-open', Boolean(topDialogOverlay()));
+  if (active && !dialogReturnFocus.has(overlay)) {
+    dialogReturnFocus.set(overlay, document.activeElement);
+    // Overlays become visible the moment they open (only opacity fades), so
+    // focus can move in immediately instead of waiting for animation frames.
+    if (!overlay.contains(document.activeElement)) {
+      const target = overlay.querySelector('[data-dialog-focus]') || dialogFocusables(overlay)[0];
+      if (target) target.focus({preventScroll: true});
+    }
+  } else if (!active && dialogReturnFocus.has(overlay)) {
+    const previous = dialogReturnFocus.get(overlay);
+    dialogReturnFocus.delete(overlay);
+    // The closing code may already have moved focus somewhere deliberate.
+    if (!overlay.contains(document.activeElement) && document.activeElement !== document.body) return;
+    const fallback = topDialogOverlay();
+    if (previous && previous.isConnected && typeof previous.focus === 'function') previous.focus({preventScroll: true});
+    else if (fallback) (fallback.querySelector('[data-dialog-focus]') || dialogFocusables(fallback)[0] || fallback).focus({preventScroll: true});
+  }
+}
+
+const dialogObserver = new MutationObserver(records => new Set(records.map(record => record.target)).forEach(syncDialogState));
+DIALOG_OVERLAY_IDS.forEach(id => dialogObserver.observe(document.getElementById(id), {attributes: true, attributeFilter: ['class']}));
+
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Tab') return;
+  const overlay = topDialogOverlay();
+  if (!overlay) return;
+  const items = dialogFocusables(overlay);
+  if (!items.length) { event.preventDefault(); return; }
+  const first = items[0], last = items[items.length - 1], inside = overlay.contains(document.activeElement);
+  if (event.shiftKey && (!inside || document.activeElement === first || document.activeElement === overlay.querySelector('[data-dialog-focus]'))) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && (!inside || document.activeElement === last)) { event.preventDefault(); first.focus(); }
 });
 
 window.addEventListener('pywebviewready', initApp);

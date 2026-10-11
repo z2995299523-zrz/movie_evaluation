@@ -31,6 +31,7 @@ deploy/*-record.md
 .venv/
 .runtime-test/
 .runtime-web/
+.runtime-career/
 .vercel/
 node_modules/
 

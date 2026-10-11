@@ -326,10 +326,10 @@ def create_app(data_dir: Path | None = None, *, secure_cookie: bool = True) -> F
 
     @application.get("/api/reviews/{review_id}")
     def get_review(review_id: str, found=Depends(session)):
-        for item in db.list_reviews(found["user_id"])["reviews"]:
-            if item["review"]["id"] == review_id:
-                return item
-        raise HTTPException(404, "影评不存在")
+        item = db.get_review(found["user_id"], review_id)
+        if item is None:
+            raise HTTPException(404, "影评不存在")
+        return item
 
     def check_image(review: dict, user_id: int):
         image = review.get("image")
@@ -351,13 +351,14 @@ def create_app(data_dir: Path | None = None, *, secure_cookie: bool = True) -> F
 
     @application.delete("/api/reviews/{review_id}")
     def delete_review(review_id: str, revision: int, found=Depends(write_session)):
-        db.delete_review(review_id, revision, found["user_id"],
-                         before_change=lambda: backup_before_bulk("pre-delete"))
+        # A single delete is a soft delete with retained history and media, so it
+        # does not consume the shared full-backup budget used by bulk changes.
+        db.delete_review(review_id, revision, found["user_id"])
         return {"ok": True}
 
     @application.get("/api/archive/version")
     def archive_version(found=Depends(session)):
-        return {"archiveRevision": db.list_reviews(found["user_id"])["archiveRevision"]}
+        return {"archiveRevision": db.archive_revision(found["user_id"])}
 
     @application.put("/api/archive/reviews")
     def replace_archive(body: ReplaceBody, found=Depends(write_session)):
@@ -517,6 +518,8 @@ def create_app(data_dir: Path | None = None, *, secure_cookie: bool = True) -> F
                 await run_in_threadpool(validate_import_images, source, plan["reviews"])
             else:
                 raw_reviews = json.loads(source.read_text(encoding="utf-8-sig"))
+                if not isinstance(raw_reviews, list):
+                    raise DataValidationError("影评数据的最外层必须是数组")
                 if any(item.get("image") for item in raw_reviews if isinstance(item, dict)):
                     raise DataValidationError("含剧照的 JSON 请使用完整 ZIP 备份")
                 from app import normalize_reviews
@@ -526,7 +529,7 @@ def create_app(data_dir: Path | None = None, *, secure_cookie: bool = True) -> F
             token = uuid.uuid4().hex
             item = {"source": source, "sha256": digest.hexdigest(),
                     "plan": plan, "session": db._hash(request.cookies[COOKIE_NAME]),
-                    "archiveRevision": db.list_reviews(found["user_id"])["archiveRevision"],
+                    "archiveRevision": db.archive_revision(found["user_id"]),
                     "userId": found["user_id"], "expires": time.time() + 1800}
             with import_guard:
                 pending_imports[token] = item

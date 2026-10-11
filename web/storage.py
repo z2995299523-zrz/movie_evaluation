@@ -430,17 +430,39 @@ class ArchiveDatabase:
         return list(decoded.values())
 
     @classmethod
+    def _select_versions(cls, db, join, where, parameters):
+        rows = db.execute(f"SELECT r.public_id,v.id AS version_id,v.*,m.title,m.director FROM reviews r "
+                          f"JOIN review_versions v ON {join} JOIN movies m ON m.id=v.movie_id WHERE {where} ORDER BY r.id,v.id",
+                          parameters).fetchall()
+        return cls._decode_versions(db, rows)
+
+    @classmethod
     def read_snapshot(cls, db, user_id=None, *, include_history=False):
         join = "v.review_id=r.id" if include_history else "v.id=r.current_version_id"
         where = "1=1" if include_history else "r.deleted_at IS NULL"
         if user_id is not None:
             where += " AND r.user_id=?"
-        rows = db.execute(f"SELECT r.public_id,v.id AS version_id,v.*,m.title,m.director FROM reviews r "
-                          f"JOIN review_versions v ON {join} JOIN movies m ON m.id=v.movie_id WHERE {where} ORDER BY r.id,v.id",
-                          () if user_id is None else (user_id,)).fetchall()
-        return cls._decode_versions(db, rows)
+        return cls._select_versions(db, join, where, () if user_id is None else (user_id,))
 
-    def list_reviews(self, user_id=1):
+    @classmethod
+    def read_review(cls, db, user_id, public_id):
+        """Current content of one live review, without reading the rest of the archive."""
+        found = cls._select_versions(db, "v.id=r.current_version_id",
+                                     "r.deleted_at IS NULL AND r.user_id=? AND r.public_id=?", (user_id, public_id))
+        return found[0] if found else None
+
+    def get_review(self, user_id, review_id):
+        with self.connect() as db:
+            return self.read_review(db, user_id, review_id)
+
+    def archive_revision(self, user_id):
+        with self.connect() as db:
+            version = db.execute("SELECT revision FROM archive_state WHERE user_id=?", (user_id,)).fetchone()
+        if version is None:
+            raise LookupError("用户不存在")
+        return version[0]
+
+    def list_reviews(self, user_id):
         with self.connect() as db:
             db.execute("BEGIN")
             records = self.read_snapshot(db, user_id)
@@ -459,7 +481,7 @@ class ArchiveDatabase:
         return db.execute("SELECT r.*,v.revision FROM reviews r LEFT JOIN review_versions v ON v.id=r.current_version_id "
                           "WHERE r.user_id=? AND r.public_id=?", (user_id, public_id)).fetchone()
 
-    def create_review(self, value, key, user_id=1):
+    def create_review(self, value, key, user_id):
         review = self.validate_review(value)
         if not 16 <= len(key) <= 128:
             raise DataValidationError("创建请求缺少有效的幂等标识")
@@ -474,7 +496,7 @@ class ArchiveDatabase:
                     raise ConflictError("此创建请求已用于另一条影评")
                 if old["deleted_at"] is not None:
                     raise ConflictError("这条影评已被删除")
-                return next(i for i in self.read_snapshot(db, user_id) if i["review"]["id"] == review["id"])
+                return self.read_review(db, user_id, review["id"])
             if old and old["deleted_at"] is None:
                 raise ConflictError("影评 ID 已存在")
             if db.execute("SELECT COUNT(*) FROM reviews WHERE user_id=? AND deleted_at IS NULL", (user_id,)).fetchone()[0] >= MAX_REVIEWS:
@@ -488,7 +510,7 @@ class ArchiveDatabase:
             self._bump(db, user_id)
         return {"review": review, "revision": revision}
 
-    def update_review(self, review_id, value, revision, user_id=1):
+    def update_review(self, review_id, value, revision, user_id):
         review = self.validate_review(value)
         if review["id"] != review_id:
             raise DataValidationError("影评 ID 不一致")
@@ -502,17 +524,14 @@ class ArchiveDatabase:
             self._bump(db, user_id)
         return {"review": review, "revision": revision + 1}
 
-    def delete_review(self, review_id, revision, user_id=1, *, before_change: Callable[[], None] | None = None):
+    def delete_review(self, review_id, revision, user_id):
+        """Soft delete: the content stays in review_versions and media is retained."""
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             old = self._find(db, review_id, user_id)
             if not old or old["deleted_at"] is not None or old["revision"] != revision:
                 raise ConflictError("其他设备已修改或删除这条影评")
-            value = next(i["review"] for i in self.read_snapshot(db, user_id) if i["review"]["id"] == review_id)
-            if before_change is not None:
-                # No writes precede this callback. The reserved lock protects the
-                # validated state while another connection takes its backup.
-                before_change()
+            value = self.read_review(db, user_id, review_id)["review"]
             vid = self._write_version(db, old["id"], value, revision + 1, "delete")
             db.execute("UPDATE reviews SET current_version_id=?,deleted_at=? WHERE id=?", (vid, int(time.time()), old["id"]))
             self._bump(db, user_id)
@@ -527,7 +546,7 @@ class ArchiveDatabase:
         if not current or current[0] != archive_revision:
             raise ConflictError("档案已在其他设备改变，请刷新后重试批量操作")
 
-    def replace_archive(self, values, archive_revision, user_id=1, *,
+    def replace_archive(self, values, archive_revision, user_id, *,
                         before_change: Callable[[], None] | None = None, uploaded_images=()):
         if not isinstance(values, list) or len(values) > MAX_REVIEWS:
             raise DataValidationError("影评数据格式无效或数量超出上限")
@@ -538,6 +557,8 @@ class ArchiveDatabase:
             db.execute("BEGIN IMMEDIATE")
             self._require_archive_revision(db, archive_revision, user_id)
             if before_change is not None:
+                # No writes precede this callback. The reserved lock protects the
+                # validated state while another connection takes its backup.
                 before_change()
             for image in uploaded_images:
                 self._register_upload(db, user_id, image)

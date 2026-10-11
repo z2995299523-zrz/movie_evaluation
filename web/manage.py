@@ -66,8 +66,8 @@ def migrate(source: Path, target: Path) -> dict:
             if installed != image:
                 raise DataValidationError("剧照迁移校验不一致")
     db = ArchiveDatabase(db_path)
-    db.replace_archive(raw, 0)
-    snapshot = db.list_reviews()
+    db.replace_archive(raw, 0, 1)
+    snapshot = db.list_reviews(1)
     restored = [item["review"] for item in snapshot["reviews"]]
     if restored != raw:
         raise DataValidationError("迁移后业务字段不一致")

@@ -725,7 +725,7 @@ class FrontendImageDropTests(unittest.TestCase):
         self.assertIn("function handleRewatchSubmit", self.html)
         self.assertIn("currentEntries.push({ watchedAt, feeling, rating, createdAt: Date.now() })", self.html)
         self.assertIn("const watchTotal = reviews.reduce", self.html)
-        self.assertIn("/ reviewCount).toFixed(1)", self.html)
+        self.assertIn("/ ratedReviews.length).toFixed(1)", self.html)
         self.assertIn("＋ 记录重看", self.html)
         self.assertIn("记录第 ${currentWatchCount + 1} 次观看", self.html)
         self.assertIn("保存重看记录", self.html)

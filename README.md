@@ -51,7 +51,11 @@ python -m venv .venv
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
+node tests\browser_behavior.mjs
+node tests\browser_security.mjs
 ```
+
+两个 `.mjs` 用本机 Chrome 在无界面模式下加载 `index.html`，不需要服务器和账户：`browser_behavior.mjs` 检查表单、弹窗、统计和手机宽度下的布局，`browser_security.mjs` 检查文本与属性注入防护。Chrome 不在默认位置时设置 `CHROME_PATH`。
 
 ## 构建单文件 EXE
 
@@ -88,6 +92,9 @@ python -m venv .venv
 ## 项目结构
 
 - `app.py`：数据校验、原子保存、滚动备份和桌面桥接
-- `index.html`：内嵌桌面界面
+- `index.html`：桌面版与网页版共用的界面
+- `web/`：网页版服务（接口、SQLite 存储、备份、浏览器适配脚本与账户样式）
+- `deploy/`：Git 发布脚本、systemd 模板与部署说明
+- `docs/`：数据库模型等设计说明
 - `movie-review.spec`：PyInstaller 单文件构建配置
-- `tests/`：存储与数据校验测试
+- `tests/`：桌面、网页接口与安全回归测试，以及浏览器界面测试

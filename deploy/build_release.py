@@ -16,7 +16,7 @@ FILES = [
     "deploy/Caddyfile.example", "deploy/movie-review.service", "deploy/movie-review-backup.service",
     "deploy/movie-review-backup.timer", "deploy/README.md", "deploy/build_release.py", "docs/DATABASE_MODEL.md",
     "tests/test_web.py", "tests/test_storage_migration.py", "tests/browser_smoke.mjs",
-    "tests/test_git_deploy.py", "tests/test_security_auth.py", "tests/test_security_media.py", "tests/test_security_network.py", "tests/test_security_sql.py", "tests/browser_security.mjs", "deploy/GIT_RELEASE.md", "deploy/git_deploy.py",
+    "tests/test_git_deploy.py", "tests/test_security_auth.py", "tests/test_security_media.py", "tests/test_security_network.py", "tests/test_security_sql.py", "tests/browser_security.mjs", "tests/browser_behavior.mjs", "tests/browser_harness.mjs", "deploy/GIT_RELEASE.md", "deploy/git_deploy.py",
     "deploy/movie-review-deploy.sh", "deploy/check_release.py", "deploy/audit_source.py",
     "deploy/publish.ps1", "deploy/deploy.ps1",
 ]

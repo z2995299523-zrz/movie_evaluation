@@ -21,7 +21,7 @@ py -3.12 -m venv .runtime-web\release-venv
 
 不提交个人 JSON、`feils/`、媒体、数据库、备份、运行环境、EXE、`.env` 或 SSH 私钥。生产操作记录与原上线方案留在本地，不进入公开仓库。凭据扫描只覆盖已知特征，新增配置仍需检查内容。
 
-GitHub Actions 在推送/PR 后扫描源码中的私有文件与已知凭据特征，再运行 Windows 桌面测试及 Ubuntu Web 测试。Windows 还使用 Node.js 24 与 runner 中的 Chrome 执行 `tests/browser_security.mjs`，验证合成记录的文本/属性注入防护；缺少浏览器或测试失败会让 job 失败。官方 Actions 固定完整提交 SHA。正式上线前检查相应提交的 CI 成功。CI 不保存生产 SSH 凭据，也不自动部署服务器。当前流程以本地和服务器必需测试为执行门禁；服务器脚本不会查询 GitHub CI 状态。
+GitHub Actions 在推送/PR 后扫描源码中的私有文件与已知凭据特征，再运行 Windows 桌面测试及 Ubuntu Web 测试。Windows 还使用 Node.js 24 与 runner 中的 Chrome 执行 `tests/browser_security.mjs` 和 `tests/browser_behavior.mjs`，分别验证合成记录的文本/属性注入防护，以及表单、弹窗、统计和手机宽度布局等界面行为；缺少浏览器或测试失败会让 job 失败。官方 Actions 固定完整提交 SHA。正式上线前检查相应提交的 CI 成功。CI 不保存生产 SSH 凭据，也不自动部署服务器。当前流程以本地和服务器必需测试为执行门禁；服务器脚本不会查询 GitHub CI 状态。
 
 ## 服务器一次性接入
 

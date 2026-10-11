@@ -69,10 +69,30 @@ class AutomaticBackupSecurityTests(unittest.TestCase):
         self.assertEqual(self.backups(), [])
         self.assertEqual(len(self.database.list_reviews(self.user["id"])["reviews"]), 1)
 
-    def test_successful_delete_retains_a_verified_pre_change_restore_point(self):
+    def replace(self, client, reviews, archive_revision):
+        return client.put("/api/archive/reviews", json={"reviews": reviews, "archiveRevision": archive_revision},
+                          headers=self.headers)
+
+    def test_single_deletes_keep_history_without_full_backups_or_throttling(self):
+        self.create("first")
+        self.create("second")
+        for identifier in ("first", "second"):
+            result = self.client.delete(f"/api/reviews/{identifier}?revision=1", headers=self.headers)
+            self.assertEqual(result.status_code, 200, result.text)
+        self.assertEqual(self.backups(), [])
+        self.assertEqual(self.database.list_reviews(self.user["id"])["reviews"], [])
+        with self.database.connect() as connection:
+            history = self.database.read_snapshot(connection, self.user["id"], include_history=True)
+            operations = [row[0] for row in connection.execute(
+                "SELECT v.operation FROM review_versions v JOIN reviews r ON r.id=v.review_id "
+                "WHERE r.user_id=? ORDER BY v.id", (self.user["id"],))]
+        self.assertEqual(sorted(item["review"]["id"] for item in history), ["first", "first", "second", "second"])
+        self.assertEqual(sorted(operations), ["create", "create", "delete", "delete"])
+
+    def test_successful_bulk_replace_retains_a_verified_pre_change_restore_point(self):
         self.create("own")
         self.create("foreign", user_id=1)
-        result = self.client.delete("/api/reviews/own?revision=1", headers=self.headers)
+        result = self.replace(self.client, [], 1)
         self.assertEqual(result.status_code, 200, result.text)
         self.assertEqual(len(self.backups()), 1)
         manifest = verify_backup(self.backups()[0])
@@ -85,27 +105,27 @@ class AutomaticBackupSecurityTests(unittest.TestCase):
         self.assertEqual(restored.list_reviews(1)["reviews"][0]["review"]["id"], "foreign")
         self.assertEqual(self.database.list_reviews(self.user["id"])["reviews"], [])
 
-    def test_valid_operations_are_throttled_across_app_restart(self):
+    def test_bulk_operations_are_throttled_across_app_restart(self):
         self.create("first")
         self.create("second")
-        self.assertEqual(self.client.delete("/api/reviews/first?revision=1", headers=self.headers).status_code, 200)
+        self.assertEqual(self.replace(self.client, [review("first")], 2).status_code, 200)
         restarted = create_app(self.path, secure_cookie=False)
         with TestClient(restarted) as other:
             other.cookies.update(self.client.cookies)
-            result = other.delete("/api/reviews/second?revision=1", headers=self.headers)
+            result = self.replace(other, [], 3)
         self.assertEqual(result.status_code, 429)
         self.assertEqual(result.headers.get("retry-after"), "10")
         self.assertEqual(len(self.backups()), 1)
         self.assertEqual(len(self.database.list_reviews(self.user["id"])["reviews"]), 1)
         self.age_backups()
-        result = self.client.delete("/api/reviews/second?revision=1", headers=self.headers)
+        result = self.replace(self.client, [], 3)
         self.assertEqual(result.status_code, 200, result.text)
         self.assertEqual(len(self.backups()), 2)
 
     def test_file_budget_blocks_mutation_and_preserves_existing_backups(self):
         self.create("first")
         self.create("second")
-        self.assertEqual(self.client.delete("/api/reviews/first?revision=1", headers=self.headers).status_code, 200)
+        self.assertEqual(self.replace(self.client, [review("first")], 2).status_code, 200)
         self.age_backups()
         manual = self.path / "backups" / "user-history.zip"
         manual.write_bytes(b"Existing user history must remain unchanged")
@@ -114,7 +134,7 @@ class AutomaticBackupSecurityTests(unittest.TestCase):
             limited = create_app(self.path, secure_cookie=False)
         with TestClient(limited) as client:
             client.cookies.update(self.client.cookies)
-            result = client.delete("/api/reviews/second?revision=1", headers=self.headers)
+            result = self.replace(client, [], 3)
         self.assertEqual(result.status_code, 507)
         self.assertEqual(len(self.backups()), 1)
         self.assertEqual(len(self.database.list_reviews(self.user["id"])["reviews"]), 1)
@@ -127,16 +147,28 @@ class AutomaticBackupSecurityTests(unittest.TestCase):
             limited = create_app(self.path, secure_cookie=False)
         with TestClient(limited) as client:
             client.cookies.update(self.client.cookies)
-            result = client.delete("/api/reviews/own?revision=1", headers=self.headers)
+            result = self.replace(client, [], 1)
         self.assertEqual(result.status_code, 507)
         self.assertEqual(self.backups(), [])
         with patch("web.main.create_backup", side_effect=OSError("Simulated storage failure")):
-            result = self.client.delete("/api/reviews/own?revision=1", headers=self.headers)
+            result = self.replace(self.client, [], 1)
         self.assertEqual(result.status_code, 507)
         self.assertEqual(self.backups(), [])
         self.assertEqual(self.database.list_reviews(self.user["id"])["reviews"][0]["review"]["id"], "own")
 
-    def test_concurrent_same_revision_produces_one_backup_and_one_change(self):
+    def test_concurrent_same_revision_bulk_replace_produces_one_backup_and_one_change(self):
+        self.create("own")
+        def replace(_):
+            with TestClient(self.app) as client:
+                client.cookies.update(self.client.cookies)
+                return self.replace(client, [], 1).status_code
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            statuses = list(pool.map(replace, range(2)))
+        self.assertEqual(sorted(statuses), [200, 409])
+        self.assertEqual(len(self.backups()), 1)
+        self.assertEqual(verify_backup(self.backups()[0])["recordCount"], 1)
+
+    def test_concurrent_same_revision_delete_produces_one_change(self):
         self.create("own")
         def delete(_):
             with TestClient(self.app) as client:
@@ -145,8 +177,7 @@ class AutomaticBackupSecurityTests(unittest.TestCase):
         with ThreadPoolExecutor(max_workers=2) as pool:
             statuses = list(pool.map(delete, range(2)))
         self.assertEqual(sorted(statuses), [200, 409])
-        self.assertEqual(len(self.backups()), 1)
-        self.assertEqual(verify_backup(self.backups()[0])["recordCount"], 1)
+        self.assertEqual(self.backups(), [])
 
     def test_stale_import_confirm_does_not_create_a_backup(self):
         preview = self.client.post("/api/imports/preview", files={"file": ("archive.json", json.dumps([]).encode(), "application/json")},

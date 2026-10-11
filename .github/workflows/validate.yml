@@ -34,3 +34,6 @@ jobs:
       - name: Browser security regression
         run: node tests/browser_security.mjs
         timeout-minutes: 2
+      - name: Browser behaviour regression
+        run: node tests/browser_behavior.mjs
+        timeout-minutes: 4

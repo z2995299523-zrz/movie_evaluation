@@ -53,7 +53,7 @@ class MigrationTests(unittest.TestCase):
         hashed = self.legacy(value)
         database = ArchiveDatabase(self.path)
         self.assertTrue(database.migration_backup.is_file())
-        self.assertEqual(database.list_reviews(), {"reviews": [{"review": value, "revision": 4}], "archiveRevision": 7})
+        self.assertEqual(database.list_reviews(1), {"reviews": [{"review": value, "revision": 4}], "archiveRevision": 7})
         token, _ = database.login("原用户", "original-long-password", "migration-test")
         self.assertEqual(database.session(token)["user_id"], 1)
         with database.connect() as db:
@@ -66,7 +66,7 @@ class MigrationTests(unittest.TestCase):
             self.assertEqual(json.loads(db.execute("SELECT payload FROM reviews").fetchone()[0]), value)
         # Reopening a v2 database must not migrate again or reset the archive.
         self.assertIsNone(ArchiveDatabase(self.path).migration_backup)
-        self.assertEqual(ArchiveDatabase(self.path).list_reviews()["archiveRevision"], 7)
+        self.assertEqual(ArchiveDatabase(self.path).list_reviews(1)["archiveRevision"], 7)
 
     def test_invalid_legacy_data_rolls_back_schema_and_preserves_backup(self):
         value = record(title="  不能静默裁剪  ")

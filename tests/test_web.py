@@ -314,7 +314,7 @@ class WebTests(unittest.TestCase):
         restored = self.path / "restored"
         restore_backup(archive, restored)
         from web.storage import ArchiveDatabase
-        self.assertEqual(ArchiveDatabase(restored / "db" / "app.sqlite3").list_reviews()["reviews"][0]["review"], review())
+        self.assertEqual(ArchiveDatabase(restored / "db" / "app.sqlite3").list_reviews(1)["reviews"][0]["review"], review())
         with zipfile.ZipFile(archive) as source:
             files = {name: source.read(name) for name in source.namelist()}
         files["db/app.sqlite3"] = b"broken"
@@ -324,6 +324,56 @@ class WebTests(unittest.TestCase):
                 dest.writestr(name, content)
         with self.assertRaises(Exception):
             verify_backup(broken)
+
+    def test_import_preview_rejects_json_that_is_not_a_review_list(self):
+        csrf = self.login()
+        for content in (b"123", b"null", b'"text"', b"true"):
+            preview = self.client.post("/api/imports/preview", files={"file": ("archive.json", content, "application/json")},
+                                       headers=self.headers(csrf))
+            self.assertEqual(preview.status_code, 422, (content, preview.text))
+            self.assertIn("导入文件无效", preview.json()["detail"])
+
+    def test_single_review_and_archive_version_do_not_read_the_whole_archive(self):
+        csrf = self.login()
+        for identifier in ("movie_1", "movie_2"):
+            created = self.client.post("/api/reviews", json={"review": review(identifier), "requestKey": uuid.uuid4().hex},
+                                       headers=self.headers(csrf))
+            self.assertEqual(created.status_code, 201, created.text)
+        from unittest.mock import patch
+        from web.storage import ArchiveDatabase
+        with patch.object(ArchiveDatabase, "read_snapshot", side_effect=AssertionError("full archive read")):
+            version = self.client.get("/api/archive/version")
+            self.assertEqual(version.status_code, 200, version.text)
+            self.assertEqual(version.json(), {"archiveRevision": 2})
+            single = self.client.get("/api/reviews/movie_2")
+            self.assertEqual(single.status_code, 200, single.text)
+            self.assertEqual(single.json(), {"review": review("movie_2"), "revision": 1})
+            self.assertEqual(self.client.get("/api/reviews/missing").status_code, 404)
+            deleted = self.client.delete("/api/reviews/movie_1?revision=1", headers=self.headers(csrf))
+            self.assertEqual(deleted.status_code, 200, deleted.text)
+        self.assertEqual(self.client.get("/api/reviews/movie_1").status_code, 404)
+        self.assertEqual([item["review"]["id"] for item in self.client.get("/api/reviews").json()["reviews"]], ["movie_2"])
+
+    def test_single_review_lookup_is_limited_to_the_owner(self):
+        csrf = self.login()
+        self.client.post("/api/reviews", json={"review": review("private"), "requestKey": uuid.uuid4().hex}, headers=self.headers(csrf))
+        self.add_user(csrf)
+        other, _ = self.user_client()
+        self.assertEqual(other.get("/api/reviews/private").status_code, 404)
+        self.assertEqual(other.get("/api/archive/version").json(), {"archiveRevision": 0})
+
+    def test_archive_operations_require_an_explicit_owner(self):
+        database = self.app.state.database
+        with self.assertRaises(TypeError):
+            database.list_reviews()
+        with self.assertRaises(TypeError):
+            database.create_review(review(), uuid.uuid4().hex)
+        with self.assertRaises(TypeError):
+            database.update_review("movie_1", review(), 1)
+        with self.assertRaises(TypeError):
+            database.delete_review("movie_1", 1)
+        with self.assertRaises(TypeError):
+            database.replace_archive([], 0)
 
 
 if __name__ == "__main__":
