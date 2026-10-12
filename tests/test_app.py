@@ -1,5 +1,6 @@
 import base64
 import json
+import re
 import tempfile
 import unittest
 import zipfile
@@ -705,6 +706,14 @@ class FrontendImageDropTests(unittest.TestCase):
         self.assertIn("function addCategoryFromInput", self.html)
         self.assertIn("selectedCategories.length >= 8", self.html)
         self.assertIn("title, director, date, rating, tags, categories, comment", self.html)
+
+    def test_recommended_categories_pass_review_validation_unchanged(self):
+        names = re.findall(r"'([^']*)'", re.search(r"const RECOMMENDED_CATEGORIES = \[(.*?)\];", self.html, re.S).group(1))
+        self.assertIn("剧情", names)
+        for start in range(0, len(names), 8):
+            group = names[start:start + 8]
+            with self.subTest(categories=group):
+                self.assertEqual(normalize_reviews([sample_review(categories=group)])[0]["categories"], group)
 
     def test_cinematic_archive_theme_is_consistent(self):
         self.assertIn("--bg: #0d0b0c", self.html)

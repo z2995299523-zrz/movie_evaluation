@@ -41,7 +41,7 @@ async function evaluate(expression) {
 }
 try {
   let target;
-  for (let attempt = 0; attempt < 60; attempt++) {
+  for (let attempt = 0; attempt < 300; attempt++) {  // a cold hosted runner can need well over 6 s
     try {
       const targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
       target = targets.find(item => item.type === 'page');

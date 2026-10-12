@@ -370,6 +370,47 @@ try {
     assert.deepEqual(tags, ['科幻', '冒险', '时间']);
   });
 
+  await check('the category field keeps its original suggestions first and adds genre, style and theme ones', async () => {
+    await loadApp({reviews: []});
+    const offered = await page(() => { openModal(); return [...document.getElementById('categoryInput').list.options].map(option => option.value); });
+    assert.deepEqual(offered.slice(0, 26), ['剧情', '喜剧', '动作', '爱情', '科幻', '动画', '悬疑', '惊悚', '恐怖', '犯罪', '冒险', '奇幻', '战争',
+      '历史', '传记', '音乐', '歌舞', '家庭', '纪录片', '短片', '西部', '灾难', '武侠', '古装', '运动', '儿童']);
+    assert.deepEqual(['文艺', '青春', '赛博朋克', '黑色幽默', '超现实', '人生', '哲学', '亲情'].filter(name => !offered.includes(name)), []);
+  });
+
+  await check('a suggested theme category can be picked for a new review and is saved with it', async () => {
+    await loadApp({reviews: []});
+    const saved = await page(async () => {
+      openModal();
+      document.getElementById('movieTitle').value = '东京物语';
+      const input = document.getElementById('categoryInput');
+      input.value = [...input.list.options].map(option => option.value).find(value => value === '人生') ?? '';
+      addCategoryFromInput();
+      document.getElementById('movieForm').requestSubmit();
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return window.__qa.store.map(review => ({title: review.title, categories: review.categories ?? null}));
+    });
+    assert.deepEqual(saved, [{title: '东京物语', categories: ['人生']}]);
+  });
+
+  await check('each category suggestion is offered once', async () => {
+    await loadApp({reviews: []});
+    const repeated = await page(() => {
+      const offered = [...document.getElementById('categoryInput').list.options].map(option => option.value.trim());
+      return offered.filter((value, index) => !value || offered.indexOf(value) !== index);
+    });
+    assert.deepEqual(repeated, []);
+  });
+
+  await check('archive health never reports two suggested categories as aliases of each other', async () => {
+    await loadApp({reviews: []});
+    const offered = await page(() => [...document.getElementById('categoryInput').list.options].map(option => option.value));
+    await loadApp({reviews: Array.from({length: Math.ceil(offered.length / 8)}, (_, index) => ({id: 'h' + index, title: '分类电影 ' + index, director: '导演' + index,
+      date: '2024-01-01', rating: 3, tags: [], comment: '', categories: offered.slice(index * 8, index * 8 + 8), createdAt: 1700000000000 + index, updatedAt: 1700000000000 + index}))});
+    const health = await page(() => { const data = buildArchiveHealth(); return {checked: data.categories.length, aliases: data.aliases}; });
+    assert.deepEqual(health, {checked: new Set(offered).size, aliases: []});
+  });
+
   await check('phone layout keeps the list near the top and controls large enough', async () => {
     await loadApp({reviews: sample(), ...phone});
     const layout = await page(async () => {

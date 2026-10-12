@@ -71,7 +71,7 @@ export async function launchBrowser(label) {
   chrome.on('error', error => { diagnostics += error.message; });
 
   let target;
-  for (let attempt = 0; attempt < 80 && !target; attempt++) {
+  for (let attempt = 0; attempt < 300 && !target; attempt++) {  // a cold hosted runner can need well over 8 s
     try {
       const targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
       target = targets.find(item => item.type === 'page');

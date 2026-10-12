@@ -1156,7 +1156,13 @@ let relationDimension = 'category';
 let relationObserver = null;
 let knowledgeGraphState = null;
 let knowledgeGraphFrame = null;
-const RECOMMENDED_CATEGORIES = ['剧情','喜剧','动作','爱情','科幻','动画','悬疑','惊悚','恐怖','犯罪','冒险','奇幻','战争','历史','传记','音乐','歌舞','家庭','纪录片','短片','西部','灾难','武侠','古装','运动','儿童'];
+// Suggested in this order: the original genres, further genres, styles, then themes.
+const RECOMMENDED_CATEGORIES = [
+  '剧情','喜剧','动作','爱情','科幻','动画','悬疑','惊悚','恐怖','犯罪','冒险','奇幻','战争','历史','传记','音乐','歌舞','家庭','纪录片','短片','西部','灾难','武侠','古装','运动','儿童',
+  '文艺','青春','公路','推理','谍战','警匪','黑帮','律政','政治','末世','赛博朋克','超级英雄','史诗','黑色电影','情色','同性','戏曲',
+  '黑色幽默','荒诞','超现实','讽刺','魔幻现实','现实主义','实验','邪典','治愈',
+  '人生','人性','哲学','心理','亲情','友情','婚姻','成长','女性','社会','阶级','身份','生命','生死','生存','记忆','回忆','宗教','都市','乡村','校园','职场','商业','金融','孤独','救赎','复仇'
+];
 
 function renderCategoryPicker() {
   const chips = document.getElementById('categoryChips');
