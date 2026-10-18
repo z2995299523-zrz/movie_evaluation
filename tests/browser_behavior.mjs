@@ -37,6 +37,25 @@ async function check(name, run) {
 }
 
 try {
+  await check('latest viewing sorts by calendar day then creation time including milliseconds', async () => {
+    const base = {...sample()[1], date: '2026-10-18'};
+    await loadApp({reviews: [
+      {...base, id: 'earlier', title: '同日较早新增', createdAt: 1700000001000},
+      {...base, id: 'later', title: '同日较晚新增', createdAt: 1700000002000},
+      {...base, id: 'previous-day', date: '2026-10-17', createdAt: 1700000003000},
+      {...base, id: 'millisecond-later', createdAt: 1700000002001},
+      {...base, id: 'rewatched', date: '2020-01-01', createdAt: 1700000000000,
+        rewatches: [{watchedAt: '2026-10-18T23:59', feeling: '', createdAt: 1700000003000}]},
+      {...base, id: 'next-day', date: '2026-10-19', createdAt: 1700000000000}
+    ]});
+    const order = await page(() => {
+      document.getElementById('sortBy').value = 'date-desc';
+      render();
+      return getVisibleReviews().map(review => review.id);
+    });
+    assert.deepEqual(order, ['next-day', 'millisecond-later', 'later', 'earlier', 'rewatched', 'previous-day']);
+  });
+
   await check('personal context fields belong to the review form, not the rewatch form', async () => {
     await loadApp({reviews: sample()});
     const state = await page(() => ({

@@ -1607,8 +1607,9 @@ function getWatchMoments(review) {
   return [review.date, ...getRewatches(review).map(item => item.watchedAt)].filter(Boolean);
 }
 
-function getLatestWatchMoment(review) {
-  return Math.max(...getWatchMoments(review).map(value => new Date(value).getTime()));
+function getLatestWatchDay(review) {
+  return getWatchMoments(review).map(value => value.slice(0, 10))
+    .reduce((latest, day) => day > latest ? day : latest, '');
 }
 
 function getEarliestWatchMoment(review) {
@@ -3151,7 +3152,7 @@ function getVisibleReviews() {
 
   switch (sortBy) {
     case 'date-asc': filtered.sort((a, b) => getEarliestWatchMoment(a) - getEarliestWatchMoment(b)); break;
-    case 'date-desc': filtered.sort((a, b) => getLatestWatchMoment(b) - getLatestWatchMoment(a)); break;
+    case 'date-desc': filtered.sort((a, b) => getLatestWatchDay(b).localeCompare(getLatestWatchDay(a)) || b.createdAt - a.createdAt); break;
     case 'rating-desc': filtered.sort((a, b) => b.rating - a.rating); break;
     case 'rating-asc': filtered.sort((a, b) => a.rating - b.rating); break;
     case 'title': filtered.sort((a, b) => a.title.localeCompare(b.title, 'zh-CN')); break;
