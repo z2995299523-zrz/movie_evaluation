@@ -3,7 +3,7 @@
 from PyInstaller.utils.hooks import collect_data_files
 
 
-datas = [("index.html", "."), ("graph_export.html", ".")]
+datas = [("index.html", "."), ("graph_export.html", "."), ("LICENSE", ".")]
 datas += collect_data_files("webview")
 
 a = Analysis(

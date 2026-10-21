@@ -11,7 +11,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FILES = [
-    "app.py", "index.html", "graph_export.html", "README.md", "requirements-web.txt", "requirements-web.lock",
+    "app.py", "index.html", "graph_export.html", "README.md", "LICENSE", "CONTRIBUTING.md", "SECURITY.md",
+    "docs/images/archive-demo.png", "docs/images/graph-demo.png", "requirements-web.txt", "requirements-web.lock",
     "web/__init__.py", "web/main.py", "web/storage.py", "web/schema.sql", "web/manage.py", "web/backup.py", "web/images.py", "web/request_limits.py", "web/client.js", "web/account.css",
     "deploy/Caddyfile.example", "deploy/movie-review.service", "deploy/movie-review-backup.service",
     "deploy/movie-review-backup.timer", "deploy/README.md", "deploy/build_release.py", "docs/DATABASE_MODEL.md",
