@@ -1,9 +1,9 @@
 // Interface behaviour regression with synthetic in-memory records.
 // Windows: node tests/browser_behavior.mjs
 import assert from 'node:assert/strict';
-import {writeFile} from 'node:fs/promises';
+import {readFile, writeFile} from 'node:fs/promises';
 import path from 'node:path';
-import {launchBrowser} from './browser_harness.mjs';
+import {launchBrowser, root} from './browser_harness.mjs';
 
 const context = {location: '上海 IMAX', companions: '大学室友', mood: '期待', lifeStage: '刚工作', impact: '开始想时间',
   favoriteScene: '看录像', favoriteQuote: '不要温和地走进那个良夜', recommendTo: '所有人', watchAgain: true};
@@ -25,6 +25,31 @@ const posterArchive = count => Array.from({length: count}, (_, index) => ({id: '
 const browser = await launchBrowser('browser-behavior');
 const {page, loadApp} = browser;
 const results = [];
+const accountStyles = await readFile(path.join(root, 'web/account.css'), 'utf8');
+
+// Match the production account CSS and header structure without logging into a real account.
+async function installWebLayout() {
+  await page(css => {
+    window.MOVIE_REVIEW_WEB = true;
+    window.MovieReviewWeb = {...window.pywebview.api, loadImageObjectUrl: async (image, onProgress, isCurrent) => {
+      const info = await window.pywebview.api.get_review_image_info(image.path);
+      if (!info.ok) throw new Error(info.error);
+      const chunk = await window.pywebview.api.get_review_image_chunk(image.path);
+      if (!isCurrent()) return '';
+      onProgress(100);
+      return URL.createObjectURL(new Blob([base64ToBytes(chunk.data)], {type: info.mime}));
+    }};
+    document.body.classList.add('web-mode');
+    const styles = document.createElement('style'); styles.textContent = css; document.head.append(styles);
+    const status = document.getElementById('storageStatus'); status.className = 'storage-status file';
+    status.innerHTML = '<span class="storage-dot"></span><span class="storage-status-text">个人电影档案 · 仅你可见</span>';
+    const account = document.createElement('button'); account.type = 'button'; account.id = 'webAccountButton';
+    account.className = 'web-account-trigger'; account.setAttribute('aria-label', '打开测试账户菜单');
+    account.setAttribute('aria-haspopup', 'menu'); account.setAttribute('aria-expanded', 'false');
+    account.innerHTML = '<span class="web-avatar">测</span><span class="web-account-name">测试账户</span><svg class="web-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+    document.querySelector('.app-header').insertBefore(account, document.querySelector('.header-actions'));
+  }, accountStyles);
+}
 
 async function check(name, run) {
   try {
@@ -162,9 +187,13 @@ try {
   await check('a very long tag does not make the phone layout overflow', async () => {
     const longTag = 'An exceptionally long supplementary tag used for layout checks 01';
     await loadApp({reviews: [{...sample()[0], tags: [longTag]}], ...phone});
-    const layout = await page(() => ({viewport: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth,
-      selectRight: Math.round(document.getElementById('filterTag').getBoundingClientRect().right)}));
-    assert.ok(layout.scrollWidth <= layout.viewport && layout.selectRight <= layout.viewport, JSON.stringify(layout));
+    const layout = await page(() => {
+      document.getElementById('mobileFilterToggle').click();
+      const select = document.getElementById('filterTag').getBoundingClientRect();
+      return {viewport: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth,
+        selectVisible: select.width > 0 && select.height > 0, selectRight: Math.round(select.right)};
+    });
+    assert.ok(layout.selectVisible && layout.scrollWidth <= layout.viewport && layout.selectRight <= layout.viewport, JSON.stringify(layout));
   });
 
   await check('closing an edited review asks before discarding, an untouched one closes at once', async () => {
@@ -629,6 +658,153 @@ try {
     assert.ok(layout.gridTop < layout.viewportHeight, JSON.stringify(layout));
     assert.ok(layout.statsHeight <= 110 && layout.smallestHeaderButton >= 40, JSON.stringify(layout));
     assert.ok(Math.min(layout.searchFont, layout.filterFont, layout.formFont) >= 16 && !layout.pageOverflow, JSON.stringify(layout));
+  });
+
+  for (const {width, height, minimumRows} of [
+    {width: 375, height: 667, minimumRows: 3},
+    {width: 390, height: 844, minimumRows: 4},
+    {width: 320, height: 568, minimumRows: 2}
+  ]) {
+    await check(`web home at ${width}x${height} shows two columns and at least ${minimumRows} complete rows`, async () => {
+      const archive = posterArchive(12).map((review, index) => ({...review,
+        title: index % 3 === 0 ? '特别长的电影名称：在旅途与回忆之间寻找那些未曾说出口的话 ' + index : review.title,
+        ...(index === 0 || index === 5 ? {rewatches: Array.from({length: index === 0 ? 11 : 99}, (_, viewing) => ({
+          watchedAt: '2025-01-02T19:00', feeling: '', createdAt: 1700000001000 + viewing}))} : {})}));
+      await loadApp({reviews: archive, stills: true, width, height, mobile: true});
+      await installWebLayout();
+      const layout = await page(async () => {
+        await new Promise(resolve => setTimeout(resolve, 550));
+        window.scrollTo(0, 0);
+        const cards = [...document.querySelectorAll('#movieGrid .movie-card')];
+        const rectangles = cards.map(card => {
+          const rect = card.getBoundingClientRect();
+          return {top: Math.round(rect.top), bottom: rect.bottom, left: rect.left, right: rect.right};
+        });
+        const rows = [...new Set(rectangles.map(rect => rect.top))].map(top => rectangles.filter(rect => rect.top === top));
+        const header = document.querySelector('.app-header'), actions = document.querySelector('.header-actions');
+        const account = document.getElementById('webAccountButton').getBoundingClientRect();
+        const primaryActions = [...actions.querySelectorAll('button')].slice(0, 2);
+        const isVisible = element => element.getBoundingClientRect().width > 0 && element.getBoundingClientRect().height > 0;
+        return {viewport: [innerWidth, innerHeight], cardCount: cards.length,
+          completeRows: rows.filter(row => row.length === 2 && row.every(rect => rect.top >= 0 && rect.bottom <= innerHeight)).length,
+          cardsPerRow: rows.map(row => row.length), gridTop: rectangles[0].top,
+          pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+          cardsWithinViewport: rectangles.every(rect => rect.left >= 0 && rect.right <= innerWidth),
+          accountVisible: account.width > 0 && account.left >= 0 && account.right <= innerWidth && account.bottom <= innerHeight,
+          directHeaderChild: actions.parentElement === header,
+          primaryActionNames: primaryActions.map(button => button.textContent.trim()),
+          primaryActionsVisible: primaryActions.every(button => {const rect = button.getBoundingClientRect(); return rect.left >= 0 && rect.right <= innerWidth && rect.height >= 40;}),
+          toolsScrollable: actions.scrollWidth > actions.clientWidth && ['auto', 'scroll'].includes(getComputedStyle(actions).overflowX),
+          cardBodiesHidden: cards.every(card => !isVisible(card.querySelector('.card-body'))),
+          datesVisible: cards.every(card => isVisible(card.querySelector('.card-mobile-meta'))),
+          datesFit: cards.every(card => {const meta = card.querySelector('.card-mobile-meta'); return meta.scrollWidth <= meta.clientWidth;}),
+          longWatchCountCovered: cards.some(card => card.querySelector('.card-mobile-meta').textContent.includes('100')),
+          loadedImages: document.querySelectorAll('#movieGrid .card-visual.image-ready').length,
+          missingImages: document.querySelectorAll('#movieGrid .movie-card.no-image').length,
+          filtersHidden: !isVisible(document.getElementById('filterControls')),
+          memoryCollapsed: document.getElementById('memoryToggle').getAttribute('aria-expanded') === 'false' && !isVisible(document.getElementById('memoryList')),
+          searchFont: parseFloat(getComputedStyle(document.getElementById('searchInput')).fontSize), saves: window.__qa.saves};
+      });
+      const screenshot = await browser.send('Page.captureScreenshot', {format: 'png'});
+      await writeFile(path.join(browser.output, `mobile-home-${width}x${height}.png`), Buffer.from(screenshot.data, 'base64'));
+      const diagnostic = JSON.stringify(layout);
+      assert.deepEqual(layout.viewport, [width, height], diagnostic);
+      assert.equal(layout.cardCount, 12, diagnostic);
+      assert.ok(layout.cardsPerRow.every(count => count === 2), diagnostic);
+      assert.ok(layout.completeRows >= minimumRows, diagnostic);
+      assert.ok(!layout.pageOverflow && layout.cardsWithinViewport && layout.accountVisible, diagnostic);
+      assert.ok(layout.directHeaderChild && layout.primaryActionsVisible && layout.toolsScrollable, diagnostic);
+      assert.ok(layout.primaryActionNames[0].includes('写影评') && layout.primaryActionNames[1].includes('策展墙'), diagnostic);
+      assert.ok(layout.cardBodiesHidden && layout.datesVisible && layout.datesFit && layout.longWatchCountCovered && layout.loadedImages > 0 && layout.missingImages > 0, diagnostic);
+      assert.ok(layout.filtersHidden && layout.memoryCollapsed && layout.searchFont >= 16, diagnostic);
+      assert.equal(layout.saves, 0, diagnostic);
+    });
+  }
+
+  await check('web phone memories and filters expand without losing filtering or detail editing', async () => {
+    await loadApp({reviews: [], ...phone});
+    await installWebLayout();
+    const state = await page(async () => {
+      const today = archiveNowParts(), pad = value => String(value).padStart(2, '0');
+      reviews = [1, 2, 3].map(offset => ({id: 'mobile-memory-' + offset, title: '往年今日 ' + offset, director: '合成导演',
+        rating: 5, categories: ['记忆'], tags: [], comment: '保留完整评论与操作入口。',
+        date: `${today.year - offset}-${pad(today.month)}-${pad(today.day)}`, createdAt: offset, updatedAt: offset}));
+      reviews.push({id: 'mobile-other', title: '其他电影', rating: 2, categories: ['其他'], tags: [], comment: '',
+        date: `${today.year}-${pad(today.month)}-${pad(today.day)}`, createdAt: 4, updatedAt: 4});
+      renderAll();
+      const visible = element => element.getBoundingClientRect().width > 0 && element.getBoundingClientRect().height > 0;
+      const memoryToggle = document.getElementById('memoryToggle'), filterToggle = document.getElementById('mobileFilterToggle');
+      const memoryList = document.getElementById('memoryList'), filters = document.getElementById('filterControls');
+      const initial = {memoryCount: memoryList.children.length, memoryHidden: !visible(memoryList), filtersHidden: !visible(filters),
+        memoryExpanded: memoryToggle.getAttribute('aria-expanded'), filtersExpanded: filterToggle.getAttribute('aria-expanded'),
+        memoryControls: memoryToggle.getAttribute('aria-controls'), filterControls: filterToggle.getAttribute('aria-controls')};
+      memoryToggle.click();
+      const memoryExpanded = visible(memoryList) && memoryToggle.getAttribute('aria-expanded') === 'true';
+      memoryList.querySelector('.btn-primary').click();
+      const rewatchAvailable = document.getElementById('rewatchOverlay').classList.contains('active');
+      closeRewatchModal(); memoryToggle.click();
+      const memoryCollapsed = !visible(memoryList) && memoryToggle.getAttribute('aria-expanded') === 'false';
+      filterToggle.click();
+      const filtersExpanded = visible(filters) && filterToggle.getAttribute('aria-expanded') === 'true';
+      for (const [id, value] of [['filterRating', '5'], ['filterTag', '记忆'], ['sortBy', 'title']]) {
+        const select = document.getElementById(id); select.value = value; select.dispatchEvent(new Event('change', {bubbles: true}));
+      }
+      const filteredBefore = getVisibleReviews().map(review => review.id);
+      filterToggle.click();
+      const filteredAfter = getVisibleReviews().map(review => review.id);
+      const collapsedFilters = !visible(filters) && filterToggle.getAttribute('aria-expanded') === 'false';
+      const filterSummary = {text: filterToggle.textContent, aria: filterToggle.getAttribute('aria-label'), highlighted: filterToggle.classList.contains('has-filters')};
+      const search = document.getElementById('searchInput'); search.value = '往年今日 2'; search.dispatchEvent(new Event('input', {bubbles: true}));
+      const searchIds = getVisibleReviews().map(review => review.id);
+      const card = document.querySelector('#movieGrid .movie-card'); card.click();
+      const detailOpened = document.getElementById('detailOverlay').classList.contains('active');
+      const detailActions = [...document.querySelectorAll('#detailOverlay .detail-actions button')].filter(visible).map(button => button.textContent);
+      document.querySelector('#detailOverlay button[onclick="editFromDetail()"]').click();
+      const editing = {open: document.getElementById('modalOverlay').classList.contains('active'), id: document.getElementById('editId').value,
+        title: document.getElementById('movieTitle').value, comment: document.getElementById('movieComment').value};
+      closeModal();
+      card.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true}));
+      const keyboardDetail = document.getElementById('detailOverlay').classList.contains('active'); closeDetail();
+      filterToggle.click();
+      const preservedValues = ['filterRating', 'filterTag', 'sortBy'].map(id => document.getElementById(id).value);
+      return {initial, memoryExpanded, rewatchAvailable, memoryCollapsed, filtersExpanded, filteredBefore, filteredAfter, collapsedFilters,
+        filterSummary, searchIds, detailOpened, detailActions, editing, keyboardDetail, preservedValues, saves: window.__qa.saves,
+        pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth};
+    });
+    const diagnostic = JSON.stringify(state);
+    assert.deepEqual(state.initial, {memoryCount: 3, memoryHidden: true, filtersHidden: true, memoryExpanded: 'false', filtersExpanded: 'false',
+      memoryControls: 'memoryList', filterControls: 'filterControls'}, diagnostic);
+    assert.ok(state.memoryExpanded && state.rewatchAvailable && state.memoryCollapsed && state.filtersExpanded && state.collapsedFilters, diagnostic);
+    assert.deepEqual(state.filteredBefore, ['mobile-memory-1', 'mobile-memory-2', 'mobile-memory-3'], diagnostic);
+    assert.deepEqual(state.filteredAfter, state.filteredBefore, diagnostic);
+    assert.ok(state.filterSummary.highlighted && state.filterSummary.text.includes('3') && state.filterSummary.aria.includes('3'), diagnostic);
+    assert.deepEqual(state.searchIds, ['mobile-memory-2'], diagnostic);
+    assert.ok(state.detailOpened && state.keyboardDetail && ['记录重看', '编辑影评', '删除影评'].every(label => state.detailActions.some(text => text.includes(label))), diagnostic);
+    assert.deepEqual(state.editing, {open: true, id: 'mobile-memory-2', title: '往年今日 2', comment: '保留完整评论与操作入口。'}, diagnostic);
+    assert.deepEqual(state.preservedValues, ['5', '记忆', 'title'], diagnostic);
+    assert.ok(!state.pageOverflow && state.saves === 0, diagnostic);
+  });
+
+  await check('web desktop retains expanded filters, memories and full review cards', async () => {
+    await loadApp({reviews: sample(), width: 1280, height: 800});
+    await installWebLayout();
+    const layout = await page(() => {
+      const today = archiveNowParts(), pad = value => String(value).padStart(2, '0');
+      reviews[0].date = `${today.year - 1}-${pad(today.month)}-${pad(today.day)}`;
+      renderAll();
+      const visible = selector => {const rect = document.querySelector(selector).getBoundingClientRect(); return rect.width > 0 && rect.height > 0;};
+      const grid = document.getElementById('movieGrid');
+      return {columns: getComputedStyle(grid).gridTemplateColumns.split(' ').length,
+        filtersVisible: ['#filterControls', '#filterRating', '#filterTag', '#sortBy'].every(visible),
+        memoryVisible: visible('#memoryList'), bodiesVisible: [...document.querySelectorAll('.card-body')].every(body => body.getBoundingClientRect().height > 0),
+        mobileFilterHidden: !visible('#mobileFilterToggle'), mobileMemoryHidden: !visible('#memoryToggle'), mobileDatesHidden: !visible('.card-mobile-meta'),
+        editVisible: visible('#movieGrid [data-action="edit"]'), accountVisible: visible('#webAccountButton'),
+        pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth};
+    });
+    const diagnostic = JSON.stringify(layout);
+    assert.ok(layout.columns >= 3 && layout.filtersVisible && layout.memoryVisible && layout.bodiesVisible, diagnostic);
+    assert.ok(layout.mobileFilterHidden && layout.mobileMemoryHidden && layout.mobileDatesHidden, diagnostic);
+    assert.ok(layout.editVisible && layout.accountVisible && !layout.pageOverflow, diagnostic);
   });
 
   await check('review dialog keeps close and save controls reachable on a phone', async () => {

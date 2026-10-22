@@ -65,6 +65,9 @@ body {
 .brand-block { display: flex; flex-direction: column; gap: 2px; }
 .brand-kicker { color: var(--text3); font-size: .75rem; letter-spacing: .13em; text-transform: uppercase; }
 .header-actions { display: flex; gap: 8px; align-items: center; }
+.mobile-only, .btn.mobile-only { display: none; }
+.filter-controls { display: flex; flex-wrap: wrap; gap: 12px; }
+.card-mobile-meta { display: none; }
 
 /* ===== Storage Status Bar ===== */
 .storage-status {
@@ -740,25 +743,49 @@ body.gallery-open { overflow: hidden; }
 
 /* ===== Responsive ===== */
 @media (max-width: 600px) {
-  .app-wrapper { padding: 18px 14px 48px; }
-  .app-header { flex-direction: column; align-items: flex-start; }
-  .header-actions { width: 100%; flex-wrap: wrap; }
-  .header-actions .btn { flex: 1 1 auto; justify-content: center; }
-  .movie-grid { grid-template-columns: 1fr; }
-  .movie-card.has-image .card-visual { min-height: 226px; }
-  .toolbar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-  .search-box { grid-column: 1 / -1; min-width: 0; }
+  .app-wrapper { padding: 8px 10px 36px; }
+  .app-header { flex-direction: row; align-items: center; gap: 6px; margin-bottom: 8px; padding-bottom: 6px; min-width: 0; }
+  .app-header h1 { font-size: 1.25rem; }
+  .brand-kicker { display: none; }
+  .header-actions { width: 100%; min-width: 0; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+  .header-actions .btn { flex: 0 0 auto; justify-content: center; min-height: 40px; padding: 6px 10px; }
+  .mobile-only, .btn.mobile-only { display: inline-flex; }
+  .movie-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .movie-card { min-width: 0; min-height: 0; gap: 0; border-radius: 10px; }
+  .movie-card:hover { transform: none; }
+  .movie-card .card-visual, .movie-card.has-image .card-visual { height: clamp(112px, 30vw, 136px); min-height: 0; }
+  .movie-card .card-body { display: none; }
+  .card-visual-copy, .movie-card.no-image .card-visual-copy { inset: auto 8px 7px; }
+  .card-visual-title, .movie-card.no-image .card-visual-title { font-size: .875rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card-visual-meta { display: none; }
+  .card-mobile-meta { display: block; margin-top: 3px; color: #e0d6d4; font-size: .75rem; line-height: 1.4; white-space: nowrap; }
+  .card-rating-chip { top: 6px; right: 6px; padding: 2px 5px; font-size: .75rem; line-height: 1.4; }
+  .card-fallback-mark { top: 9px; left: 9px; font-size: 1.6rem; }
+  .card-image-overlay { background: linear-gradient(180deg,rgba(8,8,12,.08) 20%,rgba(8,8,12,.38) 45%,rgba(8,8,12,.94) 100%); }
+  .toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; margin-bottom: 10px; }
+  .search-box { min-width: 0; }
+  .search-box input { min-height: 44px; padding-top: 8px; padding-bottom: 8px; }
+  .filter-controls { display: none; grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .toolbar.filters-open .filter-controls { display: grid; }
+  #mobileFilterToggle { min-height: 44px; padding: 6px 10px; }
+  #mobileFilterToggle.has-filters { color: var(--gold); border-color: var(--gold); }
   .filter-select { width: 100%; max-width: none; min-width: 0; padding: 10px 8px; }
   /* 16px inputs stop iOS Safari from zooming the page on focus. */
   .form-input, .form-textarea, .form-select, .filter-select, .search-box input, .relation-dimension-select { font-size: 16px; }
   .btn { min-height: 44px; }
   .btn-sm { min-height: 40px; }
-  .stats-bar { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
-  .stat-card { padding: 10px 4px; }
-  .stat-value { font-size: 1.1rem; white-space: nowrap; }
-  .stat-label { font-size: .75rem; }
-  .memory-spotlight { padding: 14px; }
-  .memory-list { display: flex; overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: 4px; }
+  .stats-bar { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-bottom: 8px; }
+  .stat-card { display: flex; align-items: baseline; justify-content: center; flex-wrap: wrap; gap: 0 4px; padding: 3px 2px; border-radius: 6px; background: transparent; border-color: transparent; }
+  .stat-value { font-size: 1rem; line-height: 1.4; white-space: nowrap; }
+  .stat-rating-symbol { display: none; }
+  .stat-label { font-size: .75rem; margin-top: 0; }
+  .memory-spotlight { padding: 0 8px; margin: 0 0 8px; border-radius: 8px; }
+  .memory-heading { display: none; }
+  .memory-toggle { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; min-height: 36px; border: 0; background: transparent; color: var(--gold); font: inherit; font-size: .8rem; cursor: pointer; text-align: left; }
+  .memory-toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .memory-toggle span:last-child { color: var(--text2); white-space: nowrap; }
+  .memory-list { display: none; overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: 8px; margin-top: 0; }
+  .memory-spotlight.is-expanded .memory-list { display: flex; }
   .memory-card { flex: 1 0 84%; scroll-snap-align: start; }
   .modal { padding: 20px; }
   .modal-head { top: -20px; margin: -20px -20px 16px; padding: 14px 20px 12px; }
@@ -793,14 +820,14 @@ body.gallery-open { overflow: hidden; }
       <span class="brand-kicker">Personal cinema archive</span>
       <h1>🎬 我的影评记录</h1>
     </div>
-    <div class="header-actions">
+    <div class="header-actions" role="group" aria-label="影评工具，可横向滚动查看更多">
+      <button class="btn btn-primary" onclick="openModal()">+ 写影评</button>
+      <button class="btn btn-ghost btn-sm" id="galleryButton" onclick="openGallery()" title="按当前筛选策展展示全部影评">✦ 策展墙</button>
       <button class="btn btn-ghost btn-sm" onclick="openTasteProfile()" title="查看本地计算的个人电影品味画像">◎ 品味画像</button>
       <button class="btn btn-ghost btn-sm" onclick="openAnnualReport()">▦ 年度报告</button>
       <button class="btn btn-ghost btn-sm" onclick="openArchiveHealth()">✓ 档案健康</button>
-      <button class="btn btn-ghost btn-sm" id="galleryButton" onclick="openGallery()" title="按当前筛选策展展示全部影评">✦ 策展墙</button>
       <button class="btn btn-ghost btn-sm" onclick="handleExport()" title="导出包含剧照的完整 ZIP 备份">📤 导出</button>
       <button class="btn btn-ghost btn-sm" onclick="handleImport()" title="从 ZIP 完整备份或旧版 JSON 恢复">📥 导入</button>
-      <button class="btn btn-primary" onclick="openModal()">+ 写影评</button>
     </div>
   </header>
 
@@ -814,6 +841,7 @@ body.gallery-open { overflow: hidden; }
   <div class="stats-bar" id="statsBar"></div>
 
   <section class="memory-spotlight" id="memorySpotlight" aria-labelledby="memoryTitle">
+    <button class="memory-toggle mobile-only" id="memoryToggle" type="button" aria-expanded="false" aria-controls="memoryList" onclick="toggleMobileMemories()"><span id="memoryToggleLabel">银幕记忆</span><span id="memoryToggleAction">展开</span></button>
     <div class="memory-heading"><h2 id="memoryTitle">🎞 银幕记忆 · 历史上的今天</h2><span id="memoryDate"></span></div>
     <div class="memory-list" id="memoryList"></div>
   </section>
@@ -824,6 +852,8 @@ body.gallery-open { overflow: hidden; }
       <span class="search-icon">🔍</span>
       <input type="text" id="searchInput" placeholder="搜索电影名称、导演、评论..." oninput="render()">
     </div>
+    <button class="btn btn-ghost btn-sm mobile-only" id="mobileFilterToggle" type="button" aria-expanded="false" aria-controls="filterControls" onclick="toggleMobileFilters()">筛选 / 排序</button>
+    <div class="filter-controls" id="filterControls">
     <select class="filter-select" id="filterRating" onchange="render()">
       <option value="all">全部评分</option>
       <option value="5">⭐⭐⭐⭐⭐ (5星)</option>
@@ -842,6 +872,7 @@ body.gallery-open { overflow: hidden; }
       <option value="rating-asc">评分最低</option>
       <option value="title">按名称排序</option>
     </select>
+    </div>
   </div>
 
   <!-- Movie Grid -->
@@ -1683,6 +1714,18 @@ function renderMemorySpotlight() {
   data.memories.forEach(item=>appendCard(item.review,`${item.yearsAgo} 年前的今天 · ${item.event.kind}`,`${formatDate(item.event.watchedAt.split('T')[0])}${item.event.rating?` · ${item.event.rating} 星`:''}`,item.event.feeling));
   if(!data.memories.length) data.suggestions.forEach(item=>appendCard(item.review,'今日重看建议',`已 ${item.daysAgo} 天未观看 · ${item.rating} 星`,item.latest.feeling||item.review.comment));
   section.classList.toggle('visible',list.children.length>0);
+  document.getElementById('memoryToggleLabel').textContent=`${data.memories.length?'银幕记忆':'重看推荐'} · ${list.children.length} 部`;
+}
+
+function toggleMobileMemories() {
+  const expanded=document.getElementById('memorySpotlight').classList.toggle('is-expanded');
+  document.getElementById('memoryToggle').setAttribute('aria-expanded',String(expanded));
+  document.getElementById('memoryToggleAction').textContent=expanded?'收起':'展开';
+}
+
+function toggleMobileFilters() {
+  const expanded=document.querySelector('.toolbar').classList.toggle('filters-open');
+  document.getElementById('mobileFilterToggle').setAttribute('aria-expanded',String(expanded));
 }
 
 function getProfileCategories(review) {
@@ -1845,7 +1888,7 @@ function updateStats() {
 
   document.getElementById('statsBar').innerHTML = `
     <div class="stat-card"><div class="stat-value">${watchTotal}</div><div class="stat-label">观影总数</div></div>
-    <div class="stat-card"><div class="stat-value">⭐ ${avgRating}</div><div class="stat-label">平均评分</div></div>
+    <div class="stat-card"><div class="stat-value"><span class="stat-rating-symbol" aria-hidden="true">⭐ </span>${avgRating}</div><div class="stat-label">平均评分</div></div>
     <div class="stat-card"><div class="stat-value">${monthCount}</div><div class="stat-label">本月观影</div></div>
     <div class="stat-card"><div class="stat-value">${tagSet.size}</div><div class="stat-label">涉及分类</div></div>
   `;
@@ -3310,6 +3353,13 @@ function getVisibleReviews() {
 }
 
 function render() {
+  const activeFilters = Number(document.getElementById('filterRating').value !== 'all')
+    + Number(document.getElementById('filterTag').value !== 'all')
+    + Number(document.getElementById('sortBy').value !== 'date-desc');
+  const filterToggle = document.getElementById('mobileFilterToggle');
+  filterToggle.textContent = `筛选 / 排序${activeFilters ? ` · ${activeFilters}` : ''}`;
+  filterToggle.classList.toggle('has-filters', activeFilters > 0);
+  filterToggle.setAttribute('aria-label', `筛选与排序${activeFilters ? `，当前有 ${activeFilters} 项非默认设置` : ''}`);
   renderGrid(getVisibleReviews());
 }
 
@@ -3338,6 +3388,7 @@ function renderGrid(items) {
         <div class="card-visual-copy">
           <div class="card-visual-title">${escapeHtml(r.title)}</div>
           <div class="card-visual-meta">${r.director ? `🎬 ${escapeHtml(r.director)} · ` : ''}📅 ${formatDate(r.date)} · 已看 ${getWatchCount(r)} 次</div>
+          <div class="card-mobile-meta" aria-label="${formatDate(r.date)}，已观看 ${getWatchCount(r)} 次">${formatCompactDate(r.date)} · ${getWatchCount(r)} 次</div>
         </div>
       </div>
       <div class="card-body">
