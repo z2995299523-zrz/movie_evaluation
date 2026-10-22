@@ -37,3 +37,6 @@ jobs:
       - name: Browser behaviour regression
         run: node tests/browser_behavior.mjs
         timeout-minutes: 4
+      - name: Detail image loading regression
+        run: node tests/browser_detail_images.mjs
+        timeout-minutes: 3

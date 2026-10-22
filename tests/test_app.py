@@ -668,7 +668,13 @@ class FrontendImageDropTests(unittest.TestCase):
         remember_cache_body = self.html.split("function rememberCardImage", 1)[1].split(
             "function applyCardImage", 1
         )[0]
-        self.assertIn("URL.revokeObjectURL(oldestUrl)", remember_cache_body)
+        self.assertIn("retireCardImageUrl(oldestUrl)", remember_cache_body)
+        retire_cache_body = self.html.split("function retireCardImageUrl", 1)[1].split(
+            "function rememberCardImage", 1
+        )[0]
+        self.assertIn("if (url === detailImageUrl) retiredCardImageUrls.add(url)", retire_cache_body)
+        self.assertIn("if (url === detailImageUrl) continue", retire_cache_body)
+        self.assertIn("URL.revokeObjectURL(url)", retire_cache_body)
         self.assertNotIn("resetCachedImageNodes(oldestPath)", remember_cache_body)
         self.assertIn("root: stage, rootMargin: '220px 0px'", self.html)
         self.assertIn("requestAnimationFrame(hydrateCardImages)", self.html)

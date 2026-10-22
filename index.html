@@ -481,6 +481,9 @@ body.gallery-open .detail-overlay { z-index: 2700; }
 .image-load-state { color: var(--text3); text-align: center; padding: 28px; font-size: .85rem; }
 .image-load-state strong { display: block; color: var(--accent-light); font-size: 1.1rem; margin-bottom: 4px; }
 .detail-image-section.loaded .image-load-state { display: none; }
+.detail-image-section.loaded.preview .image-load-state,
+.detail-image-section.loaded.load-failed .image-load-state { display: block; position: absolute; bottom: 8px; right: 8px; max-width: calc(100% - 16px); padding: 5px 9px; border-radius: 6px; background: rgba(8,8,11,.85); color: var(--text2); font-size: .75rem; }
+.image-load-state .btn { margin-left: 8px; }
 .detail-content { padding: 28px; }
 .detail-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .detail-title { font-size: 1.55rem; line-height: 1.35; word-break: break-word; }
@@ -1190,7 +1193,16 @@ let modalBaseline = '';
 let rewatchBaseline = '';
 let confirmResolver = null;
 let detailImageUrl = '';
+let detailImagePath = '';
 let detailImageLoadToken = 0;
+const detailImageCache = new Map();
+const detailImageRequests = new Map();
+const MAX_DETAIL_IMAGE_CACHE = 4;
+const MAX_DETAIL_IMAGE_BYTES = 64 * 1024 * 1024;
+const DETAIL_IMAGE_PARALLEL = 2;
+let detailImageQueue = [];
+let detailImageInFlight = 0;
+const retiredCardImageUrls = new Set();
 let lightboxZoom = 1;
 let lightboxPanX = 0;
 let lightboxPanY = 0;
@@ -1333,10 +1345,11 @@ function syncCardImageCache() {
   reviews.forEach(review => {
     if (review.image && review.image.path) cardImagesByPath.set(review.image.path, review.image);
   });
+  syncDetailImageCache();
   for (const [path, url] of cardImageCache) {
     if (!cardImagesByPath.has(path)) {
       resetCachedImageNodes(path);
-      URL.revokeObjectURL(url);
+      retireCardImageUrl(url);
       cardImageCache.delete(path);
     }
   }
@@ -1377,9 +1390,23 @@ function touchCachedImage(path) {
   return url;
 }
 
+function retireCardImageUrl(url) {
+  // A detail preview (and its lightbox) may still borrow an evicted thumbnail.
+  if (url === detailImageUrl) retiredCardImageUrls.add(url);
+  else URL.revokeObjectURL(url);
+}
+
+function releaseRetiredCardImages() {
+  for (const url of retiredCardImageUrls) {
+    if (url === detailImageUrl) continue;
+    URL.revokeObjectURL(url);
+    retiredCardImageUrls.delete(url);
+  }
+}
+
 function rememberCardImage(path, url) {
   const previous = cardImageCache.get(path);
-  if (previous && previous !== url) URL.revokeObjectURL(previous);
+  if (previous && previous !== url) retireCardImageUrl(previous);
   cardImageCache.delete(path);
   cardImageCache.set(path, url);
   while (cardImageCache.size > MAX_CARD_IMAGE_CACHE) {
@@ -1391,7 +1418,7 @@ function rememberCardImage(path, url) {
     // image element that has already received the URL keeps its loaded image.
     // Do not reset those elements here: an IntersectionObserver callback may
     // already have fired, leaving an evicted visible card stuck on “loading”.
-    URL.revokeObjectURL(oldestUrl);
+    retireCardImageUrl(oldestUrl);
   }
 }
 
@@ -2425,14 +2452,119 @@ async function deleteReview(id) {
 }
 
 /* ===== Review Detail & Lightbox ===== */
+function trimDetailImageCache() {
+  let bytes = [...detailImageCache.values()].reduce((total, entry) => total + entry.bytes, 0);
+  for (const [path, entry] of detailImageCache) {
+    if (detailImageCache.size <= MAX_DETAIL_IMAGE_CACHE && bytes <= MAX_DETAIL_IMAGE_BYTES) break;
+    // Keep the displayed original usable by the lightbox. An oversized current
+    // image is temporary: releaseDetailImage trims it as soon as it is closed.
+    if (path === detailImagePath) continue;
+    detailImageCache.delete(path);
+    bytes -= entry.bytes;
+    URL.revokeObjectURL(entry.url);
+  }
+}
+
+function touchDetailImage(path) {
+  const entry = detailImageCache.get(path);
+  if (!entry) return null;
+  detailImageCache.delete(path);
+  detailImageCache.set(path, entry);
+  return entry;
+}
+
+function syncDetailImageCache() {
+  if (detailReviewId && document.getElementById('detailOverlay').classList.contains('active')) {
+    const review = reviews.find(item => item.id === detailReviewId);
+    if (!review) closeDetail();
+    else if ((review.image?.path || '') !== detailImagePath) {
+      releaseDetailImage();
+      document.getElementById('detailImageSection').className = 'detail-image-section';
+      if (review.image) loadDetailImage(review.image);
+    }
+  }
+  for (const [path, entry] of detailImageCache) {
+    if (cardImagesByPath.has(path)) continue;
+    detailImageCache.delete(path);
+    URL.revokeObjectURL(entry.url);
+  }
+  for (const [path, request] of detailImageRequests) {
+    if (cardImagesByPath.has(path)) continue;
+    request.valid = false;
+    detailImageRequests.delete(path);
+    if (!request.started) request.resolve(null);
+  }
+  detailImageQueue = detailImageQueue.filter(request => request.valid);
+}
+
+function requestDetailImage(image) {
+  const cached = touchDetailImage(image.path);
+  if (cached) return Promise.resolve(cached);
+  const existing = detailImageRequests.get(image.path);
+  if (existing) return existing.promise;
+  // Rapid navigation keeps at most two downloads and the latest queued image.
+  for (const queued of detailImageQueue) {
+    queued.valid = false;
+    detailImageRequests.delete(queued.image.path);
+    queued.resolve(null);
+  }
+  detailImageQueue = [];
+  const request = {image, valid: true, started: false};
+  request.promise = new Promise((resolve, reject) => { request.resolve = resolve; request.reject = reject; });
+  detailImageRequests.set(image.path, request);
+  detailImageQueue.push(request);
+  drainDetailImageQueue();
+  return request.promise;
+}
+
+function drainDetailImageQueue() {
+  while (detailImageInFlight < DETAIL_IMAGE_PARALLEL && detailImageQueue.length) {
+    const request = detailImageQueue.shift(), {image} = request;
+    const valid = () => request.valid && cardImagesByPath.has(image.path);
+    if (!valid()) { request.resolve(null); continue; }
+    request.started = true;
+    detailImageInFlight++;
+    (async () => {
+      let url = '';
+      try {
+        // A request belongs to the archive, not to a single opening of the dialog.
+        url = await loadImageObjectUrl(image, () => {}, valid);
+        if (!url) return null;
+        const decoded = new Image();
+        decoded.src = url;
+        await decoded.decode();
+        if (!valid()) { URL.revokeObjectURL(url); return null; }
+        const entry = {url, bytes: Math.max(0, Number(image.size) || 0) + decoded.naturalWidth * decoded.naturalHeight * 4};
+        if (entry.bytes > MAX_DETAIL_IMAGE_BYTES && image.path !== detailImagePath) {
+          URL.revokeObjectURL(url);
+          return null;
+        }
+        detailImageCache.set(image.path, entry);
+        trimDetailImageCache();
+        return detailImageCache.get(image.path) || null;
+      } catch (error) {
+        if (url) URL.revokeObjectURL(url);
+        throw error;
+      }
+    })().then(request.resolve, request.reject).finally(() => {
+      if (detailImageRequests.get(image.path) === request) detailImageRequests.delete(image.path);
+      detailImageInFlight--;
+      drainDetailImageQueue();
+    });
+  }
+}
+
 function releaseDetailImage() {
   detailImageLoadToken++;
   closeLightbox();
-  if (detailImageUrl) URL.revokeObjectURL(detailImageUrl);
   detailImageUrl = '';
+  detailImagePath = '';
   const image = document.getElementById('detailImage');
   image.removeAttribute('src');
-  document.getElementById('detailImageSection').classList.remove('loaded');
+  document.getElementById('detailImageSection').classList.remove('loaded', 'preview', 'load-failed');
+  document.getElementById('detailImageState').replaceChildren();
+  trimDetailImageCache();
+  releaseRetiredCardImages();
 }
 
 async function loadDetailImage(image) {
@@ -2440,25 +2572,46 @@ async function loadDetailImage(image) {
   const section = document.getElementById('detailImageSection');
   const state = document.getElementById('detailImageState');
   section.classList.add('visible');
-  state.innerHTML = '<strong>0%</strong>正在加载剧照...';
+  state.textContent = '正在加载原图…';
+  detailImagePath = image.path;
   const token = ++detailImageLoadToken;
-  try {
-    const url = await loadImageObjectUrl(
-      image,
-      percent => {
-        if (token === detailImageLoadToken) state.innerHTML = `<strong>${percent}%</strong>正在加载剧照...`;
-      },
-      () => token === detailImageLoadToken && document.getElementById('detailOverlay').classList.contains('active')
-    );
-    if (!url || token !== detailImageLoadToken) {
-      if (url) URL.revokeObjectURL(url);
-      return;
-    }
+  const current = () => token === detailImageLoadToken && detailImagePath === image.path
+    && document.getElementById('detailOverlay').classList.contains('active');
+  const show = (url, preview) => {
+    if (!current()) return;
     detailImageUrl = url;
     document.getElementById('detailImage').src = url;
     section.classList.add('loaded');
+    section.classList.toggle('preview', preview);
+    if (!preview) {
+      section.classList.remove('load-failed');
+      state.replaceChildren();
+    } else if (section.classList.contains('load-failed') && state.firstChild) {
+      state.firstChild.textContent = '原图加载失败，当前显示预览图。';
+    }
+    if (document.getElementById('lightboxOverlay').classList.contains('active')) {
+      document.getElementById('lightboxImage').src = url;
+    }
+    releaseRetiredCardImages();
+  };
+  const cached = touchDetailImage(image.path);
+  if (cached) { show(cached.url, false); return; }
+  const thumbnail = touchCachedImage(image.path);
+  if (thumbnail) show(thumbnail, true);
+  else requestCardImage(image.path, url => {
+    if (current() && !detailImageUrl) show(url, true);
+  });
+  try {
+    const original = await requestDetailImage(image);
+    if (original && current()) show(original.url, false);
   } catch (error) {
-    if (token === detailImageLoadToken) state.innerHTML = `<strong>⚠</strong>${escapeHtml(error.message || '剧照文件缺失')}`;
+    if (!current()) return;
+    section.classList.add('load-failed');
+    state.textContent = detailImageUrl ? '原图加载失败，当前显示预览图。' : '剧照暂时无法加载。';
+    const retry = document.createElement('button');
+    retry.type = 'button'; retry.className = 'btn btn-ghost btn-sm'; retry.id = 'detailImageRetry'; retry.textContent = '重试';
+    retry.onclick = () => { if (current()) loadDetailImage(image); };
+    state.append(retry);
   }
 }
 
