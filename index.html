@@ -558,7 +558,23 @@ body.gallery-open { overflow: hidden; }
 .gallery-view-toggle button.active { background: var(--accent); color: white; }
 .relation-dimension-select { min-width: 116px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--text); font-size: .76rem; }
 .gallery-header .lightbox-close { top: 24px; right: 30px; }
-.gallery-stage { flex: 1; overflow-y: auto; overflow-x: clip; padding: 18px 24px 48px; }
+.gallery-stage { flex: 1; min-height: 0; overflow-y: auto; overflow-x: clip; padding: 18px 24px 48px; }
+.gallery-selection-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; max-width: 1880px; margin: 0 auto 18px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.gallery-selection-tools[hidden], .gallery-selection-actions[hidden] { display: none; }
+.gallery-selection-tools .btn { min-height: 44px; }
+.gallery-selection-tools .btn[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.gallery-selection-actions, .gallery-random-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.gallery-random-controls { font-size: .82rem; color: var(--text2); }
+.gallery-random-controls input { width: 68px; min-height: 44px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--text); font: inherit; font-size: 16px; }
+.gallery-selection-tools :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.gallery-selection-status { flex-basis: 100%; font-size: .82rem; line-height: 1.6; color: var(--text2); }
+.gallery-selection-status strong { color: var(--gold); margin-right: 10px; }
+.gallery-card-selection { display: none; position: absolute; top: 8px; left: 8px; z-index: 4; width: 26px; height: 26px; align-items: center; justify-content: center; border: 2px solid var(--text2); border-radius: 6px; background: var(--bg); color: var(--bg); font-weight: 800; }
+.gallery-wall.is-selecting .gallery-card-selection { display: flex; }
+.gallery-wall.is-selecting .gallery-card { opacity: .62; }
+.gallery-wall.is-selecting .gallery-card.is-selected { opacity: 1; border-color: var(--gold); box-shadow: inset 0 0 0 2px var(--gold); }
+.gallery-wall.is-selecting .gallery-card.is-selected .gallery-card-selection { background: var(--gold); border-color: var(--gold); }
+.gallery-wall.is-selecting .gallery-card:hover, .gallery-wall.is-selecting .gallery-card:focus-visible { opacity: 1; }
 .gallery-wall {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
   gap: 10px; width: 100%; max-width: 1880px; margin: 0 auto;
@@ -1057,6 +1073,21 @@ body.gallery-open { overflow: hidden; }
     </div>
   </header>
   <div class="gallery-stage" id="galleryStage" tabindex="-1">
+    <div class="gallery-selection-tools" id="gallerySelectionTools" role="group" aria-label="选择海报墙导出影片" hidden>
+      <button class="btn btn-ghost btn-sm" id="gallerySelectionToggle" type="button" onclick="toggleGallerySelection()" aria-pressed="false">选择影片</button>
+      <button class="btn btn-ghost btn-sm" id="galleryWeekButton" type="button" onclick="selectGalleryWeek()">本周观看</button>
+      <div class="gallery-random-controls">
+        <label for="galleryRandomCount">随机选</label>
+        <input id="galleryRandomCount" type="number" min="1" step="1" value="9" inputmode="numeric" aria-label="随机选择的影片数量">
+        <span>部</span>
+        <button class="btn btn-ghost btn-sm" id="galleryRandomButton" type="button" onclick="selectGalleryRandom()">随机选择</button>
+      </div>
+      <div class="gallery-selection-actions" id="gallerySelectionActions" hidden>
+        <button class="btn btn-ghost btn-sm" id="gallerySelectAll" type="button" onclick="setGallerySelection('all')">全选</button>
+        <button class="btn btn-ghost btn-sm" id="gallerySelectNone" type="button" onclick="setGallerySelection('none')">清空</button>
+      </div>
+      <p class="gallery-selection-status" id="gallerySelectionStatus" role="status" aria-live="polite" aria-atomic="true"></p>
+    </div>
     <div class="gallery-wall" id="galleryWall"></div>
   </div>
 </section>
@@ -1152,6 +1183,10 @@ let galleryImageObserver = null;
 let galleryLastTrigger = null;
 let galleryDetailReturnTarget = null;
 let galleryMode = 'relation';
+// null exports every visible film; an empty Set intentionally exports nothing.
+let gallerySelectedIds = null;
+let gallerySelectionNote = '';
+let galleryExportBusy = false;
 let relationDimension = 'category';
 let relationObserver = null;
 let knowledgeGraphState = null;
@@ -1705,6 +1740,7 @@ function renderArchiveHealth(){const data=buildArchiveHealth(),root=document.get
 async function mergeCategory(){const source=document.getElementById('mergeSource').value,target=document.getElementById('mergeTarget').value.trim();if(!source||!target||source===target){showToast('请选择不同的来源分类和目标分类','error');return;}const affected=reviews.filter(review=>(review.categories||[]).includes(source));document.getElementById('mergeImpact').textContent=`将影响 ${affected.length} 部电影：${affected.slice(0,8).map(item=>item.title).join('、')}${affected.length>8?'…':''}`;if(!affected.length||!await confirmDialog({title:'合并分类？',message:`把“${source}”统一合并为“${target}”，将修改 ${affected.length} 部电影，保存前会自动备份。`,confirmLabel:'合并'}))return;const next=reviews.map(review=>{if(!(review.categories||[]).includes(source))return review;return{...review,categories:[...new Set(review.categories.map(value=>value===source?target:value))],updatedAt:Date.now()};});try{await persistReviews(next);renderAll();renderArchiveHealth();showToast(`已将“${source}”合并为“${target}”`);}catch(error){showToast(error.message||'合并失败','error');}}
 
 async function exportGallery() {
+  if (galleryExportBusy) return;
   if (!getVisibleReviews().length) { showToast('当前筛选没有可导出的电影','error'); return; }
   if (galleryMode === 'wall') return exportPosterWall();
   return exportKnowledgeGraph();
@@ -1730,8 +1766,12 @@ async function exportKnowledgeGraph() {
 }
 
 async function exportPosterWall() {
-  const items=getVisibleReviews(),cardWidth=220,cardHeight=330,gap=18,padding=64,header=174,footer=66;
-  const layout=Array.from({length:13},(_,index)=>index+6).map(columns=>{
+  if (galleryExportBusy) return;
+  const items=getGalleryExportItems(),cardWidth=220,cardHeight=330,gap=18,padding=64,header=174,footer=66;
+  if (!items.length) { showToast('请先选择要导出的影片','error'); return; }
+  const selectionSummary=gallerySelectedIds===null?getGalleryFilterSummary(items):`已选 ${items.length} 部 / 当前筛选 ${getVisibleReviews().length} 部`;
+  const firstColumns=Math.min(6,items.length);
+  const layout=Array.from({length:19-firstColumns},(_,index)=>index+firstColumns).map(columns=>{
     const rows=Math.ceil(items.length/columns),width=padding*2+columns*cardWidth+(columns-1)*gap;
     const height=header+rows*cardHeight+Math.max(0,rows-1)*gap+footer;
     return {columns,width,height};
@@ -1741,15 +1781,17 @@ async function exportPosterWall() {
   }
   const {columns,width,height}=layout;
   const button=document.getElementById('galleryExportButton');
+  galleryExportBusy=true;
   button.disabled=true;
+  button.textContent='正在制作海报墙…';
   const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
   const ctx=canvas.getContext('2d');
   try {
     ctx.fillStyle='#0d0b0c';ctx.fillRect(0,0,width,height);
     ctx.fillStyle='#d6b06a';ctx.font='700 17px sans-serif';ctx.fillText('CURATED REVIEW WALL',padding,52);
-    ctx.fillStyle='#f3ede5';ctx.font='700 42px sans-serif';ctx.fillText('我的电影策展墙',padding,105);
+    ctx.fillStyle='#f3ede5';ctx.font='700 42px sans-serif';ctx.fillText('我的电影策展墙',padding,105,width-padding*2);
     ctx.fillStyle='#aaa0a2';ctx.font='17px sans-serif';
-    ctx.fillText(`${getGalleryFilterSummary(items)} · ${items.length} 部电影`,padding,143);
+    ctx.fillText(`${selectionSummary} · ${items.length} 部电影`,padding,143,width-padding*2);
     for(let index=0;index<items.length;index++) {
       const review=items[index],x=padding+(index%columns)*(cardWidth+gap),y=header+Math.floor(index/columns)*(cardHeight+gap);
       ctx.fillStyle='#241a1e';ctx.fillRect(x,y,cardWidth,cardHeight);
@@ -1777,12 +1819,12 @@ async function exportPosterWall() {
       ctx.fillText(`${formatCompactDate(review.date)} · ${getWatchCount(review)} 次观看`,x+12,y+cardHeight-23,cardWidth-24);
       if(index%6===0) { button.textContent=`正在制作 ${index+1}/${items.length}`; await new Promise(resolve=>setTimeout(resolve,0)); }
     }
-    ctx.fillStyle='#8d8183';ctx.font='14px sans-serif';ctx.fillText('我的影评记录 · 本地策展',padding,height-24);
+    ctx.fillStyle='#8d8183';ctx.font='14px sans-serif';ctx.fillText('我的影评记录 · 本地策展',padding,height-24,width-padding*2);
     const result=await desktopMethod('export_graph_image')(canvas.toDataURL('image/png'),'电影海报墙');
     if(result.ok)showToast('海报墙 PNG 已导出');
     else if(!result.cancelled)showToast(result.error||'导出失败','error');
   } catch(error) { showToast(error.message||'导出失败','error'); }
-  finally { button.disabled=false;button.textContent=galleryMode==='wall'?'导出海报墙 PNG':'导出互动关系图 HTML';canvas.width=0;canvas.height=0; }
+  finally { galleryExportBusy=false;updateGallerySelection();canvas.width=0;canvas.height=0; }
 }
 
 function updateStats() {
@@ -2616,8 +2658,108 @@ function setGalleryMode(mode) {
   document.getElementById('relationViewButton').classList.toggle('active', galleryMode === 'relation');
   document.getElementById('wallViewButton').classList.toggle('active', galleryMode === 'wall');
   document.getElementById('relationDimension').hidden = galleryMode !== 'relation';
-  document.getElementById('galleryExportButton').textContent = galleryMode === 'wall' ? '导出海报墙 PNG' : '导出互动关系图 HTML';
+  updateGallerySelection();
   if (document.getElementById('galleryOverlay').classList.contains('active')) renderGallery(getVisibleReviews());
+}
+
+function getGalleryWeekRange(now = new Date()) {
+  const {year,month,day}=archiveNowParts(now);
+  const today=new Date(Date.UTC(year,month-1,day));
+  const monday=new Date(today);
+  monday.setUTCDate(today.getUTCDate()-(today.getUTCDay()+6)%7);
+  const sunday=new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate()+6);
+  return {start:monday.toISOString().slice(0,10),end:sunday.toISOString().slice(0,10)};
+}
+
+function getGalleryExportItems(items = getVisibleReviews()) {
+  return gallerySelectedIds===null ? items : items.filter(review=>gallerySelectedIds.has(review.id));
+}
+
+function toggleGallerySelection() {
+  gallerySelectedIds=gallerySelectedIds===null ? new Set() : null;
+  gallerySelectionNote='';
+  updateGallerySelection();
+}
+
+function setGallerySelection(action) {
+  gallerySelectedIds=new Set(action==='all'?getVisibleReviews().map(review=>review.id):[]);
+  gallerySelectionNote='';
+  updateGallerySelection();
+}
+
+function selectGalleryWeek(now = new Date()) {
+  const {start,end}=getGalleryWeekRange(now);
+  gallerySelectedIds=new Set(getVisibleReviews().filter(review=>getWatchMoments(review).some(value=>{
+    const day=value.slice(0,10);
+    return day>=start&&day<=end;
+  })).map(review=>review.id));
+  gallerySelectionNote=`本周 ${start} 至 ${end}（周一至周日，含重看）${gallerySelectedIds.size?'':' · 当前筛选内没有本周观看的影片'}`;
+  updateGallerySelection();
+}
+
+function selectGalleryRandom() {
+  const input=document.getElementById('galleryRandomCount');
+  const requested=Number(input.value);
+  input.setCustomValidity('');
+  if (!Number.isSafeInteger(requested)||requested<1) {
+    input.setCustomValidity('请输入大于 0 的整数');
+    input.reportValidity();
+    return;
+  }
+  const candidates=[...getVisibleReviews()],count=Math.min(requested,candidates.length);
+  // Partial Fisher-Yates: sample without replacement, without changing archive order.
+  for (let index=0;index<count;index++) {
+    const target=index+Math.floor(Math.random()*(candidates.length-index));
+    [candidates[index],candidates[target]]=[candidates[target],candidates[index]];
+  }
+  gallerySelectedIds=new Set(candidates.slice(0,count).map(review=>review.id));
+  gallerySelectionNote=requested>candidates.length?`当前筛选共 ${candidates.length} 部，已全部选中`:`随机选中 ${count} 部，可再次随机或手动调整`;
+  updateGallerySelection();
+}
+
+function toggleGalleryCard(id) {
+  if (galleryMode!=='wall'||gallerySelectedIds===null) { openGalleryDetail(id); return; }
+  if (gallerySelectedIds.has(id)) gallerySelectedIds.delete(id);
+  else gallerySelectedIds.add(id);
+  gallerySelectionNote='';
+  updateGallerySelection();
+}
+
+function updateGallerySelection(items = getVisibleReviews()) {
+  const selecting=gallerySelectedIds!==null,wallMode=galleryMode==='wall';
+  const byId=new Map(items.map(review=>[review.id,review]));
+  if (selecting) for (const id of gallerySelectedIds) if (!byId.has(id)) gallerySelectedIds.delete(id);
+  const count=getGalleryExportItems(items).length;
+  document.getElementById('gallerySelectionTools').hidden=!wallMode;
+  document.getElementById('gallerySelectionActions').hidden=!selecting;
+  const toggle=document.getElementById('gallerySelectionToggle');
+  toggle.textContent=selecting?'取消选择':'选择影片';
+  toggle.setAttribute('aria-pressed',String(selecting));
+  document.getElementById('galleryWeekButton').disabled=!items.length;
+  document.getElementById('galleryRandomButton').disabled=!items.length;
+  document.getElementById('gallerySelectAll').disabled=!items.length;
+  const status=document.getElementById('gallerySelectionStatus');
+  const summary=selecting?`已选 ${count} / ${items.length} 部`:`当前 ${items.length} 部`;
+  const hint=selecting?'点击海报勾选或取消；取消选择可恢复查看详情和导出全部。':'默认导出当前筛选的全部影片；可选本周观看、随机抽取或手动勾选。';
+  status.innerHTML=`<strong>${summary}</strong>${escapeHtml(gallerySelectionNote?gallerySelectionNote+' · '+hint:hint)}`;
+  const wall=document.getElementById('galleryWall');
+  wall.classList.toggle('is-selecting',wallMode&&selecting);
+  wall.querySelectorAll('[data-gallery-review-id]').forEach(card=>{
+    const review=byId.get(card.dataset.galleryReviewId);
+    if (!review) return;
+    const checked=selecting&&gallerySelectedIds.has(review.id);
+    card.classList.toggle('is-selected',checked);
+    card.setAttribute('role',wallMode&&selecting?'checkbox':'button');
+    if (wallMode&&selecting) card.setAttribute('aria-checked',String(checked));
+    else card.removeAttribute('aria-checked');
+    card.setAttribute('aria-label',wallMode&&selecting?`选择《${review.title}》`:`查看《${review.title}》影评详情`);
+    const mark=card.querySelector('.gallery-card-selection');
+    if (mark) mark.textContent=checked?'✓':'';
+  });
+  const button=document.getElementById('galleryExportButton');
+  button.disabled=galleryExportBusy||(wallMode?!count:!items.length);
+  if (!galleryExportBusy) button.textContent=wallMode?(selecting?`导出已选 ${count} 部 PNG`:'导出海报墙 PNG'):'导出互动关系图 HTML';
 }
 
 function setRelationDimension(value) {
@@ -2979,6 +3121,8 @@ function openGallery() {
   cardImageQueue = [];
   cardImageQueued.clear();
   cardImageWaiters.clear();
+  gallerySelectedIds=null;
+  gallerySelectionNote='';
   renderGallery(getVisibleReviews());
   document.getElementById('galleryOverlay').classList.add('active');
   document.body.classList.add('gallery-open');
@@ -3021,8 +3165,10 @@ function renderGallery(items) {
   document.getElementById('gallerySummary').textContent = getGalleryFilterSummary(items);
   document.getElementById('galleryCount').textContent = `${items.length} 条影评`;
   stage.scrollTop = 0;
+  updateGallerySelection(items);
 
   if (!items.length) {
+    wall.className='gallery-wall';
     wall.innerHTML = `
       <div class="gallery-empty">
         <div style="font-size:2.8rem;">✦</div>
@@ -3048,6 +3194,7 @@ function renderGallery(items) {
     <article class="gallery-card ${getGalleryRatingClass(review.rating)} ${review.image ? 'has-image' : 'no-image'}"
       role="button" tabindex="0" data-gallery-review-id="${escapeHtml(review.id)}"
       aria-label="查看《${escapeHtml(review.title)}》影评详情">
+      <span class="gallery-card-selection" aria-hidden="true"></span>
       ${review.image ? `
         <img class="gallery-card-image" data-gallery-image-path="${escapeHtml(review.image.path)}" alt="《${escapeHtml(review.title)}》剧照">
         <div class="gallery-card-loading">正在加载剧照</div>
@@ -3060,6 +3207,7 @@ function renderGallery(items) {
       </div>
     </article>
   `).join('');
+  updateGallerySelection(items);
   hydrateGalleryImages();
 }
 
@@ -3416,14 +3564,14 @@ document.getElementById('galleryWall').addEventListener('focusout', event => {
 
 document.getElementById('galleryWall').addEventListener('click', event => {
   const card = event.target.closest('.gallery-card');
-  if (card) openGalleryDetail(card.dataset.galleryReviewId);
+  if (card) toggleGalleryCard(card.dataset.galleryReviewId);
 });
 
 document.getElementById('galleryWall').addEventListener('keydown', event => {
   const card = event.target.closest('.gallery-card');
   if (card && (event.key === 'Enter' || event.key === ' ')) {
     event.preventDefault();
-    openGalleryDetail(card.dataset.galleryReviewId);
+    if (!event.repeat) toggleGalleryCard(card.dataset.galleryReviewId);
   }
 });
 

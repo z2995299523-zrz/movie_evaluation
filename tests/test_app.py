@@ -649,7 +649,7 @@ class FrontendImageDropTests(unittest.TestCase):
         self.assertIn("galleryImageNodes", self.html)
         self.assertIn("hydrateGalleryImages", self.html)
         self.assertIn("root: stage", self.html)
-        self.assertIn("openGalleryDetail(card.dataset.galleryReviewId)", self.html)
+        self.assertIn("toggleGalleryCard(card.dataset.galleryReviewId)", self.html)
         detail_open = self.html.split("function openGalleryDetail(id)", 1)[1].split("/* ===== Export / Import ===== */", 1)[0]
         self.assertIn("openDetail(id)", detail_open)
         self.assertNotIn("closeGallery()", detail_open)

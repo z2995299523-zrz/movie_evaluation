@@ -255,6 +255,182 @@ try {
       importApplied: true, nativeDialogs: 0});
   });
 
+  await check('poster selection uses Monday to Sunday including rewatches and calendar-year boundaries', async () => {
+    const base = {...sample()[1], date: '2020-01-01'};
+    await loadApp({reviews: [
+      {...base, id: 'monday', date: '2026-10-19'},
+      {...base, id: 'sunday', date: '2026-10-25'},
+      {...base, id: 'previous-sunday', date: '2026-10-18'},
+      {...base, id: 'next-monday', date: '2026-10-26'},
+      {...base, id: 'rewatched-this-week', rewatches: [
+        {watchedAt: '2026-10-19T00:00', feeling: '', createdAt: 1},
+        {watchedAt: '2026-10-25T23:59', feeling: '', createdAt: 2},
+        {watchedAt: '2026-11-01T20:00', feeling: '', createdAt: 3}]},
+      {...base, id: 'old'}
+    ]});
+    const week = await page(() => {
+      openGallery(); setGalleryMode('wall');
+      const result = {range: getGalleryWeekRange(new Date(2026, 9, 22, 12)),
+        sundayRange: getGalleryWeekRange(new Date(2026, 9, 25, 23, 59)),
+        yearBoundary: getGalleryWeekRange(new Date(2027, 0, 1, 12))};
+      selectGalleryWeek(new Date(2026, 9, 22, 12));
+      result.ids = getGalleryExportItems().map(review => review.id).sort();
+      document.getElementById('searchInput').value = 'no matching movie';
+      render(); renderGallery(getVisibleReviews());
+      selectGalleryWeek(new Date(2026, 9, 22, 12));
+      result.empty = getGalleryExportItems().length;
+      result.emptyDisabled = document.getElementById('galleryExportButton').disabled;
+      const previousWeb = window.MOVIE_REVIEW_WEB;
+      try {
+        window.MOVIE_REVIEW_WEB = true;
+        result.shanghaiMonday = getGalleryWeekRange(new Date('2026-10-18T16:01:00Z'));
+        result.shanghaiSunday = getGalleryWeekRange(new Date('2026-10-18T15:59:00Z'));
+      } finally { window.MOVIE_REVIEW_WEB = previousWeb; }
+      result.saves = window.__qa.saves;
+      return result;
+    });
+    assert.deepEqual(week, {range: {start: '2026-10-19', end: '2026-10-25'},
+      sundayRange: {start: '2026-10-19', end: '2026-10-25'}, yearBoundary: {start: '2026-12-28', end: '2027-01-03'},
+      ids: ['monday', 'rewatched-this-week', 'sunday'], empty: 0, emptyDisabled: true,
+      shanghaiMonday: {start: '2026-10-19', end: '2026-10-25'}, shanghaiSunday: {start: '2026-10-12', end: '2026-10-18'}, saves: 0});
+  });
+
+  await check('manual poster selection supports keyboard, preserves cards and resets when the wall closes', async () => {
+    await loadApp({reviews: posterArchive(24).map(({image, ...review}) => review), ...phone});
+    const selection = await page(async () => {
+      const before = JSON.stringify(reviews);
+      openGallery(); setGalleryMode('wall');
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      const stage = document.getElementById('galleryStage');
+      const result = {defaultCount: getGalleryExportItems().length};
+      toggleGallerySelection();
+      result.emptyCount = getGalleryExportItems().length;
+      result.emptyDisabled = document.getElementById('galleryExportButton').disabled;
+      const cards = [...document.querySelectorAll('#galleryWall .gallery-card')], card = cards[10];
+      card.focus(); stage.scrollTop = 250;
+      const scrollTop = stage.scrollTop;
+      card.click();
+      result.clicked = {role: card.getAttribute('role'), checked: card.getAttribute('aria-checked'), count: getGalleryExportItems().length,
+        noDetail: !document.getElementById('detailOverlay').classList.contains('active'),
+        sameCard: document.querySelector(`[data-gallery-review-id="${card.dataset.galleryReviewId}"]`) === card,
+        sameScroll: stage.scrollTop === scrollTop};
+      const key = value => card.dispatchEvent(new KeyboardEvent('keydown', {key: value, bubbles: true, cancelable: true}));
+      key(' '); result.afterSpace = getGalleryExportItems().length;
+      key('Enter'); result.afterEnter = getGalleryExportItems().length;
+      const selected = getGalleryExportItems().map(review => review.id);
+      setGalleryMode('relation'); setGalleryMode('wall');
+      result.preservedAcrossModes = JSON.stringify(getGalleryExportItems().map(review => review.id)) === JSON.stringify(selected);
+      setGallerySelection('all'); result.allCount = getGalleryExportItems().length;
+      setGallerySelection('none'); result.noneCount = getGalleryExportItems().length;
+      toggleGallerySelection();
+      const detailCard = document.querySelector('#galleryWall .gallery-card');
+      detailCard.focus(); detailCard.click();
+      result.detailWorksAfterExit = document.getElementById('detailOverlay').classList.contains('active');
+      closeDetail();
+      result.detailReturnsToWall = document.getElementById('galleryOverlay').classList.contains('active') && document.activeElement === detailCard;
+      toggleGallerySelection(); closeGallery(); openGallery();
+      result.reopenedCount = getGalleryExportItems().length;
+      result.reopenedRole = document.querySelector('#galleryWall .gallery-card').getAttribute('role');
+      result.unchanged = JSON.stringify(reviews) === before;
+      result.saves = window.__qa.saves;
+      return result;
+    });
+    assert.deepEqual(selection, {defaultCount: 24, emptyCount: 0, emptyDisabled: true,
+      clicked: {role: 'checkbox', checked: 'true', count: 1, noDetail: true, sameCard: true, sameScroll: true},
+      afterSpace: 0, afterEnter: 1, preservedAcrossModes: true, allCount: 24, noneCount: 0,
+      detailWorksAfterExit: true, detailReturnsToWall: true, reopenedCount: 24, reopenedRole: 'button', unchanged: true, saves: 0});
+  });
+
+  await check('random poster selection stays unique, respects filters and rejects invalid counts', async () => {
+    await loadApp({reviews: posterArchive(20).map(({image, ...review}) => review)});
+    const random = await page(() => {
+      const before = JSON.stringify(reviews);
+      document.getElementById('filterRating').value = '5'; render();
+      openGallery(); setGalleryMode('wall');
+      const input = document.getElementById('galleryRandomCount');
+      input.value = '3'; selectGalleryRandom();
+      const picked = getGalleryExportItems(), candidates = getVisibleReviews();
+      const result = {count: picked.length, unique: new Set(picked.map(review => review.id)).size,
+        withinFilter: picked.every(review => review.rating === 5),
+        stableOrder: JSON.stringify(picked.map(review => review.id)) === JSON.stringify(candidates.filter(review => picked.includes(review)).map(review => review.id))};
+      const selected = JSON.stringify(picked.map(review => review.id));
+      result.invalidKeepsSelection = ['', '0', '-2', '1.5'].every(value => {
+        input.value = value; selectGalleryRandom();
+        return JSON.stringify(getGalleryExportItems().map(review => review.id)) === selected;
+      });
+      input.value = '999'; selectGalleryRandom(); result.overCount = getGalleryExportItems().length;
+      const card = document.querySelector('#galleryWall .gallery-card'); card.click();
+      result.manualAdjustment = getGalleryExportItems().length;
+      result.unchanged = JSON.stringify(reviews) === before; result.saves = window.__qa.saves;
+      return result;
+    });
+    assert.deepEqual(random, {count: 3, unique: 3, withinFilter: true, stableOrder: true,
+      invalidKeepsSelection: true, overCount: 4, manualAdjustment: 3, unchanged: true, saves: 0});
+  });
+
+  await check('poster PNG contains only the selected snapshot and decodes as an actual image', async () => {
+    await loadApp({reviews: posterArchive(4), stills: true});
+    const exported = await page(async () => {
+      openGallery(); setGalleryMode('wall'); toggleGallerySelection();
+      const cards = [...document.querySelectorAll('#galleryWall .gallery-card')];
+      cards[0].click(); cards[2].click();
+      const expected = getGalleryExportItems().map(review => review.title), titles = new Set(reviews.map(review => review.title));
+      const drawn = [], calls = [], originalText = CanvasRenderingContext2D.prototype.fillText;
+      const originalExport = window.pywebview.api.export_graph_image;
+      let changedDuringExport = false;
+      CanvasRenderingContext2D.prototype.fillText = function (value, ...args) {
+        if (titles.has(String(value))) {
+          drawn.push(String(value));
+          if (!changedDuringExport) { changedDuringExport = true; setGallerySelection('none'); }
+        }
+        return originalText.call(this, value, ...args);
+      };
+      window.pywebview.api.export_graph_image = async (data, name) => { calls.push({data, name}); return {ok: true}; };
+      try {
+        await exportGallery();
+        const capture = calls[0], image = new Image(); image.src = capture?.data || ''; await image.decode();
+        const result = {expected, drawn, calls: calls.length, png: capture.data.startsWith('data:image/png;base64,'),
+          width: image.naturalWidth, height: image.naturalHeight, changedDuringExport,
+          stillEmpty: getGalleryExportItems().length === 0, disabledAfterExport: document.getElementById('galleryExportButton').disabled};
+        await exportGallery(); await exportPosterWall();
+        result.emptyDoesNotExport = calls.length === 1;
+        setGallerySelection('all'); result.enabledAfterReselect = !document.getElementById('galleryExportButton').disabled;
+        result.saves = window.__qa.saves;
+        return result;
+      } finally {
+        CanvasRenderingContext2D.prototype.fillText = originalText;
+        window.pywebview.api.export_graph_image = originalExport;
+      }
+    });
+    assert.deepEqual(exported.drawn, exported.expected);
+    assert.equal(exported.calls, 1);
+    assert.ok(exported.png && exported.width > 0 && exported.height > 0, JSON.stringify(exported));
+    assert.ok(exported.changedDuringExport && exported.stillEmpty && exported.disabledAfterExport && exported.emptyDoesNotExport && exported.enabledAfterReselect, JSON.stringify(exported));
+    assert.equal(exported.saves, 0);
+  });
+
+  await check('poster selection controls stay reachable on a phone and leave space for posters', async () => {
+    await loadApp({reviews: posterArchive(12).map(({image, ...review}) => review), ...phone});
+    const layout = await page(async () => {
+      openGallery(); setGalleryMode('wall'); toggleGallerySelection();
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      const overlay = document.getElementById('galleryOverlay'), stage = document.getElementById('galleryStage');
+      const controls = [...overlay.querySelectorAll('button, input, select')].filter(control => control.getClientRects().length > 0);
+      const outside = controls.filter(control => {
+        const rect = control.getBoundingClientRect();
+        return rect.left < -1 || rect.right > window.innerWidth + 1 || rect.top < -1 || rect.bottom > window.innerHeight + 1;
+      }).map(control => control.id || control.textContent.trim());
+      const result = {outside, stageHeight: stage.getBoundingClientRect().height,
+        horizontalOverflow: overlay.scrollWidth > overlay.clientWidth + 1 || stage.scrollWidth > stage.clientWidth + 1,
+        numberFont: parseFloat(getComputedStyle(document.getElementById('galleryRandomCount')).fontSize)};
+      setGalleryMode('relation');
+      result.randomHiddenInRelation = document.getElementById('galleryRandomCount').getClientRects().length === 0;
+      return result;
+    });
+    assert.deepEqual(layout.outside, []);
+    assert.ok(layout.stageHeight >= 200 && !layout.horizontalOverflow && layout.numberFont >= 16 && layout.randomHiddenInRelation, JSON.stringify(layout));
+  });
+
   await check('scrolling the poster wall back and forth does not reload posters', async () => {
     await loadApp({reviews: posterArchive(60), stills: true, ...phone});
     const wall = await page(async () => {
