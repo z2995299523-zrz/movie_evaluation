@@ -271,7 +271,7 @@ body {
   background: rgba(13,11,12,.84); color: var(--gold);
   border: 1px solid rgba(255,255,255,.16); border-radius: 99px; font-size: .78rem; font-weight: 700;
 }
-.card-rating-chip .star-empty { color: rgba(255,255,255,.35); }
+.card-rating-unrated { color: var(--text2); font-weight: 400; }
 .card-image-loading {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   color: rgba(255,255,255,.72); font-size: .78rem; letter-spacing: .04em;
@@ -756,10 +756,11 @@ body.gallery-open { overflow: hidden; }
   .movie-card .card-visual, .movie-card.has-image .card-visual { height: clamp(112px, 30vw, 136px); min-height: 0; }
   .movie-card .card-body { display: none; }
   .card-visual-copy, .movie-card.no-image .card-visual-copy { inset: auto 8px 7px; }
-  .card-visual-title, .movie-card.no-image .card-visual-title { font-size: .875rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card-visual-title, .movie-card.no-image .card-visual-title { margin-right: 24px; font-size: .875rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .card-visual-meta { display: none; }
   .card-mobile-meta { display: block; margin-top: 3px; color: #e0d6d4; font-size: .75rem; line-height: 1.4; white-space: nowrap; }
-  .card-rating-chip { top: 6px; right: 6px; padding: 2px 5px; font-size: .75rem; line-height: 1.4; }
+  .card-rating-chip { top: 6px; right: 6px; flex-direction: column; gap: 0; padding: 3px 2px; border-radius: 5px; background: rgba(13,11,12,.45); font-size: .75rem; line-height: 1; pointer-events: none; }
+  .card-rating-unrated { writing-mode: vertical-rl; letter-spacing: 1px; }
   .card-fallback-mark { top: 9px; left: 9px; font-size: 1.6rem; }
   .card-image-overlay { background: linear-gradient(180deg,rgba(8,8,12,.08) 20%,rgba(8,8,12,.38) 45%,rgba(8,8,12,.94) 100%); }
   .toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; margin-bottom: 10px; }
@@ -3384,7 +3385,7 @@ function renderGrid(items) {
           <div class="card-image-loading">正在加载剧照</div>
           <div class="card-image-overlay"></div>
         ` : `<div class="card-fallback-mark">✦</div>`}
-        <div class="card-rating-chip" role="img" aria-label="${r.rating ? `评分 ${r.rating} 星` : '未评分'}">${renderStars(r.rating)}</div>
+        <div class="card-rating-chip" role="img" aria-label="${r.rating ? `评分 ${r.rating} 星` : '未评分'}">${renderStars(r.rating, true) || '<span class="card-rating-unrated">未评分</span>'}</div>
         <div class="card-visual-copy">
           <div class="card-visual-title">${escapeHtml(r.title)}</div>
           <div class="card-visual-meta">${r.director ? `🎬 ${escapeHtml(r.director)} · ` : ''}📅 ${formatDate(r.date)} · 已看 ${getWatchCount(r)} 次</div>
@@ -3409,9 +3410,9 @@ function renderGrid(items) {
   hydrateCardImages();
 }
 
-function renderStars(rating) {
+function renderStars(rating, filledOnly = false) {
   let html = '';
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 1; i <= (filledOnly ? rating : 5); i++) {
     html += `<span class="${i <= rating ? 'star-filled' : 'star-empty'}">${i <= rating ? '★' : '☆'}</span>`;
   }
   return html;
