@@ -56,6 +56,8 @@ A privacy-focused film journal with a local Windows app and a self-hosted web ve
 
 海报墙选片：进入“策展墙 → 海报墙”，点“本周观看”可选中本周一至周日内初看或重看过的影片；输入数量后点“随机选择”可抽取不重复的影片；点“选择影片”可从空选开始手动勾选。快捷选择均在当前搜索、评分和标签筛选范围内进行，可继续点击海报增减，或使用“全选”“清空”。确认已选数量后点“导出已选 N 部 PNG”。“取消选择”恢复查看详情和导出全部；切换关系图保留选择，关闭策展墙后再次打开会恢复默认。选择操作不修改观影记录。
 
+海报墙导出样式：工具区默认选择“横向剧照墙”，剧照按原比例完整显示，超宽或竖图的空余区域以深色补齐，片名、评分与观看日期排列在图片下方。也可切换“经典竖版海报墙”，保留原来的 2:3 裁切铺满和文字叠加样式。样式选择只影响导出的 PNG，不改变浏览中的海报卡片或原始剧照文件；两种样式都支持当前筛选和选片范围。
+
 ## 快速开始
 
 ### 从源码运行 Windows 桌面版
@@ -146,14 +148,15 @@ Web 检查使用已安装锁定依赖和测试客户端的独立环境；检查�
 .\.runtime-web\Scripts\python.exe deploy/check_release.py web
 ```
 
-两个浏览器回归使用 Node.js 24 或更高版本和本机 Chrome / Chromium；不需要网站账户，使用内存虚构档案。Chrome 不在脚本默认路径时，设置 `CHROME_PATH` 后运行：
+浏览器回归使用 Node.js 24 或更高版本和本机 Chrome / Chromium；不需要网站账户，使用内存虚构档案。Chrome 不在脚本默认路径时，设置 `CHROME_PATH` 后运行：
 
 ```powershell
 node tests/browser_behavior.mjs
+node tests/browser_poster_export.mjs
 node tests/browser_security.mjs
 ```
 
-`browser_behavior.mjs` 检查表单、排序、弹窗、统计、海报墙、图谱及手机宽度布局；`browser_security.mjs` 检查文本与属性注入防护。测试产生的浏览器临时文件位于被忽略的 `.runtime-test/`。
+`browser_behavior.mjs` 检查表单、排序、弹窗、统计、海报墙、图谱及手机宽度布局；`browser_poster_export.mjs` 检查横向剧照完整显示、文字下置、经典竖版及选片导出，并生成合成样例 PNG；`browser_security.mjs` 检查文本与属性注入防护。测试产生的浏览器临时文件位于被忽略的 `.runtime-test/`。
 
 如需运行通用 Python 测试发现，可执行 `python -m unittest discover -s tests -v`。未安装 Web 依赖的桌面环境可能跳过 Web 测试，因此完整检查应按上面的独立命令执行。自动化测试不代替原生窗口、系统文件选择器、实际 HTTPS 和手机实机验收。
 
