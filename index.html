@@ -1121,7 +1121,7 @@ body.gallery-open { overflow: hidden; }
           <option value="landscape">横向剧照墙</option>
           <option value="portrait">经典竖版海报墙</option>
         </select>
-        <span class="gallery-export-hint" id="galleryExportHint">剧照完整显示，片名、评分和观看日期放在下方。</span>
+        <span class="gallery-export-hint" id="galleryExportHint">剧照完整显示，下方分层展示片名、评分、导演、类型和观看信息。</span>
       </div>
       <button class="btn btn-ghost btn-sm" id="gallerySelectionToggle" type="button" onclick="toggleGallerySelection()" aria-pressed="false">选择影片</button>
       <button class="btn btn-ghost btn-sm" id="galleryWeekButton" type="button" onclick="selectGalleryWeek()">本周观看</button>
@@ -1850,51 +1850,127 @@ async function exportKnowledgeGraph() {
   } catch(error) { showToast(error.message||'导出失败','error'); }
 }
 
-function drawPosterWallTitle(ctx, title, x, y, maxWidth) {
-  const characters=Array.from(title),lines=[''];
+function wrapPosterWallText(ctx, text, maxWidth, maxLines=2, separator='') {
+  const characters=Array.from(String(text||'').trim().replace(/\s+/g,' ')),lines=[''];
   for(let index=0;index<characters.length;index++) {
     const last=lines.length-1,next=lines[last]+characters[index];
     if(ctx.measureText(next).width<=maxWidth) { lines[last]=next; continue; }
-    if(lines.length===1) { lines.push(characters[index]); continue; }
-    while(ctx.measureText(lines[last]+'…').width>maxWidth) lines[last]=Array.from(lines[last]).slice(0,-1).join('');
+    if(lines.length<maxLines) {
+      const boundary=separator?lines[last].lastIndexOf(separator):-1;
+      if(boundary>0) {
+        lines.push(lines[last].slice(boundary+separator.length)+characters[index]);
+        lines[last]=lines[last].slice(0,boundary);
+      } else lines.push(characters[index]);
+      continue;
+    }
+    while(lines[last]&&ctx.measureText(lines[last]+'…').width>maxWidth) lines[last]=Array.from(lines[last]).slice(0,-1).join('');
     lines[last]+='…';break;
   }
-  lines.forEach((line,index)=>ctx.fillText(line,x,y+index*24));
+  return lines;
+}
+
+function drawPosterWallText(ctx, text, x, y, maxWidth, maxLines=2, lineHeight=24) {
+  const lines=wrapPosterWallText(ctx,text,maxWidth,maxLines);
+  lines.forEach((line,index)=>ctx.fillText(line,x,y+index*lineHeight));
+}
+
+function measurePosterWallCaption(ctx, review, width) {
+  const titleFont='600 25px sans-serif';
+  ctx.font=titleFont;
+  const title=wrapPosterWallText(ctx,review.title,width);
+  const lines=title.map((text,index)=>({text,y:32+index*31,font:titleFont,color:'#f4f5f7'}));
+  const ratingY=lines[lines.length-1].y+32;
+  let baseline=ratingY;
+  ctx.font='15px sans-serif';
+  const director=review.director?.trim()?`导演 ${review.director.trim()}`:'';
+  const categories=(review.categories||[]).map(value=>value.trim()).filter(Boolean).join(' / ');
+  const combined=[director,categories].filter(Boolean).join('  ·  ');
+  const addMetadata=text=>lines.push({text,y:baseline,font:ctx.font,color:'#b6bac2'});
+  if(combined) {
+    baseline+=30;
+    if(ctx.measureText(combined).width<=width) addMetadata(combined);
+    else {
+      if(director) {
+        addMetadata(wrapPosterWallText(ctx,director,width,1)[0]);
+        if(categories) baseline+=22;
+      }
+      if(categories) {
+        const types=wrapPosterWallText(ctx,categories,width,2,' / ');
+        types.forEach((text,index)=>{if(index)baseline+=22;addMetadata(text);});
+      }
+    }
+  }
+  return {lines,ratingY,height:baseline+48};
+}
+
+function drawPosterWallRating(ctx, rating, x, y) {
+  ctx.save();
+  if(rating>0) {
+    for(let star=0;star<5;star++) {
+      const cx=x+10+star*24,cy=y-7;
+      ctx.beginPath();
+      for(let point=0;point<10;point++) {
+        const angle=-Math.PI/2+point*Math.PI/5,radius=point%2?4.5:10;
+        const px=cx+Math.cos(angle)*radius,py=cy+Math.sin(angle)*radius;
+        if(point===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+      }
+      ctx.closePath();ctx.lineWidth=1.4;
+      ctx.strokeStyle=star<rating?'#ffad61':'#747b87';
+      if(star<rating) {ctx.fillStyle='#ffad61';ctx.fill();}
+      ctx.stroke();
+    }
+    ctx.fillStyle='#b6bac2';ctx.font='14px sans-serif';ctx.fillText('我的评分',x+134,y);
+    ctx.fillStyle='#ffad61';ctx.font='600 17px sans-serif';ctx.fillText(`${rating} 分`,x+202,y);
+  } else {
+    ctx.fillStyle='#b6bac2';ctx.font='15px sans-serif';ctx.fillText('暂未评分',x,y);
+  }
+  ctx.restore();
 }
 
 async function exportPosterWall() {
   if (galleryExportBusy) return;
   const landscape=document.getElementById('galleryExportStyle').value!=='portrait';
-  const items=getGalleryExportItems(),cardWidth=landscape?400:220,imageHeight=225,cardHeight=landscape?333:330,gap=18,padding=64,header=174,footer=66;
+  const items=getGalleryExportItems(),cardWidth=landscape?560:220,imageHeight=315,gap=landscape?40:18,padding=64,header=landscape?160:174,footer=66;
   if (!items.length) { showToast('请先选择要导出的影片','error'); return; }
+  const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
+  const captions=landscape?items.map(review=>measurePosterWallCaption(ctx,review,cardWidth)):[];
   const selectionSummary=gallerySelectedIds===null?getGalleryFilterSummary(items):`已选 ${items.length} 部 / 当前筛选 ${getVisibleReviews().length} 部`;
-  const firstColumns=Math.min(landscape?3:6,items.length);
+  const firstColumns=Math.min(landscape?2:6,items.length);
   const layout=Array.from({length:19-firstColumns},(_,index)=>index+firstColumns).map(columns=>{
     const rows=Math.ceil(items.length/columns),width=padding*2+columns*cardWidth+(columns-1)*gap;
-    const height=header+rows*cardHeight+Math.max(0,rows-1)*gap+footer;
-    return {columns,width,height};
+    const rowHeights=Array.from({length:rows},(_,row)=>landscape?
+      imageHeight+Math.max(...captions.slice(row*columns,(row+1)*columns).map(caption=>caption.height)):330);
+    const rowY=[];let bottom=header;
+    rowHeights.forEach(rowHeight=>{rowY.push(bottom);bottom+=rowHeight+gap;});
+    return {columns,width,height:bottom-gap+footer,rowHeights,rowY};
   }).find(candidate=>candidate.height<=16000&&candidate.width*candidate.height<=80000000);
   if(!layout) {
     showToast('海报墙图片过大，请先缩小筛选范围再导出','error');return;
   }
-  const {columns,width,height}=layout;
+  const {columns,width,height,rowHeights,rowY}=layout;
   const button=document.getElementById('galleryExportButton');
   galleryExportBusy=true;
   button.disabled=true;
   document.getElementById('galleryExportStyle').disabled=true;
   button.textContent='正在制作海报墙…';
-  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
-  const ctx=canvas.getContext('2d');
+  canvas.width=width;canvas.height=height;
   try {
-    ctx.fillStyle='#0d0b0c';ctx.fillRect(0,0,width,height);
-    ctx.fillStyle='#d6b06a';ctx.font='700 17px sans-serif';ctx.fillText('CURATED REVIEW WALL',padding,52);
-    ctx.fillStyle='#f3ede5';ctx.font='700 42px sans-serif';ctx.fillText(landscape?'我的电影剧照墙':'我的电影策展墙',padding,105,width-padding*2);
-    ctx.fillStyle='#aaa0a2';ctx.font='17px sans-serif';
-    ctx.fillText(`${selectionSummary} · ${items.length} 部电影`,padding,143,width-padding*2);
+    ctx.fillStyle=landscape?'#111315':'#0d0b0c';ctx.fillRect(0,0,width,height);
+    if(landscape) {
+      ctx.fillStyle='#f4f5f7';ctx.font='600 34px sans-serif';
+      ctx.fillText('我的电影手记',padding,83);
+      ctx.fillStyle='#a9afb8';ctx.font='14px sans-serif';
+      drawPosterWallText(ctx,`${items.length} 部电影  ·  ${selectionSummary}`,padding,120,width-padding*2,1);
+    } else {
+      ctx.fillStyle='#d6b06a';ctx.font='700 17px sans-serif';ctx.fillText('CURATED REVIEW WALL',padding,52);
+      ctx.fillStyle='#f3ede5';ctx.font='700 42px sans-serif';ctx.fillText('我的电影策展墙',padding,105,width-padding*2);
+      ctx.fillStyle='#aaa0a2';ctx.font='17px sans-serif';
+      ctx.fillText(`${selectionSummary} · ${items.length} 部电影`,padding,143,width-padding*2);
+    }
     for(let index=0;index<items.length;index++) {
-      const review=items[index],x=padding+(index%columns)*(cardWidth+gap),y=header+Math.floor(index/columns)*(cardHeight+gap);
-      ctx.fillStyle='#241a1e';ctx.fillRect(x,y,cardWidth,cardHeight);
-      if(landscape) { ctx.fillStyle='#121012';ctx.fillRect(x,y,cardWidth,imageHeight); }
+      const row=Math.floor(index/columns),cardHeight=rowHeights[row];
+      const review=items[index],x=padding+(index%columns)*(cardWidth+gap),y=rowY[row];
+      ctx.fillStyle=landscape?'#080a0c':'#241a1e';ctx.fillRect(x,y,cardWidth,landscape?imageHeight:cardHeight);
       let imageReady=false;
       if(review.image?.path) {
         let url='';
@@ -1902,7 +1978,7 @@ async function exportPosterWall() {
           url=await loadImageObjectUrl(review.image,()=>{},()=>true);
           const image=new Image();image.src=url;await image.decode();
           if(landscape) {
-            // Reserve the outer border and fit the complete original inside the image area.
+            // Keep a small inset and fit the complete original inside the image area.
             const scale=Math.min((cardWidth-4)/image.naturalWidth,(imageHeight-4)/image.naturalHeight);
             const imageWidth=image.naturalWidth*scale,drawHeight=image.naturalHeight*scale;
             ctx.drawImage(image,x+(cardWidth-imageWidth)/2,y+(imageHeight-drawHeight)/2,imageWidth,drawHeight);
@@ -1918,16 +1994,17 @@ async function exportPosterWall() {
       }
       if(landscape) {
         if(!imageReady) {
-          ctx.fillStyle='#aaa0a2';ctx.font='16px sans-serif';ctx.textAlign='center';
+          ctx.fillStyle='#a9afb8';ctx.font='15px sans-serif';ctx.textAlign='center';
           ctx.fillText(review.image?.path?'剧照暂不可用':'暂无剧照',x+cardWidth/2,y+imageHeight/2+6);
           ctx.textAlign='start';
         }
-        ctx.fillStyle='#fff';ctx.font='700 19px sans-serif';
-        drawPosterWallTitle(ctx,review.title,x+16,y+imageHeight+28,cardWidth-32);
-        ctx.fillStyle='#d6b06a';ctx.font='16px sans-serif';
-        ctx.fillText(review.rating?`${review.rating} ★`:'未评分',x+16,y+imageHeight+85);
-        ctx.fillStyle='#c9c0bf';ctx.font='14px sans-serif';
-        ctx.fillText(`${formatCompactDate(review.date)||'未填写日期'} · ${getWatchCount(review)} 次观看`,x+100,y+imageHeight+85,cardWidth-116);
+        captions[index].lines.forEach(line=>{
+          ctx.font=line.font;ctx.fillStyle=line.color;ctx.fillText(line.text,x,y+imageHeight+line.y);
+        });
+        drawPosterWallRating(ctx,review.rating,x,y+imageHeight+captions[index].ratingY);
+        ctx.fillStyle='#a9afb8';ctx.font='14px sans-serif';
+        const viewed=review.date?`观看于 ${formatCompactDate(review.date)}  ·  `:'';
+        ctx.fillText(`${viewed}已看 ${getWatchCount(review)} 次`,x,y+cardHeight-18);
       } else {
         const shade=ctx.createLinearGradient(0,y+cardHeight*.42,0,y+cardHeight);
         shade.addColorStop(0,'rgba(5,5,8,0)');shade.addColorStop(1,'rgba(5,5,8,.96)');
@@ -1939,10 +2016,11 @@ async function exportPosterWall() {
         ctx.fillStyle='#c9c0bf';ctx.font='14px sans-serif';
         ctx.fillText(`${formatCompactDate(review.date)} · ${getWatchCount(review)} 次观看`,x+12,y+cardHeight-23,cardWidth-24);
       }
-      ctx.strokeStyle=review.rating>=5?'#d6b06a':'#57424a';ctx.lineWidth=2;ctx.strokeRect(x+1,y+1,cardWidth-2,cardHeight-2);
+      if(!landscape) { ctx.strokeStyle=review.rating>=5?'#d6b06a':'#57424a';ctx.lineWidth=2;ctx.strokeRect(x+1,y+1,cardWidth-2,cardHeight-2); }
       if(index%6===0) { button.textContent=`正在制作 ${index+1}/${items.length}`; await new Promise(resolve=>setTimeout(resolve,0)); }
     }
-    ctx.fillStyle='#8d8183';ctx.font='14px sans-serif';ctx.fillText('我的影评记录 · 本地策展',padding,height-24,width-padding*2);
+    ctx.fillStyle=landscape?'#a9afb8':'#8d8183';ctx.font=landscape?'12px sans-serif':'14px sans-serif';
+    ctx.fillText(landscape?'我的影评记录':'我的影评记录 · 本地策展',padding,height-24,width-padding*2);
     const result=await desktopMethod('export_graph_image')(canvas.toDataURL('image/png'),'电影海报墙');
     if(result.ok)showToast(landscape?'横向剧照墙 PNG 已导出':'海报墙 PNG 已导出');
     else if(!result.cancelled)showToast(result.error||'导出失败','error');
@@ -2979,7 +3057,7 @@ function updateGallerySelection(items = getVisibleReviews()) {
   const selecting=gallerySelectedIds!==null,wallMode=galleryMode==='wall';
   const exportStyle=document.getElementById('galleryExportStyle');
   exportStyle.disabled=galleryExportBusy;
-  document.getElementById('galleryExportHint').textContent=exportStyle.value==='portrait'?'保留原来的竖版样式，剧照裁切铺满，文字叠在图片上。':'剧照完整显示，片名、评分和观看日期放在下方。';
+  document.getElementById('galleryExportHint').textContent=exportStyle.value==='portrait'?'保留原来的竖版样式，剧照裁切铺满，文字叠在图片上。':'剧照完整显示，下方分层展示片名、评分、导演、类型和观看信息。';
   const byId=new Map(items.map(review=>[review.id,review]));
   if (selecting) for (const id of gallerySelectedIds) if (!byId.has(id)) gallerySelectedIds.delete(id);
   const count=getGalleryExportItems(items).length;
